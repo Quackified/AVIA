@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.AlgoLens" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Global Typography -->
+        <item name="android:fontFamily">@font/jetbrains_mono</item>
+
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/primary_cyan</item>
+        <item name="colorOnPrimary">@color/bg_dark</item>
+
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/secondary_purple</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">@color/bg_dark</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+
+        <!-- Background colors -->
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:colorBackground">@color/bg_dark</item>
+
+        <!-- Navigation bar color -->
+        <item name="android:navigationBarColor">@color/bg_dark</item>
+    </style>
+
+    <!-- Bottom Navigation Styles -->
+    <style name="BottomNavLabel" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">@dimen/text_tiny</item>
+        <item name="android:fontFamily">@font/jetbrains_mono</item>
+    </style>
+
+    <style name="BottomNavLabel.Active">
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

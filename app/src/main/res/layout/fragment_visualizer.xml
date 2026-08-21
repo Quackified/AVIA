@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:orientation="vertical">
+
+    <!-- 1. TOP CONTROL BAR HEADER -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="14dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/btn_back"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/card_background"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_back"
+                    app:tint="@color/text_secondary" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_algo_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Bubble Sort"
+                        android:textColor="@color/text_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_step_counter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Step 1 of 45"
+                        android:textColor="@color/text_muted"
+                        android:textSize="8sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/chip_background_selector"
+                android:backgroundTint="#1AFB923C"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp">
+
+                <ImageView
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/ic_explore"
+                    app:tint="@color/accent_orange" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="OFFLINE"
+                    android:textColor="@color/accent_orange"
+                    android:textSize="8sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- Perspective Toggle -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/toggle_pill_background"
+            android:orientation="horizontal"
+            android:padding="2dp">
+
+            <TextView
+                android:id="@+id/btn_view_canvas"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/chip_background_selector"
+                android:backgroundTint="@color/primary_cyan"
+                android:gravity="center"
+                android:paddingVertical="4dp"
+                android:text="Visual Canvas"
+                android:textColor="@color/bg_dark"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_view_code"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:paddingVertical="4dp"
+                android:text="Code &amp; Stack"
+                android:textColor="@color/text_muted"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider_color" />
+
+    <!-- 2. VISUALIZER CONTENT AREA -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingHorizontal="14dp"
+        android:paddingTop="6dp">
+
+        <!-- Sub-bar: DS mode switcher + Edit Input -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btn_ds_array"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/chip_background_selector"
+                    android:backgroundTint="#3322D3EE"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:text="1D Array"
+                    android:textColor="@color/primary_cyan"
+                    android:textSize="8sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btn_ds_graph"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/card_background"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:text="2D Graph"
+                    android:textColor="@color/text_muted"
+                    android:textSize="8sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_edit_input"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:background="@drawable/chip_background_selector"
+                android:backgroundTint="#1422D3EE"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="7dp"
+                android:paddingVertical="2dp">
+
+                <ImageView
+                    android:layout_width="9dp"
+                    android:layout_height="9dp"
+                    android:layout_marginEnd="3dp"
+                    android:src="@drawable/ic_sliders"
+                    app:tint="@color/primary_cyan" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Edit Input"
+                    android:textColor="@color/primary_cyan"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- Live Step Description -->
+        <TextView
+            android:id="@+id/tv_step_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/card_background"
+            android:paddingHorizontal="9dp"
+            android:paddingVertical="5dp"
+            android:text="Compare index 0 [64] and index 1 [34]"
+            android:textColor="@color/text_secondary"
+            android:textSize="9sp"
+            android:lineSpacingMultiplier="1.4" />
+
+        <!-- Visualization Canvas Placeholder -->
+        <FrameLayout
+            android:id="@+id/visualization_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/card_background"
+            android:backgroundTint="#080D1B">
+
+            <com.example.algolens.ui.visualizer.BarVisualizerView
+                android:id="@+id/bar_visualizer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="8dp" />
+
+            <com.example.algolens.ui.visualizer.GraphVisualizerView
+                android:id="@+id/graph_visualizer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="8dp"
+                android:visibility="gone" />
+
+            <!-- Code & Stack View -->
+            <LinearLayout
+                android:id="@+id/layout_code_stack"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="8dp"
+                android:visibility="gone">
+
+                <!-- Variable Inspector -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:background="@drawable/card_background"
+                    android:backgroundTint="#1422D3EE"
+                    android:orientation="vertical"
+                    android:padding="6dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="LIVE VARIABLE INSPECTOR"
+                        android:textColor="@color/text_muted"
+                        android:textSize="7.5sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tv_var_i"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/chip_background_selector"
+                            android:backgroundTint="#1422D3EE"
+                            android:paddingHorizontal="5dp"
+                            android:paddingVertical="1dp"
+                            android:text="i = 0"
+                            android:textColor="@color/primary_cyan"
+                            android:textSize="8sp" />
+
+                        <TextView
+                            android:id="@+id/tv_var_j"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/chip_background_selector"
+                            android:backgroundTint="#1422D3EE"
+                            android:paddingHorizontal="5dp"
+                            android:paddingVertical="1dp"
+                            android:text="j = 0"
+                            android:textColor="@color/primary_cyan"
+                            android:textSize="8sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Code Listing -->
+                <LinearLayout
+                    android:id="@+id/layout_code_listing"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#060A14"
+                    android:orientation="vertical"
+                    android:paddingVertical="4dp" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <!-- Scrubber -->
+        <SeekBar
+            android:id="@+id/step_scrubber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:progressTint="@color/primary_cyan"
+            android:thumbTint="@color/primary_cyan" />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:paddingBottom="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start (Step 1)"
+                android:textColor="@color/text_hint"
+                android:textSize="8sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:text="Step 1/45"
+                android:textColor="@color/text_hint"
+                android:textSize="8sp" />
+        </RelativeLayout>
+    </LinearLayout>
+
+    <!-- 3. PLAYBACK CONTROL BAR -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="6dp">
+
+        <ImageView
+            android:id="@+id/btn_reset"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="7dp"
+            android:src="@drawable/ic_reset"
+            app:tint="@color/text_hint" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:id="@+id/btn_skip_back"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/card_background"
+            android:padding="9dp"
+            android:src="@drawable/ic_skip_back"
+            app:tint="@color/text_primary" />
+
+        <View
+            android:layout_width="16dp"
+            android:layout_height="1dp" />
+
+        <FrameLayout
+            android:id="@+id/btn_play_pause"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/chip_background_selector"
+            android:backgroundTint="@color/primary_cyan"
+            android:elevation="8dp">
+
+            <ImageView
+                android:id="@+id/iv_play_pause"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="center"
+                android:layout_marginStart="2dp"
+                android:src="@drawable/ic_play" />
+        </FrameLayout>
+
+        <View
+            android:layout_width="16dp"
+            android:layout_height="1dp" />
+
+        <ImageView
+            android:id="@+id/btn_skip_forward"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/card_background"
+            android:padding="9dp"
+            android:src="@drawable/ic_skip_forward"
+            app:tint="@color/text_primary" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:id="@+id/btn_ai_tutor"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/chip_background_selector"
+            android:backgroundTint="#268B5CF6"
+            android:padding="9dp"
+            android:src="@drawable/ic_bot"
+            app:tint="@color/secondary_purple" />
+    </LinearLayout>
+
+</LinearLayout>
