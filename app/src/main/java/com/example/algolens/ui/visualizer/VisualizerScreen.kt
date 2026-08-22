@@ -96,7 +96,7 @@ fun VisualizerScreen(
     var perspective by remember { mutableStateOf(ViewPerspective.CANVAS) }
     var dsMode by remember {
         mutableStateOf(
-            if (algorithm.category.equals("Graphs", ignoreCase = true)) DataStructureMode.GRAPH
+            if (algorithm.category.equals("Graph Traversal", ignoreCase = true)) DataStructureMode.GRAPH
             else DataStructureMode.ARRAY
         )
     }

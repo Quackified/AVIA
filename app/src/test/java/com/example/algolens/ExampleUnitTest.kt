@@ -21,8 +21,30 @@ class ExampleUnitTest {
 
     @Test
     fun sampleData_containsExpectedAlgorithms() {
-        assertEquals(8, SampleData.algorithms.size)
+        assertEquals(13, SampleData.algorithms.size)
         assertTrue(SampleData.categories.contains("Sorting"))
-        assertTrue(SampleData.categories.contains("Graphs"))
+        assertTrue(SampleData.categories.contains("Searching"))
+        assertTrue(SampleData.categories.contains("Data Structures"))
+        assertTrue(SampleData.categories.contains("Graph Traversal"))
+    }
+
+    @Test
+    fun sampleData_categoryCounts() {
+        val grouped = SampleData.algorithms.groupBy { it.category }
+        assertEquals(5, grouped["Sorting"]?.size)
+        assertEquals(2, grouped["Searching"]?.size)
+        assertEquals(4, grouped["Data Structures"]?.size)
+        assertEquals(2, grouped["Graph Traversal"]?.size)
+    }
+
+    @Test
+    fun sampleData_noPurgedEntries() {
+        val names = SampleData.algorithms.map { it.name }
+        assertTrue("Dijkstra's should be purged", "Dijkstra's" !in names)
+        assertTrue("Knapsack 0/1 should be purged", "Knapsack 0/1" !in names)
+        assertTrue("Longest CS should be purged", "Longest CS" !in names)
+
+        val categories = SampleData.algorithms.map { it.category }.toSet()
+        assertTrue("Dynamic Programming should be purged", "Dynamic Programming" !in categories)
     }
 }

@@ -53,9 +53,9 @@ fun AlgoCard(
 ) {
     val categoryIcon: ImageVector = when (algo.category.lowercase()) {
         "sorting" -> Icons.Default.SwapVert
-        "graphs" -> Icons.Default.AccountTree
-        "dynamic programming", "dp" -> Icons.Default.Layers
         "searching" -> Icons.Default.Search
+        "data structures" -> Icons.Default.Layers
+        "graph traversal" -> Icons.Default.AccountTree
         else -> Icons.Default.GridView
     }
 

@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
 import com.example.algolens.ui.components.AlgoCard
+import com.example.algolens.ui.theme.AlgoLensTheme
 import com.example.algolens.ui.theme.BorderMedium
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
@@ -71,7 +73,6 @@ fun DashboardScreen(
         SampleData.algorithms.filter { algo ->
             val matchesCategory = when (selectedCategory) {
                 "All" -> true
-                "DP" -> algo.category == "Dynamic Programming" || algo.category == "DP"
                 else -> algo.category.equals(selectedCategory, ignoreCase = true)
             }
             val matchesSearch = searchQuery.isEmpty() ||
@@ -191,7 +192,6 @@ fun DashboardScreen(
         ) {
             SampleData.categories.forEach { category ->
                 val isSelected = selectedCategory == category
-                val chipLabel = if (category == "Dynamic Programming") "DP" else category
 
                 Box(
                     modifier = Modifier
@@ -206,7 +206,7 @@ fun DashboardScreen(
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = chipLabel,
+                        text = category,
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isSelected) DarkBackground else TextMuted,
                         fontWeight = FontWeight.SemiBold,
@@ -272,3 +272,14 @@ fun DashboardScreen(
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun DashboardScreenPreview() {
+    AlgoLensTheme {
+        DashboardScreen(
+            onAlgorithmClick = {}
+        )
+    }
+}
+
