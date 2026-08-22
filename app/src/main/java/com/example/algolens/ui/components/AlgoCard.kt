@@ -157,3 +157,16 @@ fun AlgoCard(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun AlgoCardPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            AlgoCard(
+                algo = com.example.algolens.data.SampleData.algorithms.first(),
+                onClick = {}
+            )
+        }
+    }
+}

@@ -89,3 +89,11 @@ fun AlgoLensApp(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun AlgoLensAppPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        AlgoLensApp()
+    }
+}

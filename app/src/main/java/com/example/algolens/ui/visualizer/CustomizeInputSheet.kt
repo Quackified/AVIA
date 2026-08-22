@@ -280,3 +280,15 @@ fun CustomizeInputSheet(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun CustomizeInputSheetPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        CustomizeInputSheet(
+            initialArray = listOf(64, 34, 25, 12, 22, 11, 90),
+            onApply = {},
+            onDismiss = {}
+        )
+    }
+}

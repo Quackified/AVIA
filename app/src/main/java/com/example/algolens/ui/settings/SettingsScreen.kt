@@ -451,3 +451,11 @@ private fun SettingsCard(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun SettingsScreenPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        SettingsScreen(onBack = {})
+    }
+}

@@ -113,3 +113,14 @@ fun BottomNavBar(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun BottomNavBarPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        BottomNavBar(
+            activeTab = NavTab.HOME,
+            onTabSelected = {}
+        )
+    }
+}

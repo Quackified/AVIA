@@ -123,3 +123,21 @@ fun BarVisualizer(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun BarVisualizerPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        Box(modifier = Modifier.height(260.dp).padding(16.dp)) {
+            BarVisualizer(
+                step = SortStep(
+                    array = listOf(64, 34, 25, 12, 22, 11, 90),
+                    type = StepType.COMPARE,
+                    indices = listOf(1, 2),
+                    description = "Comparing 34 and 25"
+                ),
+                maxVal = 90
+            )
+        }
+    }
+}

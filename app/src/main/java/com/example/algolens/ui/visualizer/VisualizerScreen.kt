@@ -600,3 +600,14 @@ fun VisualizerScreen(
         )
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun VisualizerScreenPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        VisualizerScreen(
+            algorithm = com.example.algolens.data.SampleData.algorithms.first(),
+            onBack = {}
+        )
+    }
+}

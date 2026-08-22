@@ -328,3 +328,21 @@ private fun VarBadge(label: String, value: String) {
         )
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun CodeTracePanePreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        Box(modifier = Modifier.height(450.dp).padding(16.dp)) {
+            CodeTracePane(
+                step = SortStep(
+                    array = listOf(64, 34, 25, 12, 22, 11, 90),
+                    type = StepType.COMPARE,
+                    indices = listOf(1, 2),
+                    description = "Comparing 34 and 25"
+                ),
+                stepIdx = 2
+            )
+        }
+    }
+}

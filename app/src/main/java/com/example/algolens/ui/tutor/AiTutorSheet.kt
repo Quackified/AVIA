@@ -199,3 +199,17 @@ fun AiTutorSheet(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun AiTutorSheetPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        AiTutorSheet(
+            stepNumber = 4,
+            explanation = "Comparing elements at index 1 (34) and index 2 (25). Since 34 > 25, a swap will occur in the next step to bubble the larger value upward.",
+            timeComplexity = "O(n²)",
+            spaceComplexity = "O(1)",
+            onDismiss = {}
+        )
+    }
+}

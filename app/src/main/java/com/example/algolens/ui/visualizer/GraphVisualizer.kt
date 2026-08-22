@@ -8,8 +8,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -158,6 +160,40 @@ fun GraphVisualizer(
                     drawText(node.label, center.x, center.y + 7.5f, textPaint)
                 }
             }
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun GraphVisualizerPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        Box(
+            modifier = Modifier
+                .height(280.dp)
+                .padding(16.dp)
+        ) {
+            GraphVisualizer(
+                nodes = listOf(
+                    GraphNode("A", 45f, 35f, "A"),
+                    GraphNode("B", 130f, 30f, "B"),
+                    GraphNode("C", 45f, 100f, "C"),
+                    GraphNode("D", 130f, 105f, "D"),
+                    GraphNode("E", 215f, 65f, "E")
+                ),
+                edges = listOf(
+                    GraphEdge("A", "B", 4),
+                    GraphEdge("A", "C", 2),
+                    GraphEdge("B", "C", 1),
+                    GraphEdge("B", "D", 5),
+                    GraphEdge("C", "D", 8),
+                    GraphEdge("C", "E", 10),
+                    GraphEdge("D", "E", 2)
+                ),
+                visitedNodes = setOf("A", "C", "B"),
+                activeNode = "B",
+                pathEdges = setOf("A-C", "C-B")
+            )
         }
     }
 }

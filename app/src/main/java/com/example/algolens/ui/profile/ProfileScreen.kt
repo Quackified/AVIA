@@ -385,3 +385,11 @@ private fun StatCard(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun ProfileScreenPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        ProfileScreen(onAlgorithmClick = {})
+    }
+}

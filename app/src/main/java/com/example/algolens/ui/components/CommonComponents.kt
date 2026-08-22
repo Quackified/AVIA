@@ -199,3 +199,28 @@ fun ComplexityCard(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun CommonComponentsPreview() {
+    com.example.algolens.ui.theme.AlgoLensTheme {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SectionLabel(
+                icon = androidx.compose.material.icons.Icons.Default.WifiOff,
+                text = "Connectivity"
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CustomSwitch(checked = true, onCheckedChange = {})
+                CustomSwitch(checked = false, onCheckedChange = {})
+                OfflineBadge()
+            }
+            ComplexityCard(
+                timeComplexity = "O(n log n)",
+                spaceComplexity = "O(n)"
+            )
+        }
+    }
+}
