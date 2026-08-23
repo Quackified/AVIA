@@ -333,18 +333,24 @@ fun VisualizerScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 2.dp)
+                .padding(horizontal = 14.dp, vertical = 4.dp),
+            contentAlignment = Alignment.Center
         ) {
             when {
                 // Buffer Mode (Stack / Queue)
                 currentStep.renderMode == VisualizerRenderMode.BUFFER ||
                         algorithm.name.equals("Stack", ignoreCase = true) ||
                         algorithm.name.equals("Queue", ignoreCase = true) -> {
-                    BufferVisualizer(
-                        step = currentStep,
-                        isStack = algorithm.name.equals("Stack", ignoreCase = true),
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        BufferVisualizer(
+                            step = currentStep,
+                            isStack = algorithm.name.equals("Stack", ignoreCase = true),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
 
                 // Graph / Tree Mode (BFS, DFS, BST, Heap)
@@ -354,7 +360,8 @@ fun VisualizerScreen(
                         algorithm.name.equals("Heap", ignoreCase = true) -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         // Live Step Description Banner
                         Box(
@@ -376,7 +383,9 @@ fun VisualizerScreen(
 
                         GraphTreeVisualizer(
                             step = currentStep,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
                         )
                     }
                 }
@@ -392,7 +401,8 @@ fun VisualizerScreen(
                     } else {
                         Column(
                             modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Box(
                                 modifier = Modifier
@@ -413,7 +423,9 @@ fun VisualizerScreen(
 
                             ArrayVisualizer(
                                 step = currentStep,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(280.dp)
                             )
                         }
                     }

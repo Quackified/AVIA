@@ -62,7 +62,7 @@ fun ArrayVisualizer(
             .clip(RoundedCornerShape(12.dp))
             .background(CardBackgroundElevated)
             .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
-            .padding(horizontal = 8.dp, vertical = 8.dp)
+            .padding(start = 12.dp, end = 12.dp, top = 24.dp, bottom = 48.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),

@@ -8,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,13 +18,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,20 +74,31 @@ fun CellArrayVisualizer(
     codeLines: List<String>,
     modifier: Modifier = Modifier
 ) {
+    val lazyListState = rememberLazyListState()
+
+    // Smoothly keep the active elements / pointers in view when stepping
+    val activeIndices = step.elementStates.filter { it.value != ElementState.IDLE }.keys
+    val pointerIndices = step.topPointers.values + step.bottomPointers.values
+    val targetIndex = (activeIndices + pointerIndices).minOrNull()
+    LaunchedEffect(step.stepIndex, targetIndex) {
+        if (targetIndex != null && step.array.isNotEmpty()) {
+            val safeIndex = targetIndex.coerceIn(0, step.array.size - 1)
+            lazyListState.animateScrollToItem(safeIndex)
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // ── 1. Array Cells & Pointers Canvas ──
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(CardBackgroundElevated)
-                .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
-                .padding(horizontal = 8.dp, vertical = 12.dp),
+                .padding(vertical = 4.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -91,16 +106,15 @@ fun CellArrayVisualizer(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Horizontal scrolling container for array elements
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.Center,
+                // Responsive LazyRow for horizontal scrolling across array elements
+                LazyRow(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    step.array.forEachIndexed { index, value ->
+                    itemsIndexed(step.array, key = { index, _ -> index }) { index, value ->
                         val state = step.elementStates[index] ?: ElementState.IDLE
 
                         // Find any top pointers for this index (e.g. L, R, pivot, target)
@@ -111,7 +125,7 @@ fun CellArrayVisualizer(
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(horizontal = 3.dp)
+                            modifier = Modifier.padding(horizontal = 2.dp)
                         ) {
                             // ── Top Pointer Badge ──
                             Box(
@@ -161,7 +175,7 @@ fun CellArrayVisualizer(
 
                             Box(
                                 modifier = Modifier
-                                    .size(width = 34.dp, height = 38.dp)
+                                    .size(width = 36.dp, height = 40.dp)
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(animatedBg)
                                     .border(
