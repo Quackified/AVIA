@@ -35,6 +35,10 @@ val RedSubtle = Color(0x1FFF4B4B)
 val AccentOrange = Color(0xFFFB923C)
 val OrangeSubtle = Color(0x1FFB923C)
 
+val AccentPink = Color(0xFFFF3366)
+val PinkBright = Color(0xFFF43F5E)
+val PinkSubtle = Color(0x1FFFF3366)
+
 // Neutral Text & UI Elements
 val TextPrimary = Color(0xFFE2E8F0)
 val TextSecondary = Color(0xFF94A3B8)
