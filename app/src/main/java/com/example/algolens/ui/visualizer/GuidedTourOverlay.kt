@@ -1,0 +1,367 @@
+package com.example.algolens.ui.visualizer
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.PlayCircleOutline
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.algolens.ui.theme.AccentGreen
+import com.example.algolens.ui.theme.AccentOrange
+import com.example.algolens.ui.theme.AccentPink
+import com.example.algolens.ui.theme.AccentYellow
+import com.example.algolens.ui.theme.AlgoLensTheme
+import com.example.algolens.ui.theme.BorderCyan
+import com.example.algolens.ui.theme.BorderSubtle
+import com.example.algolens.ui.theme.CanvasBackground
+import com.example.algolens.ui.theme.CardBackground
+import com.example.algolens.ui.theme.CardBackgroundElevated
+import com.example.algolens.ui.theme.CyanGlow
+import com.example.algolens.ui.theme.CyanSubtle
+import com.example.algolens.ui.theme.DarkBackground
+import com.example.algolens.ui.theme.GreenSubtle
+import com.example.algolens.ui.theme.PinkSubtle
+import com.example.algolens.ui.theme.PrimaryCyan
+import com.example.algolens.ui.theme.PurpleGlow
+import com.example.algolens.ui.theme.PurpleSubtle
+import com.example.algolens.ui.theme.SecondaryPurple
+import com.example.algolens.ui.theme.TextDark
+import com.example.algolens.ui.theme.TextMuted
+import com.example.algolens.ui.theme.TextPrimary
+import com.example.algolens.ui.theme.TextSecondary
+
+/**
+ * Step model for the Guided Walkthrough Tour.
+ */
+data class TourStep(
+    val title: String,
+    val subtitle: String,
+    val description: String,
+    val icon: ImageVector,
+    val badgeText: String,
+    val accentColor: Color
+)
+
+val TOUR_STEPS = listOf(
+    TourStep(
+        title = "Visualizer Canvas & Pointers",
+        subtitle = "Real-time State & Element Indicators",
+        description = "Observe dynamic array boxes, bars, or 2D graph nodes update step-by-step. Top pointer badges display pivots/targets, and bottom badges track scanning indices (i, j, mid).",
+        icon = Icons.Default.BarChart,
+        badgeText = "CANVAS & POINTERS",
+        accentColor = PrimaryCyan
+    ),
+    TourStep(
+        title = "Multi-Language Code Trace",
+        subtitle = "Synchronized Code Inspection",
+        description = "Toggle between Kotlin, Java, Python, and C++ using the segmented tabs. Active code lines highlight in lockstep with memory mutations and comparisons.",
+        icon = Icons.Default.Code,
+        badgeText = "MULTI-LANGUAGE TRACE",
+        accentColor = SecondaryPurple
+    ),
+    TourStep(
+        title = "Live Variable State Inspector",
+        subtitle = "Low-Level Variable Tracking",
+        description = "Monitor live registers, loop counters (i, j), search bounds (low, mid, high), and memory call stack frames updated in real-time on every step.",
+        icon = Icons.Default.Tune,
+        badgeText = "VARIABLE STATE",
+        accentColor = AccentYellow
+    ),
+    TourStep(
+        title = "Playback Controls & Scrubber",
+        subtitle = "Step-by-Step & Speed Control",
+        description = "Drag the timeline scrubber to jump anywhere in history. Use Step Back/Forward, Auto-Play, and toggle playback speed (0.5x, 1.0x, 2.0x).",
+        icon = Icons.Default.PlayCircleOutline,
+        badgeText = "TIMELINE SCRUBBER",
+        accentColor = AccentGreen
+    ),
+    TourStep(
+        title = "Predict Next Step Challenge",
+        subtitle = "Interactive Knowledge Testing",
+        description = "Enable Challenge Mode to test your algorithm intuition! Guess which elements will be compared or swapped next to earn streak points.",
+        icon = Icons.Default.EmojiEvents,
+        badgeText = "CHALLENGE MODE",
+        accentColor = AccentPink
+    ),
+    TourStep(
+        title = "Theory Deep Dive & AI Tutor",
+        subtitle = "Complexity & Common Pitfalls",
+        description = "Access the comprehensive Algorithm Theory sheet for Big-O proofs and common edge cases, or consult the offline AI Tutor for step-by-step explanations.",
+        icon = Icons.AutoMirrored.Filled.MenuBook,
+        badgeText = "THEORY & AI TUTOR",
+        accentColor = CyanGlow
+    )
+)
+
+/**
+ * Interactive Guided Walkthrough Coach Marks Overlay.
+ */
+@Composable
+fun GuidedTourOverlay(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var currentStepIndex by remember { mutableIntStateOf(0) }
+    val step = TOUR_STEPS[currentStepIndex]
+    val totalSteps = TOUR_STEPS.size
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(DarkBackground.copy(alpha = 0.88f))
+            .clickable { /* Block background touch */ },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .clip(RoundedCornerShape(16.dp))
+                .background(CardBackground)
+                .border(1.dp, step.accentColor.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Header: Icon + Step Counter + Close Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(step.accentColor.copy(alpha = 0.15f))
+                            .border(1.dp, step.accentColor.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = step.icon,
+                            contentDescription = null,
+                            tint = step.accentColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(step.accentColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = step.badgeText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = step.accentColor,
+                                fontSize = 7.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text(
+                            text = "Step ${currentStepIndex + 1} of $totalSteps",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted,
+                            fontSize = 8.5.sp
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(CanvasBackground)
+                        .border(1.dp, BorderSubtle, CircleShape)
+                        .clickable { onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = TextMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            // Title & Subtitle
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = step.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = step.subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = step.accentColor,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            // Description Body
+            Text(
+                text = step.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+                fontSize = 11.5.sp,
+                lineHeight = 16.sp
+            )
+
+            // Progress Dots Indicator
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TOUR_STEPS.forEachIndexed { idx, item ->
+                    val isCurrent = idx == currentStepIndex
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(
+                                width = if (isCurrent) 18.dp else 6.dp,
+                                height = 6.dp
+                            )
+                            .clip(RoundedCornerShape(99.dp))
+                            .background(if (isCurrent) item.accentColor else Color.White.copy(alpha = 0.15f))
+                    )
+                }
+            }
+
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Skip or Back
+                if (currentStepIndex > 0) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(CanvasBackground)
+                            .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                            .clickable { currentStepIndex-- }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Back",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Skip Tour",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextMuted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable { onDismiss() }
+                    )
+                }
+
+                // Next or Finish Button
+                val isLast = currentStepIndex == totalSteps - 1
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(step.accentColor)
+                        .clickable {
+                            if (isLast) {
+                                onDismiss()
+                            } else {
+                                currentStepIndex++
+                            }
+                        }
+                        .padding(horizontal = 18.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = if (isLast) "Got It, Let's Go!" else "Next",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = DarkBackground,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp
+                        )
+                        if (isLast) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = DarkBackground,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+fun GuidedTourOverlayPreview() {
+    AlgoLensTheme {
+        GuidedTourOverlay(onDismiss = {})
+    }
+}

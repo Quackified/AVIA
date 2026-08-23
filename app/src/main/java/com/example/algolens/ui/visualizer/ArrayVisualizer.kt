@@ -152,8 +152,12 @@ fun ArrayVisualizer(
                     Text(
                         text = value.toString(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (state != ElementState.IDLE) animatedColor else TextMuted,
-                        fontWeight = if (state != ElementState.IDLE) FontWeight.Bold else FontWeight.Medium,
+                        color = when (state) {
+                            ElementState.PIVOT, ElementState.SWAPPING -> Color.White
+                            ElementState.IDLE -> TextMuted
+                            else -> animatedColor
+                        },
+                        fontWeight = if (state != ElementState.IDLE) FontWeight.ExtraBold else FontWeight.Medium,
                         fontSize = 8.5.sp,
                         maxLines = 1
                     )

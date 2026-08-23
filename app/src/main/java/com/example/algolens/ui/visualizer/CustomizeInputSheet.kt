@@ -1,11 +1,15 @@
 package com.example.algolens.ui.visualizer
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,11 +18,23 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.FormatListNumbered
+import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -27,6 +43,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -37,10 +54,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.algolens.ui.theme.AccentGreen
+import com.example.algolens.ui.theme.AccentPink
+import com.example.algolens.ui.theme.AccentRed
+import com.example.algolens.ui.theme.AccentYellow
+import com.example.algolens.ui.theme.AlgoLensTheme
 import com.example.algolens.ui.theme.BorderCyan
+import com.example.algolens.ui.theme.BorderMedium
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.theme.CardBackground
@@ -48,12 +73,44 @@ import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.CyanGlow
 import com.example.algolens.ui.theme.CyanSubtle
 import com.example.algolens.ui.theme.DarkBackground
+import com.example.algolens.ui.theme.GreenSubtle
+import com.example.algolens.ui.theme.PinkSubtle
 import com.example.algolens.ui.theme.PrimaryCyan
+import com.example.algolens.ui.theme.PurpleGlow
+import com.example.algolens.ui.theme.PurpleSubtle
+import com.example.algolens.ui.theme.RedSubtle
+import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import kotlin.random.Random
+
+/**
+ * Preset data structure for edge case configurations.
+ */
+data class ArrayPreset(
+    val id: String,
+    val label: String,
+    val icon: ImageVector,
+    val description: String
+)
+
+val PRESET_OPTIONS = listOf(
+    ArrayPreset("Random", "Random", Icons.Default.Shuffle, "Randomized integers between 10-95"),
+    ArrayPreset("Already Sorted", "Already Sorted", Icons.AutoMirrored.Filled.TrendingUp, "Ascending order (Best case for Insertion/Bubble)"),
+    ArrayPreset("Reverse Sorted", "Reverse Sorted", Icons.AutoMirrored.Filled.TrendingDown, "Descending order (Worst case for many sorts)"),
+    ArrayPreset("All Equal", "All Equal", Icons.Default.FormatListNumbered, "Identical elements (Duplicates edge case)"),
+    ArrayPreset("Nearly Sorted", "Nearly Sorted", Icons.Default.RestartAlt, "Sorted except for a single swapped pair")
+)
+
+/**
+ * Validation state for manual array input.
+ */
+sealed class InputValidationResult {
+    data class Valid(val parsed: List<Int>) : InputValidationResult()
+    data class Error(val message: String) : InputValidationResult()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,24 +122,66 @@ fun CustomizeInputSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var inputStr by remember { mutableStateOf(initialArray.joinToString(", ")) }
-    var arrayLength by remember { mutableFloatStateOf(initialArray.size.toFloat()) }
+    var arrayLength by remember { mutableFloatStateOf(initialArray.size.toFloat().coerceIn(5f, 15f)) }
     var selectedPreset by remember { mutableStateOf<String?>(null) }
 
+    // Preset data generator
     fun generatePreset(preset: String, length: Int): List<Int> {
+        val len = length.coerceIn(5, 15)
         return when (preset) {
-            "Random" -> List(length) { Random.nextInt(10, 95) }
-            "Sorted" -> List(length) { (it + 1) * (85 / length) + 10 }
-            "Reverse Sorted" -> List(length) { (length - it) * (85 / length) + 10 }
+            "Random" -> {
+                val numbers = (10..95).shuffled()
+                numbers.take(len)
+            }
+            "Already Sorted" -> {
+                val step = (85 / len).coerceAtLeast(4)
+                List(len) { 10 + it * step }
+            }
+            "Reverse Sorted" -> {
+                val step = (85 / len).coerceAtLeast(4)
+                List(len) { 10 + (len - 1 - it) * step }
+            }
+            "All Equal" -> {
+                val value = 42
+                List(len) { value }
+            }
             "Nearly Sorted" -> {
-                val list = MutableList(length) { (it + 1) * (85 / length) + 10 }
-                if (list.size > 2) {
-                    val tmp = list[1]
-                    list[1] = list[2]
-                    list[2] = tmp
+                val step = (85 / len).coerceAtLeast(4)
+                val list = MutableList(len) { 10 + it * step }
+                if (list.size >= 4) {
+                    val idx1 = list.size / 3
+                    val idx2 = (list.size * 2) / 3
+                    val temp = list[idx1]
+                    list[idx1] = list[idx2]
+                    list[idx2] = temp
                 }
                 list
             }
-            else -> List(length) { Random.nextInt(10, 95) }
+            else -> List(len) { Random.nextInt(10, 95) }
+        }
+    }
+
+    // Input parser and validator
+    val validationResult by remember(inputStr) {
+        derivedStateOf {
+            val trimmed = inputStr.trim()
+            if (trimmed.isEmpty()) {
+                InputValidationResult.Error("Please enter comma-separated numbers (e.g. 12, 34, 56)")
+            } else {
+                val tokens = trimmed.split(",")
+                val invalidTokens = tokens.filter { it.trim().toIntOrNull() == null }
+                if (invalidTokens.isNotEmpty()) {
+                    InputValidationResult.Error("Invalid input: '${invalidTokens.first().trim()}' is not a valid number")
+                } else {
+                    val parsed = tokens.mapNotNull { it.trim().toIntOrNull() }
+                    when {
+                        parsed.size < 3 -> InputValidationResult.Error("Array must contain at least 3 elements (current: ${parsed.size})")
+                        parsed.size > 16 -> InputValidationResult.Error("Maximum 16 elements supported for visualization (current: ${parsed.size})")
+                        parsed.any { it <= 0 || it > 999 } -> InputValidationResult.Error("Numbers must be positive integers between 1 and 999")
+                        else -> InputValidationResult.Valid(parsed)
+                    }
+                }
+            }
         }
     }
 
@@ -104,8 +203,8 @@ fun CustomizeInputSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Header
             Row(
@@ -113,35 +212,150 @@ fun CustomizeInputSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Customize Input",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = TextMuted,
+                Column {
+                    Text(
+                        text = "Customize Input Array",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Select an edge-case preset or type custom numbers",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                        fontSize = 8.5.sp
+                    )
+                }
+                Box(
                     modifier = Modifier
-                        .size(18.dp)
-                        .clickable { onDismiss() }
-                )
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(CanvasBackground)
+                        .border(1.dp, BorderSubtle, CircleShape)
+                        .clickable { onDismiss() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = TextMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
 
-            // Input TextField
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // ── 1. Edge Case Presets LazyRow (Material 3 FilterChips) ──
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = "Array Values (comma-separated):",
+                    text = "EDGE CASE PRESETS:",
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary
+                    color = TextMuted,
+                    fontSize = 8.sp,
+                    letterSpacing = 0.8.sp,
+                    fontWeight = FontWeight.Bold
                 )
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 2.dp)
+                ) {
+                    items(PRESET_OPTIONS, key = { it.id }) { preset ->
+                        val isSelected = selectedPreset == preset.id
+                        val presetColor = when (preset.id) {
+                            "Random" -> PrimaryCyan
+                            "Already Sorted" -> AccentGreen
+                            "Reverse Sorted" -> AccentPink
+                            "All Equal" -> AccentYellow
+                            else -> SecondaryPurple
+                        }
+
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                selectedPreset = preset.id
+                                val targetLen = arrayLength.toInt().coerceIn(8, 10)
+                                arrayLength = targetLen.toFloat()
+                                val generated = generatePreset(preset.id, targetLen)
+                                inputStr = generated.joinToString(", ")
+                            },
+                            label = {
+                                Text(
+                                    text = preset.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 9.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = preset.icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp),
+                                    tint = if (isSelected) presetColor else TextMuted
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = CanvasBackground,
+                                labelColor = TextSecondary,
+                                iconColor = TextMuted,
+                                selectedContainerColor = presetColor.copy(alpha = 0.18f),
+                                selectedLabelColor = presetColor,
+                                selectedLeadingIconColor = presetColor
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = BorderSubtle,
+                                selectedBorderColor = presetColor,
+                                borderWidth = if (isSelected) 1.5.dp else 1.dp
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+            }
+
+            // ── 2. Manual Array Input Field ──
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "ARRAY VALUES (COMMA-SEPARATED):",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextMuted,
+                        fontSize = 8.sp,
+                        letterSpacing = 0.8.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (validationResult is InputValidationResult.Valid) {
+                        val count = (validationResult as InputValidationResult.Valid).parsed.size
+                        Text(
+                            text = "$count elements",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PrimaryCyan,
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
                         .background(CanvasBackground)
-                        .border(1.dp, BorderCyan, RoundedCornerShape(8.dp))
+                        .border(
+                            width = 1.dp,
+                            color = when (validationResult) {
+                                is InputValidationResult.Valid -> BorderCyan
+                                is InputValidationResult.Error -> AccentRed.copy(alpha = 0.8f)
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        )
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     BasicTextField(
@@ -151,7 +365,10 @@ fun CustomizeInputSheet(
                             selectedPreset = null
                         },
                         textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            color = PrimaryCyan,
+                            color = when (validationResult) {
+                                is InputValidationResult.Valid -> PrimaryCyan
+                                is InputValidationResult.Error -> TextPrimary
+                            },
                             fontWeight = FontWeight.SemiBold
                         ),
                         cursorBrush = SolidColor(PrimaryCyan),
@@ -159,50 +376,53 @@ fun CustomizeInputSheet(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-            }
 
-            // Presets
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "Preset Configurations:",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    listOf("Random", "Sorted", "Reverse Sorted", "Nearly Sorted").forEach { preset ->
-                        val isSel = selectedPreset == preset
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSel) CyanSubtle else CanvasBackground)
-                                .border(
-                                    1.dp,
-                                    if (isSel) PrimaryCyan else BorderSubtle,
-                                    RoundedCornerShape(6.dp)
-                                )
-                                .clickable {
-                                    selectedPreset = preset
-                                    val generated = generatePreset(preset, arrayLength.toInt())
-                                    inputStr = generated.joinToString(", ")
-                                }
-                                .padding(horizontal = 7.dp, vertical = 5.dp)
+                // Real-time Validation Feedback Message
+                when (val res = validationResult) {
+                    is InputValidationResult.Valid -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(top = 2.dp)
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = AccentGreen,
+                                modifier = Modifier.size(11.dp)
+                            )
                             Text(
-                                text = preset,
+                                text = "Ready: ${res.parsed.size} valid integers parsed",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isSel) PrimaryCyan else TextMuted,
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.SemiBold
+                                color = AccentGreen,
+                                fontSize = 8.sp
+                            )
+                        }
+                    }
+                    is InputValidationResult.Error -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = AccentRed,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Text(
+                                text = res.message,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AccentRed,
+                                fontSize = 8.sp
                             )
                         }
                     }
                 }
             }
 
-            // Length Slider
+            // ── 3. Array Length Slider ──
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -210,15 +430,19 @@ fun CustomizeInputSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Array Length:",
+                        text = "ARRAY LENGTH SLIDER:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary
+                        color = TextMuted,
+                        fontSize = 8.sp,
+                        letterSpacing = 0.8.sp,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${arrayLength.toInt()} elements",
+                        text = "${arrayLength.toInt()} items",
                         style = MaterialTheme.typography.labelSmall,
-                        color = PrimaryCyan,
-                        fontWeight = FontWeight.Bold
+                        color = SecondaryPurple,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp
                     )
                 }
 
@@ -250,20 +474,19 @@ fun CustomizeInputSheet(
                 )
             }
 
-            // Apply Button
+            // ── 4. Apply Button ──
+            val isValid = validationResult is InputValidationResult.Valid
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(PrimaryCyan)
-                    .clickable {
-                        val parsed = inputStr.split(",")
-                            .mapNotNull { it.trim().toIntOrNull() }
-                            .filter { it > 0 }
-                        if (parsed.isNotEmpty()) {
+                    .background(if (isValid) PrimaryCyan else PrimaryCyan.copy(alpha = 0.35f))
+                    .clickable(enabled = isValid) {
+                        if (validationResult is InputValidationResult.Valid) {
+                            val parsed = (validationResult as InputValidationResult.Valid).parsed
                             onApply(parsed)
+                            onDismiss()
                         }
-                        onDismiss()
                     }
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center
@@ -271,20 +494,20 @@ fun CustomizeInputSheet(
                 Text(
                     text = "Apply & Reset Visualizer",
                     style = MaterialTheme.typography.labelLarge,
-                    color = DarkBackground,
+                    color = if (isValid) DarkBackground else TextMuted,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
         }
     }
 }
 
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
 @Composable
 fun CustomizeInputSheetPreview() {
-    com.example.algolens.ui.theme.AlgoLensTheme {
+    AlgoLensTheme {
         CustomizeInputSheet(
             initialArray = listOf(64, 34, 25, 12, 22, 11, 90),
             onApply = {},
