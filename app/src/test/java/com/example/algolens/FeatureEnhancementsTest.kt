@@ -143,6 +143,7 @@ class FeatureEnhancementsTest {
             isRight = false
         )
         assertFalse(targetLeft.isRight)
+        assertEquals("i", targetLeft.label)
     }
 }
 

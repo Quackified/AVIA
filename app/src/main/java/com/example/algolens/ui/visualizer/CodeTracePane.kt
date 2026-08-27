@@ -814,12 +814,19 @@ fun CodeTracePane(
         }
     }
 
-    // Smoothly keep the active lines in view without breaking scroll position
+    val highlightedLines = remember(codeData, selectedLanguage) {
+        codeData.lines.map { line -> SyntaxHighlighter.highlight(line, selectedLanguage) }
+    }
+
+    // Smoothly keep the active lines in view only when out of viewport
     LaunchedEffect(activeLinesInCurrentLang) {
         val firstActiveLine = activeLinesInCurrentLang.minOrNull()
         if (firstActiveLine != null && codeData.lines.isNotEmpty()) {
             val targetIdx = (firstActiveLine - 1).coerceIn(0, codeData.lines.size - 1)
-            lazyListState.animateScrollToItem(targetIdx)
+            val visibleIndices = lazyListState.layoutInfo.visibleItemsInfo.map { it.index }
+            if (targetIdx !in visibleIndices) {
+                lazyListState.animateScrollToItem(targetIdx)
+            }
         }
     }
 
@@ -878,6 +885,7 @@ fun CodeTracePane(
                             val isSelected = selectedLanguage == lang
                             val animatedBg by animateColorAsState(
                                 targetValue = if (isSelected) SecondaryPurple else Color.Transparent,
+                                animationSpec = tween(120),
                                 label = "langTabBg_${lang.name}"
                             )
 
@@ -901,7 +909,7 @@ fun CodeTracePane(
                     }
                 }
 
-                // ── Syntax Highlighted Code Listing ──
+                // ── Syntax Highlighted Code Listing (Optimized Cached Lines) ──
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier
@@ -911,13 +919,13 @@ fun CodeTracePane(
                         .background(CanvasBackground)
                         .padding(vertical = 4.dp)
                 ) {
-                    itemsIndexed(codeData.lines) { index, line ->
+                    itemsIndexed(highlightedLines) { index, lineAnnotated ->
                         val lineNum = index + 1
                         val isActive = lineNum in activeLinesInCurrentLang
 
                         val lineBg by animateColorAsState(
                             targetValue = if (isActive) CyanSubtle else Color.Transparent,
-                            animationSpec = tween(150),
+                            animationSpec = tween(100),
                             label = "lineBg_$lineNum"
                         )
 
@@ -939,7 +947,7 @@ fun CodeTracePane(
                             )
 
                             Text(
-                                text = SyntaxHighlighter.highlight(line, selectedLanguage),
+                                text = lineAnnotated,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextPrimary,
                                 fontSize = 9.sp,

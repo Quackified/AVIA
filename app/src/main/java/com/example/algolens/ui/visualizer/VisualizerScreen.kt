@@ -495,28 +495,29 @@ fun VisualizerScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(CardBackground)
-                                        .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                // Description shown only when no phaseLabel (phase banner handles it)
+                                if (currentStep.phaseLabel.isBlank()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 4.dp)
                                     ) {
-                                    Text(
-                                        text = currentStep.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = TextSecondary,
-                                        lineHeight = 13.sp,
-                                        fontSize = 8.5.sp
-                                    )
+                                        Text(
+                                            text = currentStep.description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextSecondary,
+                                            lineHeight = 13.sp,
+                                            fontSize = 8.5.sp
+                                        )
+                                    }
                                 }
 
                                 ArrayVisualizer(
                                     step = currentStep,
+                                    algorithmName = algorithm.name,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(280.dp)
+                                        .weight(1f)
                                 )
                             }
                         }

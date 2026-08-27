@@ -180,24 +180,33 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Starting Bubble Sort on ${arr.size} elements",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                activeRange = 0 until n,
                 elementStates = emptyMap(),
                 activeCodeLines = listOf(1, 2)
             )
         )
 
         for (i in 0 until n - 1) {
+            val unsortedRange = 0..(n - i - 1)
             for (j in 0 until n - i - 1) {
                 val compExpr = "COMPARE: ${arr[j]} > ${arr[j + 1]}?"
+                val sortedTail = (n - i until n).associateWith { ElementState.SORTED }
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
                         description = "Comparing arr[$j]=${arr[j]} and arr[${j + 1}]=${arr[j + 1]}",
                         comparisonExpr = compExpr,
+                        phaseLabel = "COMPARING",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
-                        elementStates = mapOf(
+                        activeRange = unsortedRange,
+                        sortedBoundary = n - i,
+                        leftPointer = j,
+                        rightPointer = j + 1,
+                        elementStates = sortedTail + mapOf(
                             j to ElementState.COMPARING,
                             (j + 1) to ElementState.COMPARING
                         ),
@@ -216,9 +225,15 @@ object AlgorithmStepRepository {
                             stepIndex = sIdx++,
                             description = "Swapping ${arr[j + 1]} and ${arr[j]}",
                             comparisonExpr = "SWAP: ${arr[j + 1]} <-> ${arr[j]}",
+                            phaseLabel = "SWAPPING",
                             renderMode = VisualizerRenderMode.CELLS,
                             array = arr.toList(),
-                            elementStates = mapOf(
+                            activeRange = unsortedRange,
+                            sortedBoundary = n - i,
+                            leftPointer = j,
+                            rightPointer = j + 1,
+                            swappedIndices = Pair(j, j + 1),
+                            elementStates = sortedTail + mapOf(
                                 j to ElementState.SWAPPING,
                                 (j + 1) to ElementState.SWAPPING
                             ),
@@ -233,9 +248,13 @@ object AlgorithmStepRepository {
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "Element ${arr[n - i - 1]} is in its sorted position",
+                    description = "Element ${arr[n - i - 1]} is locked into sorted tail position",
+                    comparisonExpr = "LOCKED: arr[${n - i - 1}]=${arr[n - i - 1]}",
+                    phaseLabel = "LOCKED IN TAIL",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = arr.toList(),
+                    activeRange = 0 until (n - i - 1),
+                    sortedBoundary = n - i - 1,
                     elementStates = sortedMap,
                     activeCodeLines = listOf(3)
                 )
@@ -246,8 +265,12 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Bubble Sort Complete! Array is fully sorted.",
+                comparisonExpr = "SORT COMPLETE",
+                phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                activeRange = 0 until n,
+                sortedBoundary = 0,
                 elementStates = (0 until n).associateWith { ElementState.SORTED },
                 activeCodeLines = listOf(7)
             )
@@ -268,22 +291,31 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Starting Selection Sort",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                activeRange = 0 until n,
+                sortedBoundary = 0,
                 activeCodeLines = listOf(1, 2)
             )
         )
 
         for (i in 0 until n - 1) {
             var minIdx = i
+            val sortedLeft = (0 until i).associateWith { ElementState.SORTED }
+
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "Pass $i: Setting minimum element candidate at index $i (${arr[i]})",
+                    description = "Pass $i: Setting minimum candidate at index $i (${arr[i]})",
                     comparisonExpr = "INITIAL MIN: arr[$i]=${arr[i]}",
+                    phaseLabel = "MIN SEARCH",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = arr.toList(),
-                    elementStates = mapOf(i to ElementState.ACTIVE),
+                    activeRange = i until n,
+                    sortedBoundary = i,
+                    minIndex = minIdx,
+                    elementStates = sortedLeft + mapOf(i to ElementState.ACTIVE),
                     topPointers = mapOf("min" to minIdx),
                     bottomPointers = mapOf("i" to i),
                     activeCodeLines = listOf(3, 4)
@@ -297,9 +329,15 @@ object AlgorithmStepRepository {
                         stepIndex = sIdx++,
                         description = "Comparing arr[$j]=${arr[j]} with current min arr[$minIdx]=${arr[minIdx]}",
                         comparisonExpr = "COMPARE: ${arr[j]} < ${arr[minIdx]}?",
+                        phaseLabel = "MIN SEARCH",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
-                        elementStates = mapOf(
+                        activeRange = i until n,
+                        sortedBoundary = i,
+                        minIndex = minIdx,
+                        leftPointer = minIdx,
+                        rightPointer = j,
+                        elementStates = sortedLeft + mapOf(
                             minIdx to ElementState.ACTIVE,
                             j to ElementState.COMPARING
                         ),
@@ -314,11 +352,15 @@ object AlgorithmStepRepository {
                     steps.add(
                         VisualizerStep(
                             stepIndex = sIdx++,
-                            description = "Found new minimum: arr[$minIdx]=${arr[minIdx]}",
+                            description = "Found new smaller minimum: arr[$minIdx]=${arr[minIdx]}",
                             comparisonExpr = "NEW MIN: arr[$minIdx]=${arr[minIdx]}",
+                            phaseLabel = "NEW MIN FOUND",
                             renderMode = VisualizerRenderMode.CELLS,
                             array = arr.toList(),
-                            elementStates = mapOf(minIdx to ElementState.FOUND),
+                            activeRange = i until n,
+                            sortedBoundary = i,
+                            minIndex = minIdx,
+                            elementStates = sortedLeft + mapOf(minIdx to ElementState.FOUND),
                             topPointers = mapOf("min" to minIdx),
                             bottomPointers = mapOf("i" to i, "j" to j),
                             activeCodeLines = listOf(7)
@@ -335,11 +377,16 @@ object AlgorithmStepRepository {
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
-                        description = "Swapping minimum ${arr[i]} into position $i",
+                        description = "Swapping minimum ${arr[i]} into sorted slot $i",
                         comparisonExpr = "SWAP: arr[$i] <-> arr[$minIdx]",
+                        phaseLabel = "SWAPPING MIN",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
-                        elementStates = mapOf(
+                        activeRange = i until n,
+                        sortedBoundary = i,
+                        minIndex = minIdx,
+                        swappedIndices = Pair(i, minIdx),
+                        elementStates = sortedLeft + mapOf(
                             i to ElementState.SWAPPING,
                             minIdx to ElementState.SWAPPING
                         ),
@@ -349,14 +396,34 @@ object AlgorithmStepRepository {
                     )
                 )
             }
+
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "Position $i locked into sorted region (${arr[i]})",
+                    comparisonExpr = "SORTED: [0..$i]",
+                    phaseLabel = "PASS COMPLETE",
+                    renderMode = VisualizerRenderMode.CELLS,
+                    array = arr.toList(),
+                    activeRange = (i + 1) until n,
+                    sortedBoundary = i + 1,
+                    elementStates = (0..i).associateWith { ElementState.SORTED },
+                    bottomPointers = mapOf("i" to i),
+                    activeCodeLines = listOf(8)
+                )
+            )
         }
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Selection Sort Complete! Array sorted.",
+                comparisonExpr = "SORT COMPLETE",
+                phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                activeRange = 0 until n,
+                sortedBoundary = n,
                 elementStates = (0 until n).associateWith { ElementState.SORTED },
                 activeCodeLines = listOf(8)
             )
@@ -377,8 +444,11 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Starting Insertion Sort",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                sortedBoundary = 1,
+                elementStates = mapOf(0 to ElementState.SORTED),
                 activeCodeLines = listOf(1)
             )
         )
@@ -386,15 +456,19 @@ object AlgorithmStepRepository {
         for (i in 1 until n) {
             val key = arr[i]
             var j = i - 1
+            val sortedPrefix = (0 until i).associateWith { ElementState.SORTED }
 
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "Inserting key arr[$i]=$key into sorted prefix [0..${i - 1}]",
-                    comparisonExpr = "KEY: $key at index $i",
+                    description = "Elevating key arr[$i]=$key to inspect insertion into sorted prefix [0..${i - 1}]",
+                    comparisonExpr = "ELEVATED KEY: $key at [$i]",
+                    phaseLabel = "KEY ELEVATED",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = arr.toList(),
-                    elementStates = mapOf(i to ElementState.TARGET),
+                    sortedBoundary = i,
+                    floatingElement = Pair(key, i),
+                    elementStates = sortedPrefix + mapOf(i to ElementState.TARGET),
                     topPointers = mapOf("key" to i),
                     bottomPointers = mapOf("i" to i, "j" to j),
                     activeCodeLines = listOf(2, 3, 4)
@@ -405,11 +479,17 @@ object AlgorithmStepRepository {
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
-                        description = "arr[$j]=${arr[j]} > key=$key. Shifting ${arr[j]} to right.",
+                        description = "arr[$j]=${arr[j]} > key=$key. Shifting ${arr[j]} one position right.",
                         comparisonExpr = "SHIFT: ${arr[j]} > $key",
+                        phaseLabel = "SHIFTING",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
-                        elementStates = mapOf(j to ElementState.SWAPPING, (j + 1) to ElementState.COMPARING),
+                        sortedBoundary = i,
+                        floatingElement = Pair(key, i),
+                        elementStates = sortedPrefix + mapOf(
+                            j to ElementState.SWAPPING,
+                            (j + 1) to ElementState.COMPARING
+                        ),
                         topPointers = mapOf("key" to (j + 1)),
                         bottomPointers = mapOf("j" to j),
                         activeCodeLines = listOf(5, 6, 7)
@@ -423,10 +503,13 @@ object AlgorithmStepRepository {
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "Placed key $key at index ${j + 1}",
+                    description = "Dropped key $key into cleared position ${j + 1}",
                     comparisonExpr = "PLACED: key $key at [${j + 1}]",
+                    phaseLabel = "KEY INSERTED",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = arr.toList(),
+                    sortedBoundary = i + 1,
+                    floatingElement = null,
                     elementStates = (0..i).associateWith { ElementState.SORTED },
                     bottomPointers = mapOf("i" to i),
                     activeCodeLines = listOf(8)
@@ -438,8 +521,11 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Insertion Sort Complete! All elements sorted.",
+                comparisonExpr = "SORT COMPLETE",
+                phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                sortedBoundary = n,
                 elementStates = (0 until n).associateWith { ElementState.SORTED },
                 activeCodeLines = listOf(8)
             )
@@ -448,7 +534,7 @@ object AlgorithmStepRepository {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 4. Merge Sort
+    // 4. Merge Sort (2-Tier Split & Merge View)
     // ─────────────────────────────────────────────────────────────
     private fun generateMergeSort(input: List<Int>): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
@@ -459,26 +545,37 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Starting Divide & Conquer Merge Sort",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                activeRange = 0 until arr.size,
+                mergeBlocks = listOf(0 until arr.size),
+                recursionDepth = 0,
                 activeCodeLines = listOf(1, 2)
             )
         )
 
-        fun merge(l: Int, m: Int, r: Int) {
+        fun merge(l: Int, m: Int, r: Int, depth: Int) {
             val left = arr.subList(l, m + 1).toList()
             val right = arr.subList(m + 1, r + 1).toList()
             var i = 0
             var j = 0
             var k = l
 
+            val aux = left + right
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "Merging subarrays [$l..$m] and [${m + 1}..$r]",
+                    description = "Merging blocks [$l..$m] (${left}) and [${m + 1}..$r] (${right})",
                     comparisonExpr = "MERGE RANGE: [$l..$r]",
+                    phaseLabel = "MERGING",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = arr.toList(),
+                    activeRange = l..r,
+                    recursionDepth = depth,
+                    mergeBlocks = listOf(l..m, (m + 1)..r),
+                    auxiliaryArray = aux,
+                    auxiliaryIndices = mapOf("i" to 0, "j" to left.size, "k" to l),
                     elementStates = (l..r).associateWith { ElementState.COMPARING },
                     topPointers = mapOf("L" to l, "M" to m, "R" to r),
                     bottomPointers = mapOf("k" to k),
@@ -486,22 +583,39 @@ object AlgorithmStepRepository {
                 )
             )
 
+            val mergedBuffer = mutableListOf<Int>()
             while (i < left.size && j < right.size) {
+                val compVal = if (left[i] <= right[j]) left[i] else right[j]
+                val desc = if (left[i] <= right[j]) {
+                    "Left element arr[${l + i}]=${left[i]} <= Right element arr[${m + 1 + j}]=${right[j]}"
+                } else {
+                    "Right element arr[${m + 1 + j}]=${right[j]} < Left element arr[${l + i}]=${left[i]}"
+                }
+
                 if (left[i] <= right[j]) {
                     arr[k] = left[i]
+                    mergedBuffer.add(left[i])
                     i++
                 } else {
                     arr[k] = right[j]
+                    mergedBuffer.add(right[j])
                     j++
                 }
+
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
-                        description = "Placed smaller element into index $k (${arr[k]})",
-                        comparisonExpr = "PLACED: arr[$k]=${arr[k]}",
+                        description = "$desc -> Merged $compVal into slot $k",
+                        comparisonExpr = "MERGED: arr[$k] = $compVal",
+                        phaseLabel = "MERGING",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
-                        elementStates = mapOf(k to ElementState.ACTIVE),
+                        activeRange = l..r,
+                        recursionDepth = depth,
+                        mergeBlocks = listOf(l..m, (m + 1)..r),
+                        auxiliaryArray = aux,
+                        auxiliaryIndices = mapOf("i" to i, "j" to (left.size + j), "k" to k),
+                        elementStates = (l..k).associateWith { ElementState.ACTIVE } + ((k + 1)..r).associateWith { ElementState.COMPARING },
                         bottomPointers = mapOf("k" to k),
                         activeCodeLines = listOf(6)
                     )
@@ -511,44 +625,105 @@ object AlgorithmStepRepository {
 
             while (i < left.size) {
                 arr[k] = left[i]
+                mergedBuffer.add(left[i])
+                steps.add(
+                    VisualizerStep(
+                        stepIndex = sIdx++,
+                        description = "Flushing remaining left element ${left[i]} to index $k",
+                        comparisonExpr = "FLUSH LEFT: arr[$k] = ${left[i]}",
+                        phaseLabel = "MERGING",
+                        renderMode = VisualizerRenderMode.CELLS,
+                        array = arr.toList(),
+                        activeRange = l..r,
+                        recursionDepth = depth,
+                        mergeBlocks = listOf(l..m, (m + 1)..r),
+                        auxiliaryArray = aux,
+                        auxiliaryIndices = mapOf("i" to i, "k" to k),
+                        elementStates = (l..k).associateWith { ElementState.ACTIVE },
+                        bottomPointers = mapOf("k" to k),
+                        activeCodeLines = listOf(6)
+                    )
+                )
                 i++
                 k++
             }
             while (j < right.size) {
                 arr[k] = right[j]
+                mergedBuffer.add(right[j])
+                steps.add(
+                    VisualizerStep(
+                        stepIndex = sIdx++,
+                        description = "Flushing remaining right element ${right[j]} to index $k",
+                        comparisonExpr = "FLUSH RIGHT: arr[$k] = ${right[j]}",
+                        phaseLabel = "MERGING",
+                        renderMode = VisualizerRenderMode.CELLS,
+                        array = arr.toList(),
+                        activeRange = l..r,
+                        recursionDepth = depth,
+                        mergeBlocks = listOf(l..m, (m + 1)..r),
+                        auxiliaryArray = aux,
+                        auxiliaryIndices = mapOf("j" to (left.size + j), "k" to k),
+                        elementStates = (l..k).associateWith { ElementState.ACTIVE },
+                        bottomPointers = mapOf("k" to k),
+                        activeCodeLines = listOf(6)
+                    )
+                )
                 j++
                 k++
             }
+
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "Completed merge for range [$l..$r]",
+                    comparisonExpr = "MERGE COMPLETE: [$l..$r]",
+                    phaseLabel = "MERGE COMPLETE",
+                    renderMode = VisualizerRenderMode.CELLS,
+                    array = arr.toList(),
+                    activeRange = l..r,
+                    recursionDepth = depth,
+                    mergeBlocks = listOf(l..r),
+                    elementStates = (l..r).associateWith { ElementState.ACTIVE },
+                    activeCodeLines = listOf(6)
+                )
+            )
         }
 
-        fun sort(l: Int, r: Int) {
+        fun sort(l: Int, r: Int, depth: Int) {
             if (l < r) {
                 val m = (l + r) / 2
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
-                        description = "Split array at midpoint $m into [$l..$m] and [${m + 1}..$r]",
+                        description = "Dividing subarray [$l..$r] at midpoint $m into blocks [$l..$m] and [${m + 1}..$r]",
                         comparisonExpr = "SPLIT: mid=$m",
+                        phaseLabel = "DIVIDING",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
+                        activeRange = l..r,
+                        recursionDepth = depth,
+                        mergeBlocks = listOf(l..m, (m + 1)..r),
                         topPointers = mapOf("L" to l, "M" to m, "R" to r),
                         activeCodeLines = listOf(3, 4, 5)
                     )
                 )
-                sort(l, m)
-                sort(m + 1, r)
-                merge(l, m, r)
+                sort(l, m, depth + 1)
+                sort(m + 1, r, depth + 1)
+                merge(l, m, r, depth)
             }
         }
 
-        sort(0, arr.size - 1)
+        sort(0, arr.size - 1, 0)
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Merge Sort Complete!",
+                description = "Merge Sort Complete! All sub-arrays merged and sorted.",
+                comparisonExpr = "SORT COMPLETE",
+                phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                activeRange = 0 until arr.size,
                 elementStates = (0 until arr.size).associateWith { ElementState.SORTED },
                 activeCodeLines = listOf(6)
             )
@@ -557,7 +732,7 @@ object AlgorithmStepRepository {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 5. Quick Sort (Matches Screenshot Reference)
+    // 5. Quick Sort (In-Place Partitioning View)
     // ─────────────────────────────────────────────────────────────
     private fun generateQuickSort(input: List<Int>): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
@@ -568,8 +743,10 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Starting QuickSort on array of ${arr.size} elements",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                activeRange = 0 until arr.size,
                 activeCodeLines = listOf(1, 2)
             )
         )
@@ -583,8 +760,13 @@ object AlgorithmStepRepository {
                     stepIndex = sIdx++,
                     description = "Partition [$low..$high]: Selected pivot = $pivot at index $high",
                     comparisonExpr = "PIVOT: $pivot at index $high",
+                    phaseLabel = "PARTITIONING",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = arr.toList(),
+                    activeRange = low..high,
+                    pivotIndex = high,
+                    leftPointer = low,
+                    rightPointer = high,
                     elementStates = mapOf(high to ElementState.PIVOT),
                     topPointers = mapOf("L" to low, "pivot" to high),
                     bottomPointers = mapOf("i" to low.coerceAtLeast(0)),
@@ -601,8 +783,13 @@ object AlgorithmStepRepository {
                         stepIndex = sIdx++,
                         description = "Comparing arr[$j]=${arr[j]} with pivot $pivot",
                         comparisonExpr = expr,
+                        phaseLabel = "SCANNING",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
+                        activeRange = low..high,
+                        pivotIndex = high,
+                        leftPointer = i.coerceAtLeast(0),
+                        rightPointer = j,
                         elementStates = mapOf(
                             j to ElementState.COMPARING,
                             high to ElementState.PIVOT
@@ -627,8 +814,14 @@ object AlgorithmStepRepository {
                             stepIndex = sIdx++,
                             description = "arr[$j] <= pivot. Swapped arr[$i] (${arr[i]}) with arr[$j] (${arr[j]})",
                             comparisonExpr = "SWAP: arr[$i] <-> arr[$j]",
+                            phaseLabel = "SWAPPING",
                             renderMode = VisualizerRenderMode.CELLS,
                             array = arr.toList(),
+                            activeRange = low..high,
+                            pivotIndex = high,
+                            leftPointer = i,
+                            rightPointer = j,
+                            swappedIndices = Pair(i, j),
                             elementStates = mapOf(
                                 i to ElementState.SWAPPING,
                                 j to ElementState.SWAPPING,
@@ -652,8 +845,12 @@ object AlgorithmStepRepository {
                     stepIndex = sIdx++,
                     description = "Placed pivot $pivot into final sorted slot ${i + 1}",
                     comparisonExpr = "PIVOT PLACED: slot ${i + 1}",
+                    phaseLabel = "PIVOT PLACED",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = arr.toList(),
+                    activeRange = low..high,
+                    pivotIndex = i + 1,
+                    swappedIndices = Pair(i + 1, high),
                     elementStates = mapOf((i + 1) to ElementState.SORTED),
                     topPointers = mapOf("pivot" to (i + 1)),
                     bottomPointers = mapOf("i+1" to (i + 1)),
@@ -678,8 +875,11 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "QuickSort Complete! All elements partitioned and sorted.",
+                comparisonExpr = "SORT COMPLETE",
+                phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
+                activeRange = 0 until arr.size,
                 elementStates = (0 until arr.size).associateWith { ElementState.SORTED },
                 activeCodeLines = listOf(1, 2)
             )

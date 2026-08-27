@@ -1,5 +1,7 @@
 package com.example.algolens.ui.visualizer
 
+import androidx.compose.runtime.Immutable
+
 /**
  * Visual highlight and activity state of an algorithm element (array bar/box, graph node, tree node, buffer slot).
  */
@@ -28,6 +30,7 @@ enum class VisualizerRenderMode {
 /**
  * Represents a pointer indicator (e.g., L, R, pivot, i, j, low, mid, high, target, front, rear, top).
  */
+@Immutable
 data class Pointer(
     val label: String,
     val index: Int,
@@ -38,6 +41,7 @@ data class Pointer(
 /**
  * Node for Graph & Tree visualizers.
  */
+@Immutable
 data class GraphNodeState(
     val id: String,
     val label: String,
@@ -50,6 +54,7 @@ data class GraphNodeState(
 /**
  * Edge for Graph & Tree visualizers.
  */
+@Immutable
 data class GraphEdgeState(
     val from: String,
     val to: String,
@@ -61,6 +66,7 @@ data class GraphEdgeState(
 /**
  * Item in a Buffer (Stack/Queue).
  */
+@Immutable
 data class BufferItem(
     val id: String,
     val value: String,
@@ -70,10 +76,12 @@ data class BufferItem(
 /**
  * Represents a single state snapshot / step during algorithm execution.
  */
+@Immutable
 data class VisualizerStep(
     val stepIndex: Int = 0,
     val description: String = "",
     val comparisonExpr: String? = null, // e.g. "COMPARE: 9 <= 7?"
+    val phaseLabel: String = "PROCESSING", // e.g. "PARTITIONING", "MERGING", "KEY ELEVATED", "SWAPPING"
     val renderMode: VisualizerRenderMode = VisualizerRenderMode.CELLS,
     
     // Array Data
@@ -81,6 +89,20 @@ data class VisualizerStep(
     val elementStates: Map<Int, ElementState> = emptyMap(),
     val topPointers: Map<String, Int> = emptyMap(),    // e.g. {"L": 0, "pivot": 8}
     val bottomPointers: Map<String, Int> = emptyMap(), // e.g. {"i": 0, "j": 2}
+    
+    // Structural / Sorting Visualizer Extensions
+    val activeRange: IntRange? = null, // e.g. low..high for Quick Sort / Merge Sort
+    val sortedBoundary: Int? = null,   // Left sorted region for Selection Sort / Right sorted tail for Bubble Sort
+    val auxiliaryArray: List<Int>? = null, // 2-tier temporary buffer for Merge Sort
+    val auxiliaryIndices: Map<String, Int> = emptyMap(), // Pointers in aux buffer (e.g. "k" to 2)
+    val recursionDepth: Int = 0, // Recursion tree level for Merge Sort
+    val mergeBlocks: List<IntRange> = emptyList(), // Color-coded block partitions for Merge Sort
+    val floatingElement: Pair<Int, Int>? = null, // (value, originalIndex) elevated above slot during Insertion Sort
+    val pivotIndex: Int? = null,
+    val minIndex: Int? = null,
+    val leftPointer: Int? = null,
+    val rightPointer: Int? = null,
+    val swappedIndices: Pair<Int, Int>? = null, // Indices pair being swapped
     
     // Graph / Tree Data
     val nodes: List<GraphNodeState> = emptyList(),
