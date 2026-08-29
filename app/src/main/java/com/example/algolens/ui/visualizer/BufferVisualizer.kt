@@ -1,10 +1,7 @@
 package com.example.algolens.ui.visualizer
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -148,6 +145,7 @@ fun BufferVisualizer(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .nodePop(item.state == ElementState.ACTIVE)
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(bgCol)
                                         .border(1.dp, if (isTop) SecondaryPurple else BorderMedium, RoundedCornerShape(6.dp))
@@ -238,6 +236,7 @@ fun BufferVisualizer(
                                     Box(
                                         modifier = Modifier
                                             .size(width = 44.dp, height = 48.dp)
+                                            .nodePop(item.state == ElementState.ACTIVE)
                                             .clip(RoundedCornerShape(6.dp))
                                             .background(bgCol)
                                             .border(1.dp, if (isFront) AccentGreen else if (isRear) SecondaryPurple else BorderMedium, RoundedCornerShape(6.dp)),

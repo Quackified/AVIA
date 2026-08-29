@@ -1,6 +1,8 @@
-package com.example.algolens.data
+﻿package com.example.algolens.data
 
+import android.util.Log
 import com.example.algolens.model.Algorithm
+import com.example.algolens.model.AlgorithmId
 import com.example.algolens.ui.visualizer.BufferItem
 import com.example.algolens.ui.visualizer.ElementState
 import com.example.algolens.ui.visualizer.GraphEdgeState
@@ -9,167 +11,76 @@ import com.example.algolens.ui.visualizer.VisualizerRenderMode
 import com.example.algolens.ui.visualizer.VisualizerStep
 
 /**
- * Repository containing step generators and code templates for all 13 algorithms.
+ * Repository containing step generators for every algorithm registered in
+ * [AlgorithmRegistry]. The previous `when (name)`-style dispatcher has been
+ * replaced by a single typed lookup against [AlgorithmId] â€” adding a new
+ * algorithm now only requires an entry in [AlgorithmRegistry], never a
+ * change to this class.
+ *
+ * NOTE: the legacy `getCodeLinesForAlgorithm(...)` method has been removed.
+ * Code listings are owned by [com.example.algolens.ui.visualizer.AlgorithmCodeRegistry]
+ * in `CodeTracePane.kt` and the [com.example.algolens.FeatureEnhancementsTest]
+ * already tests that path. Keeping a parallel Python-only registry here
+ * produced drift.
  */
 object AlgorithmStepRepository {
 
+    private const val TAG = "AlgorithmStepRepository"
+
+    /**
+     * Default input used when an algorithm's [AlgorithmSpec.defaultInput] is
+     * not overridden. Kept as a single source of truth so the test suite
+     * can predict what the visualizer will see.
+     */
+    val DEFAULT_INPUT: List<Int> = listOf(3, 8, 9, 2, 6, 1, 5, 4, 7)
+
+    /**
+     * Generate the step stream for an algorithm.
+     *
+     * Falls back to an empty list (and logs a warning) for unknown
+     * algorithms instead of silently routing to Bubble Sort. This was the
+     * previous behaviour and masked any new algorithm that was added to
+     * the dashboard but not to the dispatcher.
+     */
     fun generateStepsForAlgorithm(
         algorithm: Algorithm,
-        inputArray: List<Int> = listOf(3, 8, 9, 2, 6, 1, 5, 4, 7)
+        inputArray: List<Int> = DEFAULT_INPUT
     ): List<VisualizerStep> {
-        return when (algorithm.name.lowercase().trim()) {
-            "bubble sort" -> generateBubbleSort(inputArray)
-            "selection sort" -> generateSelectionSort(inputArray)
-            "insertion sort" -> generateInsertionSort(inputArray)
-            "merge sort" -> generateMergeSort(inputArray)
-            "quick sort" -> generateQuickSort(inputArray)
-            "linear search" -> generateLinearSearch(inputArray, target = 6)
-            "binary search" -> generateBinarySearch(inputArray.sorted(), target = 6)
-            "stack" -> generateStackSteps()
-            "queue" -> generateQueueSteps()
-            "binary search tree" -> generateBSTSteps()
-            "heap" -> generateHeapSteps(inputArray.take(7))
-            "breadth-first search (bfs)", "bfs" -> generateBFSSteps()
-            "depth-first search (dfs)", "dfs" -> generateDFSSteps()
-            else -> generateBubbleSort(inputArray)
+        if (AlgorithmRegistry.specFor(algorithm.id) == null) {
+            Log.w(TAG, "No spec registered for ${algorithm.id} â€” returning empty steps.")
+            return emptyList()
+        }
+
+        return when (algorithm.id) {
+            AlgorithmId.BUBBLE_SORT -> generateBubbleSort(inputArray)
+            AlgorithmId.SELECTION_SORT -> generateSelectionSort(inputArray)
+            AlgorithmId.INSERTION_SORT -> generateInsertionSort(inputArray)
+            AlgorithmId.MERGE_SORT -> generateMergeSort(inputArray)
+            AlgorithmId.QUICK_SORT -> generateQuickSort(inputArray)
+            AlgorithmId.LINEAR_SEARCH -> generateLinearSearch(inputArray, target = 6)
+            AlgorithmId.BINARY_SEARCH -> generateBinarySearch(inputArray.sorted(), target = 6)
+            AlgorithmId.STACK -> generateStackSteps()
+            AlgorithmId.QUEUE -> generateQueueSteps()
+            AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps()
+            AlgorithmId.HEAP -> generateHeapSteps(inputArray.take(7))
+            AlgorithmId.BFS -> generateBFSSteps()
+            AlgorithmId.DFS -> generateDFSSteps()
         }
     }
 
-    fun getCodeLinesForAlgorithm(algorithm: Algorithm): List<String> {
-        return when (algorithm.name.lowercase().trim()) {
-            "quick sort" -> listOf(
-                "def quick_sort(a, low, high):",
-                "    if low < high:",
-                "        pi = partition(a, low, high)",
-                "        quick_sort(a, low, pi - 1)",
-                "        quick_sort(a, pi + 1, high)",
-                "",
-                "def partition(a, low, high):",
-                "    pivot = a[high]",
-                "    i = low - 1",
-                "    for j in range(low, high):",
-                "        if a[j] <= pivot:",
-                "            i += 1",
-                "            a[i], a[j] = a[j], a[i]"
-            )
-            "bubble sort" -> listOf(
-                "def bubble_sort(arr):",
-                "    n = len(arr)",
-                "    for i in range(n - 1):",
-                "        for j in range(n - i - 1):",
-                "            if arr[j] > arr[j + 1]:",
-                "                arr[j], arr[j+1] = arr[j+1], arr[j]",
-                "    return arr"
-            )
-            "selection sort" -> listOf(
-                "def selection_sort(arr):",
-                "    n = len(arr)",
-                "    for i in range(n - 1):",
-                "        min_idx = i",
-                "        for j in range(i + 1, n):",
-                "            if arr[j] < arr[min_idx]:",
-                "                min_idx = j",
-                "        arr[i], arr[min_idx] = arr[min_idx], arr[i]"
-            )
-            "insertion sort" -> listOf(
-                "def insertion_sort(arr):",
-                "    for i in range(1, len(arr)):",
-                "        key = arr[i]",
-                "        j = i - 1",
-                "        while j >= 0 and arr[j] > key:",
-                "            arr[j + 1] = arr[j]",
-                "            j -= 1",
-                "        arr[j + 1] = key"
-            )
-            "merge sort" -> listOf(
-                "def merge_sort(arr, l, r):",
-                "    if l < r:",
-                "        m = (l + r) // 2",
-                "        merge_sort(arr, l, m)",
-                "        merge_sort(arr, m + 1, r)",
-                "        merge(arr, l, m, r)"
-            )
-            "linear search" -> listOf(
-                "def linear_search(arr, target):",
-                "    for i in range(len(arr)):",
-                "        if arr[i] == target:",
-                "            return i",
-                "    return -1"
-            )
-            "binary search" -> listOf(
-                "def binary_search(arr, target):",
-                "    low, high = 0, len(arr) - 1",
-                "    while low <= high:",
-                "        mid = (low + high) // 2",
-                "        if arr[mid] == target:",
-                "            return mid",
-                "        elif arr[mid] < target:",
-                "            low = mid + 1",
-                "        else:",
-                "            high = mid - 1",
-                "    return -1"
-            )
-            "stack" -> listOf(
-                "class Stack:",
-                "    def push(self, val):",
-                "        self.items.append(val)",
-                "    def pop(self):",
-                "        return self.items.pop()",
-                "    def peek(self):",
-                "        return self.items[-1]"
-            )
-            "queue" -> listOf(
-                "class Queue:",
-                "    def enqueue(self, val):",
-                "        self.items.append(val)",
-                "    def dequeue(self):",
-                "        return self.items.pop(0)",
-                "    def peek(self):",
-                "        return self.items[0]"
-            )
-            "binary search tree" -> listOf(
-                "def insert(root, key):",
-                "    if root is None:",
-                "        return Node(key)",
-                "    if key < root.val:",
-                "        root.left = insert(root.left, key)",
-                "    else:",
-                "        root.right = insert(root.right, key)"
-            )
-            "heap" -> listOf(
-                "def heapify(arr, n, i):",
-                "    largest = i",
-                "    l, r = 2 * i + 1, 2 * i + 2",
-                "    if l < n and arr[l] > arr[largest]: largest = l",
-                "    if r < n and arr[r] > arr[largest]: largest = r",
-                "    if largest != i:",
-                "        arr[i], arr[largest] = arr[largest], arr[i]",
-                "        heapify(arr, n, largest)"
-            )
-            "breadth-first search (bfs)", "bfs" -> listOf(
-                "def bfs(graph, start):",
-                "    visited, queue = set([start]), [start]",
-                "    while queue:",
-                "        node = queue.pop(0)",
-                "        for neighbor in graph[node]:",
-                "            if neighbor not in visited:",
-                "                visited.add(neighbor)",
-                "                queue.append(neighbor)"
-            )
-            "depth-first search (dfs)", "dfs" -> listOf(
-                "def dfs(graph, node, visited=set()):",
-                "    visited.add(node)",
-                "    for neighbor in graph[node]:",
-                "        if neighbor not in visited:",
-                "            dfs(graph, neighbor, visited)"
-            )
-            else -> emptyList()
-        }
-    }
+    /**
+     * Generate steps keyed directly by [AlgorithmId], bypassing the
+     * `Algorithm` UI handle. Prefer this in tests and in code paths that
+     * already have a stable identifier.
+     */
+    fun generateStepsForId(
+        id: AlgorithmId,
+        inputArray: List<Int> = DEFAULT_INPUT,
+    ): List<VisualizerStep> = generateStepsForAlgorithm(Algorithm(id = id), inputArray)
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 1. Bubble Sort
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateBubbleSort(input: List<Int>): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
@@ -278,9 +189,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 2. Selection Sort
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateSelectionSort(input: List<Int>): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
@@ -431,9 +342,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 3. Insertion Sort
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateInsertionSort(input: List<Int>): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
@@ -533,9 +444,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 4. Merge Sort (2-Tier Split & Merge View)
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateMergeSort(input: List<Int>): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
@@ -731,9 +642,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 5. Quick Sort (In-Place Partitioning View)
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateQuickSort(input: List<Int>): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
@@ -887,9 +798,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 6. Linear Search
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateLinearSearch(input: List<Int>, target: Int): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -950,9 +861,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 7. Binary Search
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateBinarySearch(sortedInput: List<Int>, target: Int): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -1045,9 +956,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 8. Stack
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateStackSteps(): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -1060,7 +971,7 @@ object AlgorithmStepRepository {
                     description = desc,
                     renderMode = VisualizerRenderMode.BUFFER,
                     buffer = items.toList(),
-                    bufferLabel = "Stack · LIFO (Last In First Out)",
+                    bufferLabel = "Stack ┬À LIFO (Last In First Out)",
                     activeCodeLines = listOf(codeLine)
                 )
             )
@@ -1093,9 +1004,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 9. Queue
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateQueueSteps(): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -1108,7 +1019,7 @@ object AlgorithmStepRepository {
                     description = desc,
                     renderMode = VisualizerRenderMode.BUFFER,
                     buffer = items.toList(),
-                    bufferLabel = "Queue · FIFO (First In First Out)",
+                    bufferLabel = "Queue ┬À FIFO (First In First Out)",
                     activeCodeLines = listOf(codeLine)
                 )
             )
@@ -1141,9 +1052,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 10. Binary Search Tree (BST)
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateBSTSteps(): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -1248,9 +1159,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 11. Heap (Max-Heap)
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateHeapSteps(input: List<Int>): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -1307,9 +1218,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 12. Breadth-First Search (BFS)
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateBFSSteps(): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -1424,9 +1335,9 @@ object AlgorithmStepRepository {
         return steps
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 13. Depth-First Search (DFS)
-    // ─────────────────────────────────────────────────────────────
+    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     private fun generateDFSSteps(): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0

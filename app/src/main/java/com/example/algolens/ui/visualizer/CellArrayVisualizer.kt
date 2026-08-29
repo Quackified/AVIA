@@ -157,182 +157,36 @@ fun CellArrayVisualizer(
     val auxLazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // ─────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Swap Travel Animation: cells "pop up", then shift and settle into
     // their respective new slots with an elevated shadow while in flight.
-    // ─────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     val density = LocalDensity.current
 
     // Slot pitch (cell width + gap + item padding) in px. Baseline here;
     // refined responsively by BoxWithConstraints further below.
     var slotPitchPx by remember { mutableFloatStateOf(with(density) { 42.dp.toPx() }) }
 
-    // Snapshot of the previous step's array used to diff value permutations.
-    var previousArray by remember { mutableStateOf(step.array) }
 
-    // Stable element identities (each element's origin slot). Keying the
-    // LazyRow by these lets Compose reuse cell state for elements in motion
-    // instead of treating a swapped element as a brand-new item.
-    var elementIds by remember(step.array.size) {
-        mutableStateOf(List(step.array.size) { it })
+    // Swap Travel Animation (shared primitive from SwapFlight.kt): cells
+    // "pop up", then shift and settle into their respective new slots with
+    // an elevated shadow while in flight. The hook diffs value permutations
+    // (trusting swappedIndices, falling back to a value diff), pre-positions
+    // traveling cells at their OLD slots during composition so no final-
+    // arrangement flash occurs, and plays the NonCancellable lift/glide/
+    // settle choreography. It also tracks stable element identities used as
+    // LazyRow item keys further below.
+    val previousArray = remember { mutableStateOf(step.array) }
+    val slotFlight = rememberSlotFlightMap(
+        current = step.array,
+        previous = previousArray.value,
+        swappedIndices = step.swappedIndices,
+        slotPitchPx = slotPitchPx,
+        key = step.stepIndex,
+    )
+    LaunchedEffect(step.stepIndex, step.array) {
+        previousArray.value = step.array
     }
-
-    // Per-slot flight animations (3-phase swap motion):
-    //   1. LIFT  — cell pops straight UP off its slot.
-    //   2. SHIFT — glides horizontally toward the destination slot, mid-air.
-    //   3. LAND  — descends into the new slot and locks with a small settle bounce.
-    val travelOffsetsX = remember { mutableMapOf<Int, Animatable<Float, AnimationVector1D>>() }
-    val travelOffsetsY = remember { mutableMapOf<Int, Animatable<Float, AnimationVector1D>>() }
-    val travelScales = remember { mutableMapOf<Int, Animatable<Float, AnimationVector1D>>() }
-    val liftHeightPx = with(density) { 16.dp.toPx() }
-
-    // ── Composition-time flight plan ──
-    // Step data arrives with the swap ALREADY applied. To avoid a one-frame
-    // flash of the final arrangement, the diff and the displaced start poses
-    // are computed synchronously during composition: the very first frame
-    // renders the two cells at their PRE-swap locations, and the
-    // LaunchedEffect below only plays the lift/shift/land choreography.
-    var lastPlannedStep by remember { mutableStateOf(-1) }
-    // The plan lives in remembered STATE (not a local val): the composition
-    // pass that computes it also writes other state, which restarts that
-    // pass — and the restarted pass must still hand the SAME plan to the
-    // LaunchedEffect below, otherwise cells would sit displaced with no
-    // flight ever animating them home.
-    val flightPlanState = remember { mutableStateOf<List<Pair<Int, Int>>>(emptyList()) }
-    if (lastPlannedStep != step.stepIndex) {
-        lastPlannedStep = step.stepIndex
-        val prev = previousArray
-        val curr = step.array
-
-        val movedPairs: List<Pair<Int, Int>> = when {
-            step.swappedIndices != null &&
-                step.swappedIndices.first in curr.indices &&
-                step.swappedIndices.second in curr.indices -> {
-                listOf(step.swappedIndices.first to step.swappedIndices.second)
-            }
-            prev.size == curr.size -> {
-                val changed = curr.indices.filter { prev[it] != curr[it] }
-                // A swap means exactly two slots changed and their values crossed.
-                if (changed.size == 2) {
-                    val (a, b) = changed
-                    if (prev[a] == curr[b] && prev[b] == curr[a]) listOf(a to b) else emptyList()
-                } else {
-                    emptyList()
-                }
-            }
-            else -> emptyList()
-        }
-
-        // Sync stable element identities with the new permutation (stable keys).
-        if (prev.size == curr.size) {
-            val prevIds = elementIds
-            val newIds = MutableList(curr.size) { it }
-            val used = BooleanArray(prev.size)
-            curr.forEachIndexed { i, v ->
-                val j = prev.indices.firstOrNull { !used[it] && prev[it] == v }
-                if (j != null) {
-                    newIds[i] = prevIds[j]
-                    used[j] = true
-                }
-            }
-            elementIds = newIds
-        }
-
-        // Cancel-safe reset: any slot NOT traveling in this step gets a fresh
-        // rest Animatable, so flights cancelled mid-air by fast playback or
-        // scrubbing can never leave a cell stranded lifted/shifted/enlarged.
-        val planSlots = movedPairs.flatMap { (a, b) -> listOf(a, b) }.toSet()
-        travelOffsetsX.keys.toList().forEach { slot ->
-            if (slot !in planSlots) {
-                travelOffsetsX[slot] = Animatable(0f)
-                travelOffsetsY[slot] = Animatable(0f)
-                travelScales[slot] = Animatable(1f)
-            }
-        }
-        previousArray = curr
-
-        // Place traveling cells at their PRE-swap locations. Post-swap, the
-        // element at slot `from` came from `to` and vice versa — the two
-        // cells therefore start displaced toward each other's old slots and
-        // CROSS through each other into their new homes.
-        movedPairs.onEach { (from, to) ->
-            val distancePx = (to - from) * slotPitchPx
-            travelOffsetsX[from] = Animatable(distancePx)
-            travelOffsetsY[from] = Animatable(0f)
-            travelScales[from] = Animatable(1f)
-            travelOffsetsX[to] = Animatable(-distancePx)
-            travelOffsetsY[to] = Animatable(0f)
-            travelScales[to] = Animatable(1f)
-        }
-        flightPlanState.value = movedPairs
-    }
-
-    LaunchedEffect(step.stepIndex) {
-        // Defense-in-depth reset: any slot NOT traveling in this step is
-        // snapped back to rest before new flights launch. Covers every
-        // path where a previous flight was cut short (fast playback,
-        // scrubbing, new input) so no cell can remain lifted, shifted
-        // or enlarged.
-        val planSlots = flightPlanState.value.flatMap { (a, b) -> listOf(a, b) }.toSet()
-        travelOffsetsX.forEach { (slot, anim) -> if (slot !in planSlots) anim.snapTo(0f) }
-        travelOffsetsY.forEach { (slot, anim) -> if (slot !in planSlots) anim.snapTo(0f) }
-        travelScales.forEach { (slot, anim) -> if (slot !in planSlots) anim.snapTo(1f) }
-
-        // Play the choreography for the plan built above (cells are already
-        // rendered displaced at their old slots — animate them home). The
-        // flight runs under NonCancellable: a newer step replaces these
-        // Animatable objects in the maps, so letting the coroutine finish on
-        // its detached objects is harmless — while cancelling it mid-air is
-        // exactly what used to strand cells in a lifted/shifted pose.
-        flightPlanState.value.forEach { (from, to) ->
-            listOf(from, to).forEach { slot ->
-                val offsetX = travelOffsetsX[slot] ?: return@forEach
-                val offsetY = travelOffsetsY[slot] ?: return@forEach
-                val scale = travelScales[slot] ?: return@forEach
-                launch {
-                    withContext(NonCancellable) {
-                        // 1) LIFT — pop straight up off the slot (scale swells in parallel).
-                        launch {
-                            scale.animateTo(
-                                targetValue = 1.18f,
-                                animationSpec = spring(
-                                    dampingRatio = 0.5f,
-                                    stiffness = Spring.StiffnessMedium
-                                )
-                            )
-                        }
-                        offsetY.animateTo(
-                            targetValue = -liftHeightPx,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        )
-
-                        // 2) SHIFT — horizontal glide into the destination slot, mid-air.
-                        offsetX.animateTo(0f, AlgoTokens.cellTravelSpring)
-
-                        // 3) LAND & LOCK — descend into the slot with a slight settle bounce.
-                        offsetY.animateTo(
-                            targetValue = 0f,
-                            animationSpec = spring(
-                                dampingRatio = 0.55f,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        )
-                        scale.animateTo(1f, AlgoTokens.pointerSpring)
-
-                        // Guarantee an exact landing pose, even if a spring
-                        // is interrupted by the Animatable being replaced.
-                        offsetX.snapTo(0f)
-                        offsetY.snapTo(0f)
-                        scale.snapTo(1f)
-                    }
-                }
-            }
-        }
-    }
-
     // Challenge Mode halo pulse (shared infinite transition for all target
     // cells). Held as State and read inside draw lambdas only, so the
     // infinite animation never triggers per-frame recomposition.
@@ -495,7 +349,7 @@ fun CellArrayVisualizer(
             verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-        // ── 1. Floating Glassmorphic Phase Banner ──
+        // â”€â”€ 1. Floating Glassmorphic Phase Banner â”€â”€
         PhaseBanner(
             step = step,
             algorithmName = algorithmName,
@@ -504,7 +358,7 @@ fun CellArrayVisualizer(
                 .padding(horizontal = 2.dp)
         )
 
-        // ── 2. Array Cells & Visual Gimmicks Canvas ──
+        // â”€â”€ 2. Array Cells & Visual Gimmicks Canvas â”€â”€
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -519,7 +373,7 @@ fun CellArrayVisualizer(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // ── A. Insertion Sort: Elevated Key Inspection Header ──
+                // â”€â”€ A. Insertion Sort: Elevated Key Inspection Header â”€â”€
                 if (isInsertionSort && step.floatingElement != null) {
                     val (keyVal, origIdx) = step.floatingElement
                     Row(
@@ -590,7 +444,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── B. Bubble Sort: Swapping / Connecting Arc Tag ──
+                // â”€â”€ B. Bubble Sort: Swapping / Connecting Arc Tag â”€â”€
                 if (isBubbleSort && step.leftPointer != null && step.rightPointer != null) {
                     val isSwapping = step.phaseLabel == "SWAPPING"
                     Row(
@@ -600,8 +454,8 @@ fun CellArrayVisualizer(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Neutral glass readout — the state is signalled by the pink
-                        // ⚡ accent only, never by flooding the whole bar red
+                        // Neutral glass readout â€” the state is signalled by the pink
+                        // âš¡ accent only, never by flooding the whole bar red
                         // (cells already carry the mutation colour).
                         Box(
                             modifier = Modifier
@@ -614,12 +468,12 @@ fun CellArrayVisualizer(
                                 text = buildAnnotatedString {
                                     if (isSwapping) {
                                         withStyle(SpanStyle(color = AlgoTokens.accentPink)) {
-                                            append("⚡ ")
+                                            append("âš¡ ")
                                         }
-                                        append("BUBBLE UP SWAP: arr[${step.leftPointer}] ⇄ arr[${step.rightPointer}]")
+                                        append("BUBBLE UP SWAP: arr[${step.leftPointer}] â‡„ arr[${step.rightPointer}]")
                                     } else {
                                         withStyle(SpanStyle(color = AlgoTokens.accentCyan)) {
-                                            append("🔍 ")
+                                            append("ðŸ” ")
                                         }
                                         append("ADJACENT COMPARE: arr[${step.leftPointer}] vs arr[${step.rightPointer}]")
                                     }
@@ -633,7 +487,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── C. Selection Sort: Region Split Curtain Indicator ──
+                // â”€â”€ C. Selection Sort: Region Split Curtain Indicator â”€â”€
                 if (isSelectionSort && step.sortedBoundary != null && step.sortedBoundary > 0 && step.sortedBoundary < step.array.size) {
                     Row(
                         modifier = Modifier
@@ -643,14 +497,14 @@ fun CellArrayVisualizer(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "◄ SORTED REGION (0..${step.sortedBoundary - 1})",
+                            text = "â—„ SORTED REGION (0..${step.sortedBoundary - 1})",
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentGreen,
                             fontWeight = FontWeight.Bold,
                             fontSize = 7.5.sp
                         )
                         Text(
-                            text = "UNSORTED CANDIDATES (${step.sortedBoundary}..${step.array.size - 1}) ►",
+                            text = "UNSORTED CANDIDATES (${step.sortedBoundary}..${step.array.size - 1}) â–º",
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentYellow,
                             fontWeight = FontWeight.Bold,
@@ -659,7 +513,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── D. Merge Sort: Recursion Level & Sub-Blocks Info ──
+                // â”€â”€ D. Merge Sort: Recursion Level & Sub-Blocks Info â”€â”€
                 if (isMergeSort && step.mergeBlocks.isNotEmpty()) {
                     Row(
                         modifier = Modifier
@@ -696,7 +550,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── Main Cells LazyRow with Smooth Animations ──
+                // â”€â”€ Main Cells LazyRow with Smooth Animations â”€â”€
                 LazyRow(
                     state = lazyListState,
                     modifier = Modifier.fillMaxWidth(),
@@ -704,7 +558,7 @@ fun CellArrayVisualizer(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    itemsIndexed(step.array, key = { index, _ -> elementIds.getOrElse(index) { index } }) { index, value ->
+                    itemsIndexed(step.array, key = { index, _ -> slotFlight.elementIds.getOrElse(index) { index } }) { index, value ->
                         val state = step.elementStates[index] ?: ElementState.IDLE
                         val isSelectedForChallenge = selectedCellIndices.contains(index)
                         val isChallengeTarget = index in challengeTargetIndices
@@ -725,8 +579,8 @@ fun CellArrayVisualizer(
                         // Bubble Sort / Swap Scale & Glow Gimmick
                         val isSwappingCell = step.swappedIndices?.let { it.first == index || it.second == index } ?: false
 
-                        // Tactile evaluation pop (bouncy 1.1x–1.2x) for cells being scanned.
-                        // Held as State — read in the graphicsLayer below, not in composition.
+                        // Tactile evaluation pop (bouncy 1.1xâ€“1.2x) for cells being scanned.
+                        // Held as State â€” read in the graphicsLayer below, not in composition.
                         val isEvaluated = state == ElementState.COMPARING ||
                             state == ElementState.ACTIVE ||
                             state == ElementState.FOUND
@@ -761,11 +615,11 @@ fun CellArrayVisualizer(
                                     .padding(horizontal = 2.dp)
                                     .graphicsLayer {
                                         // All per-frame animated values are read HERE, in the
-                                        // render phase — animation frames only re-record this
+                                        // render phase â€” animation frames only re-record this
                                         // layer and never recompose the cell subtree.
-                                        val ox = travelOffsetsX[index]?.value ?: 0f
-                                        val oy = travelOffsetsY[index]?.value ?: 0f
-                                        val sc = travelScales[index]?.value ?: 1f
+                                        val ox = slotFlight.transform(index).offsetX.value
+                                        val oy = slotFlight.transform(index).offsetY.value
+                                        val sc = slotFlight.transform(index).scale.value
                                         val ev = evalScaleState.value
                                         translationX = ox
                                         translationY = oy
@@ -785,7 +639,7 @@ fun CellArrayVisualizer(
                                         onCellClick?.invoke(index)
                                     }
                             ) {
-                                // ── Top Pointer Badge ──
+                                // â”€â”€ Top Pointer Badge â”€â”€
                                 Box(
                                     modifier = Modifier.height(18.dp),
                                     contentAlignment = Alignment.Center
@@ -826,9 +680,9 @@ fun CellArrayVisualizer(
                                 }
                                 }
 
-                                // ── Cell Box ──
+                                // â”€â”€ Cell Box â”€â”€
                                 // Contrast rule: the semantic accent lives on the BORDER and
-                                // FILL TINT only — the element VALUE digit must always render
+                                // FILL TINT only â€” the element VALUE digit must always render
                                 // in a high-contrast colour (white / bright accent). Never map
                                 // a low-luminance accent (e.g. pink #FF3366) to the value text,
                                 // or the digit vanishes into its own tinted fill.
@@ -843,7 +697,7 @@ fun CellArrayVisualizer(
                                         AlgoTokens.accentYellow, AlgoTokens.yellowFill, Color.White
                                     )
                                     // Compare flash: pink frame + pink tint, but the value
-                                    // stays WHITE — a red digit on a red tint is unreadable.
+                                    // stays WHITE â€” a red digit on a red tint is unreadable.
                                     state == ElementState.COMPARING -> Triple(
                                         AlgoTokens.accentPink, AlgoTokens.pinkFill, Color.White
                                     )
@@ -917,7 +771,7 @@ fun CellArrayVisualizer(
                                     )
                                 }
 
-                                // ── Index Label ──
+                                // â”€â”€ Index Label â”€â”€
                                 Text(
                                     text = index.toString(),
                                     style = MaterialTheme.typography.labelSmall,
@@ -930,7 +784,7 @@ fun CellArrayVisualizer(
                                     fontSize = 8.5.sp
                                 )
 
-                                // ── Bottom Pointer Badge ──
+                                // â”€â”€ Bottom Pointer Badge â”€â”€
                                 Box(
                                     modifier = Modifier.height(20.dp),
                                     contentAlignment = Alignment.Center
@@ -973,7 +827,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── E. Merge Sort: Tier 2 (Auxiliary Merge Buffer & Flow Indicator) ──
+                // â”€â”€ E. Merge Sort: Tier 2 (Auxiliary Merge Buffer & Flow Indicator) â”€â”€
                 if (isMergeSort && step.auxiliaryArray != null && step.auxiliaryArray.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Column(
@@ -1088,7 +942,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── Animated Off-Screen Pointer Pop-Up Cell Indicators ──
+                // â”€â”€ Animated Off-Screen Pointer Pop-Up Cell Indicators â”€â”€
                 if (leftOffscreen.isNotEmpty() || rightOffscreen.isNotEmpty()) {
                     Row(
                         modifier = Modifier
@@ -1141,7 +995,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── Comparison / Step Expression Callout ──
+                // â”€â”€ Comparison / Step Expression Callout â”€â”€
                 val expr = step.comparisonExpr ?: step.description
                 if (expr.isNotBlank()) {
                     Spacer(modifier = Modifier.height(2.dp))
@@ -1178,7 +1032,7 @@ fun CellArrayVisualizer(
  * Layered outer-stroke glow around a cell. Deliberately paints ONLY the band
  * OUTSIDE the cell bounds (three nested rounded-rect strokes with decreasing
  * width / increasing intensity) so the translucent cell fill never picks up
- * the halo — the element value inside stays fully legible, and the thin band
+ * the halo â€” the element value inside stays fully legible, and the thin band
  * (~7dp) cannot bleed into neighbouring cells.
  */
 private fun DrawScope.drawCellGlow(

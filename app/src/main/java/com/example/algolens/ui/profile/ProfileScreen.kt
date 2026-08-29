@@ -65,7 +65,7 @@ fun ProfileScreen(
 ) {
     val weeklyActivity = remember { listOf(3, 5, 2, 7, 4, 6, 3) }
     val days = remember { listOf("M", "T", "W", "T", "F", "S", "S") }
-    val bookmarked = remember { SampleData.algorithms.filter { it.id in listOf(4, 5, 12) } }
+    val bookmarked = remember { SampleData.algorithms.filter { it.id in listOf(com.example.algolens.model.AlgorithmId.MERGE_SORT, com.example.algolens.model.AlgorithmId.QUICK_SORT, com.example.algolens.model.AlgorithmId.BFS) } }
 
     Column(
         modifier = modifier

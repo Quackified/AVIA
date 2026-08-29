@@ -808,15 +808,7 @@ private fun ComplexityPill(label: String, value: String, color: Color) {
 fun AlgorithmTheorySheetPreview() {
     AlgoLensTheme {
         AlgorithmTheorySheet(
-            algorithm = Algorithm(
-                id = 1,
-                name = "Quick Sort",
-                category = "Sorting",
-                timeComplexity = "O(n log n)",
-                spaceComplexity = "O(log n)",
-                difficulty = "Medium",
-                colorHex = "#00E5FF"
-            ),
+            algorithm = Algorithm(id = com.example.algolens.model.AlgorithmId.QUICK_SORT),
             onDismiss = {}
         )
     }

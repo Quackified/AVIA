@@ -1,30 +1,43 @@
 package com.example.algolens.data
 
 import com.example.algolens.model.Algorithm
+import com.example.algolens.model.AlgorithmId
 
 object SampleData {
-    val algorithms = listOf(
+    /**
+     * Canonical ordered list of every algorithm the app currently ships.
+     * The visualizer, the dashboard, the profile and the test suite all
+     * derive their behaviour from this list — adding a new algorithm is
+     * a one-line append plus a one-line entry in
+     * [com.example.algolens.data.AlgorithmRegistry].
+     */
+    val algorithms: List<Algorithm> = listOf(
         // ── Sorting (5) ──
-        Algorithm(1, "Bubble Sort", "Sorting", "O(n²)", "O(1)", "Easy", "#22D3EE"),
-        Algorithm(2, "Selection Sort", "Sorting", "O(n²)", "O(1)", "Easy", "#22D3EE"),
-        Algorithm(3, "Insertion Sort", "Sorting", "O(n²)", "O(1)", "Easy", "#22D3EE"),
-        Algorithm(4, "Merge Sort", "Sorting", "O(n log n)", "O(n)", "Medium", "#22D3EE"),
-        Algorithm(5, "Quick Sort", "Sorting", "O(n log n)", "O(log n)", "Medium", "#22D3EE"),
+        Algorithm(id = AlgorithmId.BUBBLE_SORT),
+        Algorithm(id = AlgorithmId.SELECTION_SORT),
+        Algorithm(id = AlgorithmId.INSERTION_SORT),
+        Algorithm(id = AlgorithmId.MERGE_SORT),
+        Algorithm(id = AlgorithmId.QUICK_SORT),
 
         // ── Searching (2) ──
-        Algorithm(6, "Linear Search", "Searching", "O(n)", "O(1)", "Easy", "#C084FC"),
-        Algorithm(7, "Binary Search", "Searching", "O(log n)", "O(1)", "Easy", "#C084FC"),
+        Algorithm(id = AlgorithmId.LINEAR_SEARCH),
+        Algorithm(id = AlgorithmId.BINARY_SEARCH),
 
         // ── Data Structures (4) ──
-        Algorithm(8, "Stack", "Data Structures", "O(1) push/pop", "O(n)", "Easy", "#FB923C"),
-        Algorithm(9, "Queue", "Data Structures", "O(1) enq/deq", "O(n)", "Easy", "#FB923C"),
-        Algorithm(10, "Binary Search Tree", "Data Structures", "O(log n) avg", "O(n)", "Medium", "#FB923C"),
-        Algorithm(11, "Heap", "Data Structures", "O(log n) ins", "O(n)", "Medium", "#FB923C"),
+        Algorithm(id = AlgorithmId.STACK),
+        Algorithm(id = AlgorithmId.QUEUE),
+        Algorithm(id = AlgorithmId.BINARY_SEARCH_TREE),
+        Algorithm(id = AlgorithmId.HEAP),
 
         // ── Graph Traversal (2) ──
-        Algorithm(12, "Breadth-First Search (BFS)", "Graph Traversal", "O(V+E)", "O(V)", "Easy", "#4ADE80"),
-        Algorithm(13, "Depth-First Search (DFS)", "Graph Traversal", "O(V+E)", "O(V)", "Easy", "#4ADE80")
+        Algorithm(id = AlgorithmId.BFS),
+        Algorithm(id = AlgorithmId.DFS),
     )
 
-    val categories = listOf("All", "Sorting", "Searching", "Data Structures", "Graph Traversal")
+    /** Category labels shown as filter chips on the dashboard. Derived from the enum. */
+    val categories: List<String> = listOf("All") + AlgorithmId.values()
+        .map { it.categoryLabel }
+        .toSortedSet()
+        .toList()
 }
+

@@ -61,6 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.algolens.data.AlgorithmRegistry
 import com.example.algolens.data.AlgorithmStepRepository
 import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
@@ -121,11 +122,8 @@ fun VisualizerScreen(
     var arrayViewMode by remember { mutableStateOf(ArrayViewMode.CELLS) }
     var arrayData by remember {
         mutableStateOf(
-            if (algorithm.name.equals("Binary Search", ignoreCase = true)) {
-                listOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
-            } else {
-                listOf(3, 8, 9, 2, 6, 1, 5, 4, 7)
-            }
+            AlgorithmRegistry.specFor(algorithm.id)?.defaultInput
+                ?: AlgorithmStepRepository.DEFAULT_INPUT
         )
     }
 
@@ -145,8 +143,20 @@ fun VisualizerScreen(
 
     var challengeState by remember { mutableStateOf(ChallengeState()) }
 
+    // Guard against an empty / ungenerated step list. Without this,
+    // `steps.first()` throws NoSuchElementException on the very first frame
+    // before the repository finishes generating steps for some algorithm
+    // types (e.g. switching algorithms mid-flight or a generator that
+    // returns an empty list for a degenerate input).
     val totalSteps = steps.size.coerceAtLeast(1)
-    val currentStep = steps.getOrElse(currentStepIdx.coerceIn(0, totalSteps - 1)) { steps.first() }
+    val resolvedStep: VisualizerStep = if (steps.isEmpty()) {
+        // Render a benign placeholder step so the rest of the UI can compose
+        // safely. The first non-empty regeneration will replace it.
+        VisualizerStep(stepIndex = 0, array = arrayData)
+    } else {
+        steps.getOrElse(currentStepIdx.coerceIn(0, totalSteps - 1)) { steps.first() }
+    }
+    val currentStep: VisualizerStep = resolvedStep
 
     // Playback locks while a challenge question awaits an answer
     val challengeLocked = challengeState.isActive && challengeState.feedback == null
@@ -474,7 +484,7 @@ fun VisualizerScreen(
 
                                 BufferVisualizer(
                                     step = currentStep,
-                                    isStack = algorithm.name.equals("Stack", ignoreCase = true),
+                                    isStack = AlgorithmRegistry.specFor(algorithm.id)?.isStack ?: true,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(280.dp)

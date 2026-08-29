@@ -2,14 +2,13 @@ package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,11 +24,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import com.example.algolens.ui.theme.AlgoTokens
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -99,8 +103,22 @@ fun ArrayVisualizer(
                 .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
                 .padding(start = 12.dp, end = 12.dp, top = 24.dp, bottom = 48.dp)
         ) {
+            // ── Shared swap-flight map: bars physically cross slots with the
+            //    lift → glide → settle arc (same primitive as cells). ──
+            var rowWidthPx by remember { mutableStateOf(0) }
+            val previousArray = remember { mutableStateOf(step.array) }
+            val flightMap = rememberSlotFlightMap(
+                current = step.array,
+                previous = previousArray.value,
+                swappedIndices = step.swappedIndices,
+                slotPitchPx = if (step.array.isEmpty()) 0f else rowWidthPx.toFloat() / step.array.size,
+                key = step.stepIndex,
+            )
+
             Row(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onSizeChanged { rowWidthPx = it.width },
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
@@ -118,17 +136,9 @@ fun ArrayVisualizer(
                         label = "barAlpha_$index"
                     )
 
-                    // ── Swap Pair Scale ──
+                    // ── Swap Pair Flag (used for border glow; physical scale is
+                    //    handled by the shared flight graphicsLayer below) ──
                     val isSwapped = step.swappedIndices != null && (step.swappedIndices.first == index || step.swappedIndices.second == index)
-                    val targetScale = if (isSwapped) 1.12f else 1f
-                    val animatedScale by animateFloatAsState(
-                        targetValue = targetScale,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        ),
-                        label = "barScale_$index"
-                    )
 
                     val targetFraction = (value.toFloat() / maxVal.coerceAtLeast(1)).coerceIn(0.06f, 1f)
                     val animatedHeightFraction by animateFloatAsState(
@@ -168,10 +178,24 @@ fun ArrayVisualizer(
                         label = "barBorder_$index"
                     )
 
+                    // ── Physical swap flight (render-phase reads only) ──
+                    val flight = flightMap.transform(index)
+
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
+                            .graphicsLayer {
+                                translationX = flight.offsetX.value
+                                translationY = flight.offsetY.value
+                                val s = flight.scale.value
+                                scaleX = s
+                                scaleY = s
+                                shadowElevation =
+                                    if (s > 1.01f || kotlin.math.abs(flight.offsetY.value) > 0.5f) {
+                                        AlgoTokens.elevationTraveling.toPx()
+                                    } else 0f
+                            }
                             .alpha(animatedAlpha),
                         verticalArrangement = Arrangement.Bottom,
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -216,8 +240,7 @@ fun ArrayVisualizer(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .fillMaxWidth()
-                                .scale(scaleX = animatedScale, scaleY = 1f),
+                                .fillMaxWidth(),
                             contentAlignment = Alignment.BottomCenter
                         ) {
                             Box(

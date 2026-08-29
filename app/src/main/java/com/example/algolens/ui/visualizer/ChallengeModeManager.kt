@@ -106,37 +106,60 @@ fun challengeEligibleIndices(
     step: VisualizerStep,
     nextStep: VisualizerStep?,
     type: ChallengeQuestionType
-): Set<Int> = when (type) {
-    ChallengeQuestionType.SWAP_DECISION -> {
-        val active = step.elementStates.filter {
-            it.value == ElementState.COMPARING || it.value == ElementState.SWAPPING
-        }.keys
-        if (active.size >= 2) {
-            active
-        } else {
-            val pointers = (step.bottomPointers.values + step.topPointers.values)
-                .distinct()
-                .sorted()
-            if (pointers.size >= 2) pointers.take(2).toSet() else setOf(0, 1)
+): Set<Int> {
+    // Hard safety bound: every returned index must actually exist in the
+    // current array, otherwise the CellArrayVisualizer can IndexOutOfBounds
+    // while drawing challenge halos or accepting taps on these cells.
+    val validRange = step.array.indices
+    fun bound(indices: Set<Int>): Set<Int> = indices.filter { it in validRange }.toSet()
+
+    return when (type) {
+        ChallengeQuestionType.SWAP_DECISION -> {
+            val active = step.elementStates.filter {
+                it.value == ElementState.COMPARING || it.value == ElementState.SWAPPING
+            }.keys
+            if (active.size >= 2) {
+                bound(active)
+            } else {
+                val pointers = (step.bottomPointers.values + step.topPointers.values)
+                    .distinct()
+                    .sorted()
+                when {
+                    pointers.size >= 2 -> bound(pointers.take(2).toSet())
+                    // Fall back to the first two valid indices of the array
+                    // (never 0,1 unconditionally — that would crash on an
+                    // empty or single-cell array).
+                    step.array.size >= 2 -> setOf(0, 1).filter { it in validRange }.toSet()
+                    else -> emptySet()
+                }
+            }
         }
-    }
-    ChallengeQuestionType.SELECT_PIVOT -> {
-        val pivot = step.pivotIndex
-            ?: step.topPointers.entries
-                .firstOrNull { it.key.equals("pivot", ignoreCase = true) }?.value
-        if (pivot != null) {
-            setOf(pivot)
-        } else {
-            step.activeRange?.let { setOf((it.first + it.last) / 2) } ?: emptySet()
+        ChallengeQuestionType.SELECT_PIVOT -> {
+            val pivot = step.pivotIndex
+                ?: step.topPointers.entries
+                    .firstOrNull { it.key.equals("pivot", ignoreCase = true) }?.value
+            if (pivot != null && pivot in validRange) {
+                setOf(pivot)
+            } else {
+                step.activeRange?.let { range ->
+                    val mid = (range.first + range.last) / 2
+                    if (mid in validRange) setOf(mid) else emptySet()
+                } ?: emptySet()
+            }
         }
-    }
-    ChallengeQuestionType.SELECT_COMPARE_PAIR -> {
-        val comparing = step.elementStates
-            .filter { it.value == ElementState.COMPARING }.keys
-        if (comparing.size >= 2) {
-            comparing
-        } else {
-            step.bottomPointers.values.distinct().sorted().take(2).toSet()
+        ChallengeQuestionType.SELECT_COMPARE_PAIR -> {
+            val comparing = step.elementStates
+                .filter { it.value == ElementState.COMPARING }.keys
+            if (comparing.size >= 2) {
+                bound(comparing)
+            } else {
+                val pointers = step.bottomPointers.values
+                    .distinct()
+                    .sorted()
+                    .take(2)
+                    .toSet()
+                bound(pointers)
+            }
         }
     }
 }

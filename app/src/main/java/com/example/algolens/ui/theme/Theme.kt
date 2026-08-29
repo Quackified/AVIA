@@ -183,6 +183,18 @@ object AlgoTokens {
         stiffness = Spring.StiffnessLow
     )
 
+    /** Lift phase of the swap arc: pop straight up off the slot. */
+    val liftSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+
+    /** Settle phase of the swap arc: descend into the destination slot. */
+    val settleSpring = spring<Float>(
+        dampingRatio = 0.55f,
+        stiffness = Spring.StiffnessMedium
+    )
+
     /** Standard opacity of inactive/disabled workspace controls. */
     val disabledAlpha: Float = 0.38f
 }

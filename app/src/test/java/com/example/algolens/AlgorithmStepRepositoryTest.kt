@@ -2,7 +2,9 @@ package com.example.algolens
 
 import com.example.algolens.data.AlgorithmStepRepository
 import com.example.algolens.data.SampleData
+import com.example.algolens.ui.visualizer.AlgorithmCodeRegistry
 import com.example.algolens.ui.visualizer.ElementState
+import com.example.algolens.ui.visualizer.TraceLanguage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -17,8 +19,14 @@ class AlgorithmStepRepositoryTest {
             val steps = AlgorithmStepRepository.generateStepsForAlgorithm(algo, testArray)
             assertTrue("Algorithm ${algo.name} generated empty steps", steps.isNotEmpty())
 
-            val codeLines = AlgorithmStepRepository.getCodeLinesForAlgorithm(algo)
-            assertTrue("Algorithm ${algo.name} codeLines should not be empty", codeLines.isNotEmpty())
+            // The Python-only `getCodeLinesForAlgorithm` was removed in
+            // favour of `AlgorithmCodeRegistry`, which is the single
+            // source of truth used by the Code Trace pane.
+            val codeData = AlgorithmCodeRegistry.getCode(algo.name, TraceLanguage.PYTHON)
+            assertTrue(
+                "Algorithm ${algo.name} Python codeLines should not be empty",
+                codeData.lines.isNotEmpty()
+            )
         }
     }
 

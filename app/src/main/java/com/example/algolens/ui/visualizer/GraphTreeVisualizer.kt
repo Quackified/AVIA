@@ -3,6 +3,11 @@ package com.example.algolens.ui.visualizer
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
@@ -232,6 +237,18 @@ fun GraphTreeVisualizer(
                     .clip(RoundedCornerShape(8.dp))
                     .background(CanvasBackground)
             ) {
+                // Render-phase pulse for the active node's halo (draw-read only).
+                val activeHaloPulse = rememberInfiniteTransition(label = "activeNodeHalo")
+                    .animateFloat(
+                        initialValue = 0f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 1100),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "activeNodeHaloValue"
+                    )
+
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
@@ -578,16 +595,18 @@ fun GraphTreeVisualizer(
 
                         // ── Halo Glow Rendering Underneath Touch Targets ──
                         if (isActive || isHovered || isDragSource) {
-                            // Outer ambient halo
+                            val haloColor = if (isHovered || isDragSource) PrimaryCyan else AccentGreen
+                            // Outer ambient halo (breathes when node is the active one)
+                            val breathe = if (isActive) activeHaloPulse.value else 0f
                             drawCircle(
-                                color = (if (isHovered || isDragSource) PrimaryCyan else AccentGreen).copy(alpha = 0.14f),
-                                radius = 34f,
+                                color = haloColor.copy(alpha = 0.14f + 0.10f * breathe),
+                                radius = 34f + 4f * breathe,
                                 center = center
                             )
                             // Inner sharp halo
                             drawCircle(
-                                color = (if (isHovered || isDragSource) PrimaryCyan else AccentGreen).copy(alpha = 0.28f),
-                                radius = 26f,
+                                color = haloColor.copy(alpha = 0.28f + 0.14f * breathe),
+                                radius = 26f + 2f * breathe,
                                 center = center
                             )
                         } else if (node.state == ElementState.PIVOT) {
