@@ -2,8 +2,11 @@ package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -16,12 +19,15 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -52,6 +58,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.State
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -60,15 +70,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.algolens.ui.theme.AccentGreen
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.AccentOrange
 import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentRed
@@ -97,6 +119,8 @@ import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.YellowSubtle
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /**
  * Data structure describing an active off-screen pointer target.
@@ -114,21 +138,210 @@ data class OffscreenPointerTarget(
 
 /**
  * Alternative Box/Cell Array Visualizer mode with top & bottom labeled pointer badges,
- * comparison expression callout, embedded synchronized multi-language CodeTracePane,
- * and animated pop-up pill indicator cells for off-screen pointers.
+ * comparison expression callout, animated "pop up & shift" swap travel animations,
+ * glowing Challenge-Mode target cells, and animated pop-up pill indicator cells
+ * for off-screen pointers. The synchronized CodeTracePane is hosted by the
+ * VisualizerScreen coordinator (bottom workspace region), not embedded here.
  */
 @Composable
 fun CellArrayVisualizer(
     step: VisualizerStep,
     algorithmName: String = "Bubble Sort",
-    codeLines: List<String> = emptyList(),
     selectedCellIndices: Set<Int> = emptySet(),
+    challengeTargetIndices: Set<Int> = emptySet(),
+    syncPulse: State<Float> = mutableStateOf(0f),
     onCellClick: ((Int) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val lazyListState = rememberLazyListState()
     val auxLazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Swap Travel Animation: cells "pop up", then shift and settle into
+    // their respective new slots with an elevated shadow while in flight.
+    // ─────────────────────────────────────────────────────────────────────
+    val density = LocalDensity.current
+
+    // Slot pitch (cell width + gap + item padding) in px. Baseline here;
+    // refined responsively by BoxWithConstraints further below.
+    var slotPitchPx by remember { mutableFloatStateOf(with(density) { 42.dp.toPx() }) }
+
+    // Snapshot of the previous step's array used to diff value permutations.
+    var previousArray by remember { mutableStateOf(step.array) }
+
+    // Stable element identities (each element's origin slot). Keying the
+    // LazyRow by these lets Compose reuse cell state for elements in motion
+    // instead of treating a swapped element as a brand-new item.
+    var elementIds by remember(step.array.size) {
+        mutableStateOf(List(step.array.size) { it })
+    }
+
+    // Per-slot flight animations (3-phase swap motion):
+    //   1. LIFT  — cell pops straight UP off its slot.
+    //   2. SHIFT — glides horizontally toward the destination slot, mid-air.
+    //   3. LAND  — descends into the new slot and locks with a small settle bounce.
+    val travelOffsetsX = remember { mutableMapOf<Int, Animatable<Float, AnimationVector1D>>() }
+    val travelOffsetsY = remember { mutableMapOf<Int, Animatable<Float, AnimationVector1D>>() }
+    val travelScales = remember { mutableMapOf<Int, Animatable<Float, AnimationVector1D>>() }
+    val liftHeightPx = with(density) { 16.dp.toPx() }
+
+    // ── Composition-time flight plan ──
+    // Step data arrives with the swap ALREADY applied. To avoid a one-frame
+    // flash of the final arrangement, the diff and the displaced start poses
+    // are computed synchronously during composition: the very first frame
+    // renders the two cells at their PRE-swap locations, and the
+    // LaunchedEffect below only plays the lift/shift/land choreography.
+    var lastPlannedStep by remember { mutableStateOf(-1) }
+    // The plan lives in remembered STATE (not a local val): the composition
+    // pass that computes it also writes other state, which restarts that
+    // pass — and the restarted pass must still hand the SAME plan to the
+    // LaunchedEffect below, otherwise cells would sit displaced with no
+    // flight ever animating them home.
+    val flightPlanState = remember { mutableStateOf<List<Pair<Int, Int>>>(emptyList()) }
+    if (lastPlannedStep != step.stepIndex) {
+        lastPlannedStep = step.stepIndex
+        val prev = previousArray
+        val curr = step.array
+
+        val movedPairs: List<Pair<Int, Int>> = when {
+            step.swappedIndices != null &&
+                step.swappedIndices.first in curr.indices &&
+                step.swappedIndices.second in curr.indices -> {
+                listOf(step.swappedIndices.first to step.swappedIndices.second)
+            }
+            prev.size == curr.size -> {
+                val changed = curr.indices.filter { prev[it] != curr[it] }
+                // A swap means exactly two slots changed and their values crossed.
+                if (changed.size == 2) {
+                    val (a, b) = changed
+                    if (prev[a] == curr[b] && prev[b] == curr[a]) listOf(a to b) else emptyList()
+                } else {
+                    emptyList()
+                }
+            }
+            else -> emptyList()
+        }
+
+        // Sync stable element identities with the new permutation (stable keys).
+        if (prev.size == curr.size) {
+            val prevIds = elementIds
+            val newIds = MutableList(curr.size) { it }
+            val used = BooleanArray(prev.size)
+            curr.forEachIndexed { i, v ->
+                val j = prev.indices.firstOrNull { !used[it] && prev[it] == v }
+                if (j != null) {
+                    newIds[i] = prevIds[j]
+                    used[j] = true
+                }
+            }
+            elementIds = newIds
+        }
+
+        // Cancel-safe reset: any slot NOT traveling in this step gets a fresh
+        // rest Animatable, so flights cancelled mid-air by fast playback or
+        // scrubbing can never leave a cell stranded lifted/shifted/enlarged.
+        val planSlots = movedPairs.flatMap { (a, b) -> listOf(a, b) }.toSet()
+        travelOffsetsX.keys.toList().forEach { slot ->
+            if (slot !in planSlots) {
+                travelOffsetsX[slot] = Animatable(0f)
+                travelOffsetsY[slot] = Animatable(0f)
+                travelScales[slot] = Animatable(1f)
+            }
+        }
+        previousArray = curr
+
+        // Place traveling cells at their PRE-swap locations. Post-swap, the
+        // element at slot `from` came from `to` and vice versa — the two
+        // cells therefore start displaced toward each other's old slots and
+        // CROSS through each other into their new homes.
+        movedPairs.onEach { (from, to) ->
+            val distancePx = (to - from) * slotPitchPx
+            travelOffsetsX[from] = Animatable(distancePx)
+            travelOffsetsY[from] = Animatable(0f)
+            travelScales[from] = Animatable(1f)
+            travelOffsetsX[to] = Animatable(-distancePx)
+            travelOffsetsY[to] = Animatable(0f)
+            travelScales[to] = Animatable(1f)
+        }
+        flightPlanState.value = movedPairs
+    }
+
+    LaunchedEffect(step.stepIndex) {
+        // Defense-in-depth reset: any slot NOT traveling in this step is
+        // snapped back to rest before new flights launch. Covers every
+        // path where a previous flight was cut short (fast playback,
+        // scrubbing, new input) so no cell can remain lifted, shifted
+        // or enlarged.
+        val planSlots = flightPlanState.value.flatMap { (a, b) -> listOf(a, b) }.toSet()
+        travelOffsetsX.forEach { (slot, anim) -> if (slot !in planSlots) anim.snapTo(0f) }
+        travelOffsetsY.forEach { (slot, anim) -> if (slot !in planSlots) anim.snapTo(0f) }
+        travelScales.forEach { (slot, anim) -> if (slot !in planSlots) anim.snapTo(1f) }
+
+        // Play the choreography for the plan built above (cells are already
+        // rendered displaced at their old slots — animate them home). The
+        // flight runs under NonCancellable: a newer step replaces these
+        // Animatable objects in the maps, so letting the coroutine finish on
+        // its detached objects is harmless — while cancelling it mid-air is
+        // exactly what used to strand cells in a lifted/shifted pose.
+        flightPlanState.value.forEach { (from, to) ->
+            listOf(from, to).forEach { slot ->
+                val offsetX = travelOffsetsX[slot] ?: return@forEach
+                val offsetY = travelOffsetsY[slot] ?: return@forEach
+                val scale = travelScales[slot] ?: return@forEach
+                launch {
+                    withContext(NonCancellable) {
+                        // 1) LIFT — pop straight up off the slot (scale swells in parallel).
+                        launch {
+                            scale.animateTo(
+                                targetValue = 1.18f,
+                                animationSpec = spring(
+                                    dampingRatio = 0.5f,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            )
+                        }
+                        offsetY.animateTo(
+                            targetValue = -liftHeightPx,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        )
+
+                        // 2) SHIFT — horizontal glide into the destination slot, mid-air.
+                        offsetX.animateTo(0f, AlgoTokens.cellTravelSpring)
+
+                        // 3) LAND & LOCK — descend into the slot with a slight settle bounce.
+                        offsetY.animateTo(
+                            targetValue = 0f,
+                            animationSpec = spring(
+                                dampingRatio = 0.55f,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        )
+                        scale.animateTo(1f, AlgoTokens.pointerSpring)
+
+                        // Guarantee an exact landing pose, even if a spring
+                        // is interrupted by the Animatable being replaced.
+                        offsetX.snapTo(0f)
+                        offsetY.snapTo(0f)
+                        scale.snapTo(1f)
+                    }
+                }
+            }
+        }
+    }
+
+    // Challenge Mode halo pulse (shared infinite transition for all target
+    // cells). Held as State and read inside draw lambdas only, so the
+    // infinite animation never triggers per-frame recomposition.
+    val challengePulseState = rememberInfiniteTransition(label = "challengeHalo").animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(650), RepeatMode.Reverse),
+        label = "challengeHaloAlpha"
+    )
 
     // Determine currently visible item indices in LazyRow
     val visibleItemIndices by remember {
@@ -172,7 +385,7 @@ fun CellArrayVisualizer(
                         val isPivot = label.equals("pivot", ignoreCase = true)
                         val isMin = label.equals("min", ignoreCase = true)
                         val badgeBg = when {
-                            isPivot -> AccentPink
+                            isPivot -> AlgoTokens.accentYellow
                             isMin -> AccentYellow
                             else -> SecondaryPurple
                         }
@@ -261,13 +474,27 @@ fun CellArrayVisualizer(
     val isQuickSort = algorithmName.contains("quick", ignoreCase = true)
     val isMergeSort = algorithmName.contains("merge", ignoreCase = true)
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        // Responsive tactile-canvas sizing: card dimensions, type scale and
+        // slot pitch derive from the available width and total node count.
+        val nodeCount = step.array.size.coerceAtLeast(1)
+        val availableWidth = maxWidth - 36.dp // canvas well padding + gutters
+        val cellWidth = ((availableWidth / nodeCount).coerceAtLeast(26.dp)).coerceAtMost(44.dp)
+        val cellHeight = cellWidth * 1.12f
+        val cellTextSize = (cellWidth.value * 0.36f).coerceIn(10f, 16f).sp
+        val slotGap = 6.dp
+
+        LaunchedEffect(cellWidth) {
+            slotPitchPx = with(density) { (cellWidth + slotGap + 4.dp).toPx() }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         // ── 1. Floating Glassmorphic Phase Banner ──
         PhaseBanner(
             step = step,
@@ -373,18 +600,32 @@ fun CellArrayVisualizer(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Neutral glass readout — the state is signalled by the pink
+                        // ⚡ accent only, never by flooding the whole bar red
+                        // (cells already carry the mutation colour).
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSwapping) PinkSubtle else CyanSubtle)
-                                .border(1.dp, if (isSwapping) AccentPink.copy(alpha = 0.5f) else PrimaryCyan.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                .background(AlgoTokens.glassFill)
+                                .border(1.dp, BorderSubtle, RoundedCornerShape(6.dp))
                                 .padding(horizontal = 10.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = if (isSwapping) "⚡ BUBBLE UP SWAP: arr[${step.leftPointer}] ⇄ arr[${step.rightPointer}]"
-                                       else "🔍 ADJACENT COMPARE: arr[${step.leftPointer}] vs arr[${step.rightPointer}]",
+                                text = buildAnnotatedString {
+                                    if (isSwapping) {
+                                        withStyle(SpanStyle(color = AlgoTokens.accentPink)) {
+                                            append("⚡ ")
+                                        }
+                                        append("BUBBLE UP SWAP: arr[${step.leftPointer}] ⇄ arr[${step.rightPointer}]")
+                                    } else {
+                                        withStyle(SpanStyle(color = AlgoTokens.accentCyan)) {
+                                            append("🔍 ")
+                                        }
+                                        append("ADJACENT COMPARE: arr[${step.leftPointer}] vs arr[${step.rightPointer}]")
+                                    }
+                                },
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isSwapping) AccentPink else PrimaryCyan,
+                                color = PrimaryCyan,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 8.sp
                             )
@@ -463,13 +704,14 @@ fun CellArrayVisualizer(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    itemsIndexed(step.array, key = { index, _ -> index }) { index, value ->
+                    itemsIndexed(step.array, key = { index, _ -> elementIds.getOrElse(index) { index } }) { index, value ->
                         val state = step.elementStates[index] ?: ElementState.IDLE
                         val isSelectedForChallenge = selectedCellIndices.contains(index)
+                        val isChallengeTarget = index in challengeTargetIndices
 
                         // Quick Sort Partition Dimming (Dim elements outside low..high)
                         val isInActiveRange = step.activeRange == null || index in step.activeRange
-                        val cellAlpha by animateFloatAsState(
+                        val cellAlphaState = animateFloatAsState(
                             targetValue = if (isQuickSort && !isInActiveRange) 0.35f else 1f,
                             animationSpec = tween(150),
                             label = "cellAlpha_$index"
@@ -482,10 +724,16 @@ fun CellArrayVisualizer(
 
                         // Bubble Sort / Swap Scale & Glow Gimmick
                         val isSwappingCell = step.swappedIndices?.let { it.first == index || it.second == index } ?: false
-                        val scaleFactor by animateFloatAsState(
-                            targetValue = if (isSwappingCell && state == ElementState.SWAPPING) 1.15f else 1f,
-                            animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-                            label = "cellScale_$index"
+
+                        // Tactile evaluation pop (bouncy 1.1x–1.2x) for cells being scanned.
+                        // Held as State — read in the graphicsLayer below, not in composition.
+                        val isEvaluated = state == ElementState.COMPARING ||
+                            state == ElementState.ACTIVE ||
+                            state == ElementState.FOUND
+                        val evalScaleState = animateFloatAsState(
+                            targetValue = if (isEvaluated) 1.12f else 1f,
+                            animationSpec = AlgoTokens.evalSpring,
+                            label = "evalScale_$index"
                         )
 
                         // Selection Sort boundary curtain divider check
@@ -511,8 +759,28 @@ fun CellArrayVisualizer(
                                 verticalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier
                                     .padding(horizontal = 2.dp)
-                                    .scale(scaleFactor)
-                                    .alpha(cellAlpha)
+                                    .graphicsLayer {
+                                        // All per-frame animated values are read HERE, in the
+                                        // render phase — animation frames only re-record this
+                                        // layer and never recompose the cell subtree.
+                                        val ox = travelOffsetsX[index]?.value ?: 0f
+                                        val oy = travelOffsetsY[index]?.value ?: 0f
+                                        val sc = travelScales[index]?.value ?: 1f
+                                        val ev = evalScaleState.value
+                                        translationX = ox
+                                        translationY = oy
+                                        scaleX = sc * ev
+                                        scaleY = sc * ev
+                                        alpha = cellAlphaState.value
+                                        shadowElevation =
+                                            if (sc > 1.01f || kotlin.math.abs(oy) > 0.5f) {
+                                                AlgoTokens.elevationTraveling.toPx()
+                                            } else {
+                                                0f
+                                            }
+                                        shape = RoundedCornerShape(6.dp)
+                                        cameraDistance = 12f * density.density
+                                    }
                                     .clickable(enabled = onCellClick != null) {
                                         onCellClick?.invoke(index)
                                     }
@@ -522,13 +790,19 @@ fun CellArrayVisualizer(
                                     modifier = Modifier.height(18.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (topPointerEntry != null) {
-                                        val (label, _) = topPointerEntry
+                                    val topEntry = topPointerEntry
+                                    androidx.compose.animation.AnimatedVisibility(
+                                        visible = topEntry != null,
+                                        enter = scaleIn(AlgoTokens.evalSpring) + fadeIn(tween(90)),
+                                        exit = scaleOut(tween(110)) + fadeOut(tween(110))
+                                    ) {
+                                        if (topEntry != null) {
+                                        val (label, _) = topEntry
                                         val isPivot = label.equals("pivot", ignoreCase = true)
                                         val isMin = label.equals("min", ignoreCase = true)
                                         val (badgeBg, badgeText) = when {
-                                            isPivot -> Pair(AccentPink, DarkBackground)
-                                            isMin -> Pair(AccentYellow, DarkBackground)
+                                            isPivot -> Pair(AlgoTokens.accentYellow, DarkBackground)
+                                            isMin -> Pair(AlgoTokens.accentYellow, DarkBackground)
                                             label.equals("key", ignoreCase = true) -> Pair(SecondaryPurple, Color.White)
                                             label.equals("target", ignoreCase = true) -> Pair(SecondaryPurple, Color.White)
                                             else -> Pair(Color(0xFF475569), Color.White)
@@ -550,17 +824,46 @@ fun CellArrayVisualizer(
                                         }
                                     }
                                 }
+                                }
 
                                 // ── Cell Box ──
+                                // Contrast rule: the semantic accent lives on the BORDER and
+                                // FILL TINT only — the element VALUE digit must always render
+                                // in a high-contrast colour (white / bright accent). Never map
+                                // a low-luminance accent (e.g. pink #FF3366) to the value text,
+                                // or the digit vanishes into its own tinted fill.
                                 val (targetBorder, targetBg, targetText) = when {
-                                    isSelectedForChallenge -> Triple(PrimaryCyan, CyanSubtle, PrimaryCyan)
-                                    state == ElementState.PIVOT -> Triple(AccentPink, Color(0x33FF3366), Color.White)
-                                    state == ElementState.COMPARING -> Triple(AccentYellow, YellowSubtle, AccentYellow)
-                                    state == ElementState.SWAPPING -> Triple(AccentRed, Color(0x44FF4B4B), Color.White)
-                                    state == ElementState.ACTIVE || state == ElementState.FOUND -> Triple(PrimaryCyan, CyanSubtle, PrimaryCyan)
-                                    state == ElementState.SORTED -> Triple(AccentGreen, GreenSubtle, AccentGreen)
-                                    state == ElementState.TARGET -> Triple(SecondaryPurple, PurpleSubtle, Color.White)
-                                    else -> Triple(BorderMedium, CardBackground, TextPrimary)
+                                    isSelectedForChallenge -> Triple(
+                                        AlgoTokens.accentCyan, AlgoTokens.cyanFill, AlgoTokens.accentCyan
+                                    )
+                                    isChallengeTarget -> Triple(
+                                        AlgoTokens.accentYellow, AlgoTokens.yellowFill, AlgoTokens.accentYellow
+                                    )
+                                    state == ElementState.PIVOT -> Triple(
+                                        AlgoTokens.accentYellow, AlgoTokens.yellowFill, Color.White
+                                    )
+                                    // Compare flash: pink frame + pink tint, but the value
+                                    // stays WHITE — a red digit on a red tint is unreadable.
+                                    state == ElementState.COMPARING -> Triple(
+                                        AlgoTokens.accentPink, AlgoTokens.pinkFill, Color.White
+                                    )
+                                    state == ElementState.SWAPPING -> Triple(
+                                        AlgoTokens.accentPink, Color(0x44FF3366), Color.White
+                                    )
+                                    state == ElementState.ACTIVE ||
+                                        state == ElementState.VISITED ||
+                                        state == ElementState.FOUND -> Triple(
+                                        AlgoTokens.accentCyan, AlgoTokens.cyanFill, AlgoTokens.accentCyan
+                                    )
+                                    state == ElementState.SORTED -> Triple(
+                                        AlgoTokens.accentGreen, AlgoTokens.greenFill, AlgoTokens.accentGreen
+                                    )
+                                    state == ElementState.TARGET -> Triple(
+                                        AlgoTokens.accentPurple, AlgoTokens.purpleFill, Color.White
+                                    )
+                                    else -> Triple(
+                                        AlgoTokens.strokeBorderMedium, AlgoTokens.glassFill, TextPrimary
+                                    )
                                 }
 
                                 val animatedBorder by animateColorAsState(targetBorder, tween(120), label = "cellBorder_$index")
@@ -569,12 +872,38 @@ fun CellArrayVisualizer(
 
                                 Box(
                                     modifier = Modifier
-                                        .size(width = 36.dp, height = 40.dp)
+                                        .size(width = cellWidth, height = cellHeight)
+                                        .drawBehind {
+                                            val corner = CornerRadius(6.dp.toPx())
+                                            // Challenge Mode glowing target ring
+                                            if (isChallengeTarget) {
+                                                drawCellGlow(
+                                                    accent = AlgoTokens.accentYellow,
+                                                    intensity = challengePulseState.value,
+                                                    cornerRadius = corner
+                                                )
+                                            }
+                                            // Cross-feature mirror glow: cells flash in
+                                            // sync with the highlighted code trace line
+                                            if (state != ElementState.IDLE && syncPulse.value > 0.01f) {
+                                                drawCellGlow(
+                                                    accent = animatedBorder,
+                                                    intensity = syncPulse.value,
+                                                    cornerRadius = corner
+                                                )
+                                            }
+                                        }
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(animatedBg)
                                         .border(
-                                            width = if (isSelectedForChallenge || state != ElementState.IDLE || isSwappingCell) 2.dp else 1.dp,
-                                            color = if (isSelectedForChallenge) PrimaryCyan else animatedBorder,
+                                            width = if (isSelectedForChallenge || isChallengeTarget ||
+                                                state != ElementState.IDLE || isSwappingCell
+                                            ) 2.dp else 1.dp,
+                                            color = when {
+                                                isSelectedForChallenge -> AlgoTokens.accentCyan
+                                                isChallengeTarget -> AlgoTokens.accentYellow
+                                                else -> animatedBorder
+                                            },
                                             shape = RoundedCornerShape(6.dp)
                                         ),
                                     contentAlignment = Alignment.Center
@@ -584,7 +913,7 @@ fun CellArrayVisualizer(
                                         style = MaterialTheme.typography.titleSmall,
                                         color = animatedText,
                                         fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 14.sp
+                                        fontSize = cellTextSize
                                     )
                                 }
 
@@ -592,7 +921,11 @@ fun CellArrayVisualizer(
                                 Text(
                                     text = index.toString(),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (isSelectedForChallenge) PrimaryCyan else TextMuted,
+                                    color = when {
+                                        isSelectedForChallenge -> AlgoTokens.accentCyan
+                                        isChallengeTarget -> AlgoTokens.accentYellow
+                                        else -> TextMuted
+                                    },
                                     fontWeight = if (isSelectedForChallenge) FontWeight.Bold else FontWeight.Normal,
                                     fontSize = 8.5.sp
                                 )
@@ -602,14 +935,19 @@ fun CellArrayVisualizer(
                                     modifier = Modifier.height(20.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (bottomPointerEntry != null) {
-                                        val (label, _) = bottomPointerEntry
+                                    val bottomEntry = bottomPointerEntry
+                                    androidx.compose.animation.AnimatedVisibility(
+                                        visible = bottomEntry != null,
+                                        enter = scaleIn(AlgoTokens.evalSpring) + fadeIn(tween(90)),
+                                        exit = scaleOut(tween(110)) + fadeOut(tween(110))
+                                    ) {
+                                        if (bottomEntry != null) {
+                                        val (label, _) = bottomEntry
                                         val (badgeBg, badgeText) = when (label.lowercase()) {
-                                            "i", "low", "l" -> Pair(PrimaryCyan, DarkBackground)
-                                            "j", "mid" -> Pair(AccentYellow, DarkBackground)
-                                            "high", "r" -> Pair(SecondaryPurple, Color.White)
-                                            "k" -> Pair(AccentGreen, DarkBackground)
-                                            else -> Pair(PrimaryCyan, DarkBackground)
+                                            "i", "low", "l", "j", "mid" -> Pair(AlgoTokens.accentCyan, DarkBackground)
+                                            "high", "r" -> Pair(AlgoTokens.accentPurple, Color.White)
+                                            "k" -> Pair(AlgoTokens.accentPink, Color.White)
+                                            else -> Pair(AlgoTokens.accentCyan, DarkBackground)
                                         }
 
                                         Box(
@@ -628,6 +966,7 @@ fun CellArrayVisualizer(
                                             )
                                         }
                                     }
+                                }
                                 }
                             }
                         }
@@ -816,7 +1155,13 @@ fun CellArrayVisualizer(
                         Text(
                             text = expr.uppercase(),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (step.comparisonExpr != null) AccentYellow else PrimaryCyan,
+                            // Evaluation readouts stay yellow (threshold semantics);
+                            // only explicit mutation (SWAP:) lines take the pink accent.
+                            color = when {
+                                step.comparisonExpr == null -> AlgoTokens.accentCyan
+                                expr.startsWith("SWAP", ignoreCase = true) -> AlgoTokens.accentPink
+                                else -> AccentYellow
+                            },
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.8.sp,
                             fontSize = 8.5.sp
@@ -825,20 +1170,50 @@ fun CellArrayVisualizer(
                 }
             }
         }
-
-        // ── 3. Embedded Synchronized Multi-Language Code Trace & Variable Inspector ──
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(290.dp)
-        ) {
-            CodeTracePane(
-                step = step,
-                algorithmName = algorithmName,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
     }
+    }
+}
+
+/**
+ * Layered outer-stroke glow around a cell. Deliberately paints ONLY the band
+ * OUTSIDE the cell bounds (three nested rounded-rect strokes with decreasing
+ * width / increasing intensity) so the translucent cell fill never picks up
+ * the halo — the element value inside stays fully legible, and the thin band
+ * (~7dp) cannot bleed into neighbouring cells.
+ */
+private fun DrawScope.drawCellGlow(
+    accent: Color,
+    intensity: Float,
+    cornerRadius: CornerRadius
+) {
+    val soft = 6.dp.toPx()
+    val mid = 3.dp.toPx()
+    val tight = 1.dp.toPx()
+
+    // Wide soft outer band
+    drawRoundRect(
+        color = accent.copy(alpha = 0.14f * intensity),
+        topLeft = Offset(-soft, -soft),
+        size = Size(size.width + soft * 2f, size.height + soft * 2f),
+        cornerRadius = cornerRadius,
+        style = Stroke(width = 4.dp.toPx())
+    )
+    // Mid glow band
+    drawRoundRect(
+        color = accent.copy(alpha = 0.30f * intensity),
+        topLeft = Offset(-mid, -mid),
+        size = Size(size.width + mid * 2f, size.height + mid * 2f),
+        cornerRadius = cornerRadius,
+        style = Stroke(width = 2.dp.toPx())
+    )
+    // Tight bright rim hugging the border
+    drawRoundRect(
+        color = accent.copy(alpha = 0.85f * intensity),
+        topLeft = Offset(-tight, -tight),
+        size = Size(size.width + tight * 2f, size.height + tight * 2f),
+        cornerRadius = cornerRadius,
+        style = Stroke(width = 1.dp.toPx())
+    )
 }
 
 /**

@@ -11,6 +11,16 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryCyan,
     onPrimary = CanvasBackground,
@@ -67,4 +77,121 @@ fun AlgoLensTheme(
         typography = AlgoLensTypography,
         content = content
     )
+}
+
+/**
+ * ============================================================================
+ *  AlgoLens Design System Tokens — Unified IDE Workspace Language
+ * ============================================================================
+ *  Single source of truth for surfaces, functional accents, strokes, radii,
+ *  elevation, blur and motion. Every visualizer surface, divider, sheet and
+ *  highlight must derive from these tokens so the Canvas, Controls and Code
+ *  Trace read as one continuous workspace rather than isolated cards.
+ *
+ *  Functional Accent Mapping (semantic, not decorative):
+ *    - AccentCyan    (#00E5FF) → Active traversal / read pointers (i, j, scanning)
+ *    - AccentPurple  (#8B5CF6) → Secondary tracking / auxiliary structures (key, target)
+ *    - AccentPink    (#FF3366) → Comparisons, swaps and active mutations
+ *    - AccentGreen   (#00E676) → Verified sorted states & correct challenge answers
+ *    - AccentYellow  (#FFB800) → Pivot points, boundary thresholds & edge alerts
+ * ============================================================================
+ */
+object AlgoTokens {
+
+    // ── Workspace Surfaces ──
+    /** Primary IDE workspace surface (#0B0F19). */
+    val workspaceSurface: Color = DarkBackground
+    /** Sunken canvas well beneath visualizer content. */
+    val canvasWell: Color = CanvasBackground
+    /** Glass panel fill (translucent card layer). */
+    val glassFill: Color = CardBackground
+    /** Elevated glass layer for floating rails / prompts. */
+    val glassElevated: Color = CardBackgroundHover
+    /** Uniform page-level padding of the workspace frame. */
+    val framePadding: PaddingValues = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+
+    // ── Functional Accents (semantic mapping) ──
+    val accentCyan: Color = PrimaryCyan       // traversal / read pointers
+    val accentPurple: Color = SecondaryPurple // secondary tracking / auxiliary
+    val accentPink: Color = AccentPink        // comparisons / swaps / mutations
+    val accentGreen: Color = AccentGreen      // verified sorted / correct answer
+    val accentYellow: Color = AccentYellow    // pivot / threshold / edge alerts
+
+    // Translucent fills paired with the accents above.
+    val cyanFill: Color = CyanSubtle
+    val purpleFill: Color = PurpleSubtle
+    val pinkFill: Color = PinkSubtle
+    val greenFill: Color = GreenSubtle
+    val yellowFill: Color = YellowSubtle
+
+    // ── Strokes ──
+    val strokeHairline: Dp = 0.5.dp
+    val strokeThin: Dp = 1.dp
+    val strokeActive: Dp = 2.dp
+    val strokeBorderSubtle: Color = BorderSubtle
+    val strokeBorderMedium: Color = BorderMedium
+
+    // ── Corner Radii ──
+    val radiusXs: Dp = 4.dp
+    val radiusSm: Dp = 8.dp
+    val radiusMd: Dp = 12.dp
+    val radiusLg: Dp = 16.dp
+    val radiusXl: Dp = 24.dp
+
+    // ── Elevation ──
+    val elevationFlat: Dp = 0.dp
+    val elevationRaised: Dp = 2.dp
+    val elevationFloating: Dp = 8.dp
+    val elevationTraveling: Dp = 18.dp   // cells mid "pop-up & shift" flight
+
+    // ── Glow & Blur ──
+    /** Ambient divider glow baseline alpha (#00E5FF @ 20%). */
+    val dividerGlowAlpha: Float = 0.20f
+    /** Backdrop blur radius for overlay sheets / side drawers. */
+    val backdropBlur: Dp = 16.dp
+    /** Cell glow halo radius multiplier used while mirroring code highlights. */
+    val syncGlowRadius: Dp = 14.dp
+
+    // ── Motion ──
+    /** Uniform spring for all expanding / collapsing panels (never snappy). */
+    val panelSpring = spring<IntSize>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow
+    )
+
+    /** Spring for the canvas cell "pop up then shift to slot" travel. */
+    val cellTravelSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMediumLow
+    )
+
+    /** Spring for pointer badge / chip hopping between slots. */
+    val pointerSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+
+    /** Bouncy spring for cell "being evaluated" pops (1.1x–1.2x scale). */
+    val evalSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessLow
+    )
+
+    /** Spring tracking the code trace's sliding active-line pill. */
+    val lineTrackSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessLow
+    )
+
+    /** Standard opacity of inactive/disabled workspace controls. */
+    val disabledAlpha: Float = 0.38f
+}
+
+/**
+ * Uniform expanding/collapsing behaviour for all workspace panels.
+ * Applies [animateContentSize] with the shared low-stiffness spring so
+ * resizing feels natural rather than snappy (per design system motion spec).
+ */
+fun Modifier.smoothPanelExpansion(): Modifier = composed {
+    animateContentSize(animationSpec = AlgoTokens.panelSpring)
 }

@@ -1,10 +1,21 @@
 package com.example.algolens.ui.visualizer
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +33,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,10 +44,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -51,6 +70,8 @@ import com.example.algolens.ui.theme.AccentOrange
 import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoLensTheme
+import com.example.algolens.ui.theme.AlgoTokens
+import com.example.algolens.ui.theme.smoothPanelExpansion
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.theme.CardBackground
@@ -794,9 +815,12 @@ object AlgorithmCodeRegistry {
 fun CodeTracePane(
     step: VisualizerStep,
     algorithmName: String = "Bubble Sort",
+    syncPulse: State<Float> = mutableStateOf(0f),
     modifier: Modifier = Modifier
 ) {
     var selectedLanguage by remember { mutableStateOf(TraceLanguage.KOTLIN) }
+    var varsExpanded by remember { mutableStateOf(false) }
+    var stackExpanded by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
 
     val codeData = remember(algorithmName, selectedLanguage) {
@@ -817,6 +841,46 @@ fun CodeTracePane(
     val highlightedLines = remember(codeData, selectedLanguage) {
         codeData.lines.map { line -> SyntaxHighlighter.highlight(line, selectedLanguage) }
     }
+
+    // ── Sliding Active-Line Pill (bouncy vertical tracker) ──
+    var pillTargetY by remember { mutableStateOf(0f) }
+    var pillTargetH by remember { mutableStateOf(0f) }
+    val pillPaddingPx = with(LocalDensity.current) { 4.dp.toPx() }
+
+    // The pill takes the semantic accent of the currently executed line family.
+    val pillAccent = when {
+        activeLinesInCurrentLang.any {
+            codeData.lines.getOrNull(it - 1)?.contains("swap", ignoreCase = true) == true
+        } -> AlgoTokens.accentPink
+        activeLinesInCurrentLang.any {
+            codeData.lines.getOrNull(it - 1)?.contains("pivot", ignoreCase = true) == true
+        } -> AlgoTokens.accentYellow
+        else -> AlgoTokens.accentCyan
+    }
+
+    LaunchedEffect(activeLinesInCurrentLang, lazyListState) {
+        snapshotFlow {
+            lazyListState.layoutInfo.visibleItemsInfo.firstOrNull {
+                (it.index + 1) in activeLinesInCurrentLang
+            }
+        }.collect { info ->
+            if (info != null) {
+                pillTargetY = info.offset.toFloat()
+                pillTargetH = info.size.toFloat()
+            }
+        }
+    }
+
+    val animatedPillY by animateFloatAsState(
+        targetValue = pillTargetY,
+        animationSpec = AlgoTokens.lineTrackSpring,
+        label = "activeLinePillY"
+    )
+    val animatedPillH by animateFloatAsState(
+        targetValue = pillTargetH,
+        animationSpec = tween(160),
+        label = "activeLinePillH"
+    )
 
     // Smoothly keep the active lines in view only when out of viewport
     LaunchedEffect(activeLinesInCurrentLang) {
@@ -910,151 +974,171 @@ fun CodeTracePane(
                 }
 
                 // ── Syntax Highlighted Code Listing (Optimized Cached Lines) ──
-                LazyColumn(
-                    state = lazyListState,
+                Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(CanvasBackground)
-                        .padding(vertical = 4.dp)
                 ) {
+                    // Sliding active-line indicator pill (bouncy spring tracker,
+                    // driven purely by graphicsLayer — no layout re-measures).
+                    if (animatedPillH > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(with(LocalDensity.current) { animatedPillH.toDp() })
+                                .graphicsLayer { translationY = animatedPillY + pillPaddingPx }
+                                .clip(RoundedCornerShape(4.dp))
+                                .drawBehind {
+                                    // Pulse read in the render phase — no recomposition.
+                                    drawRect(pillAccent.copy(alpha = 0.10f + 0.12f * syncPulse.value))
+                                }
+                                .border(1.dp, pillAccent.copy(alpha = 0.28f), RoundedCornerShape(4.dp))
+                        )
+                    }
+
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(CanvasBackground)
+                            .padding(vertical = 4.dp)
+                    ) {
                     itemsIndexed(highlightedLines) { index, lineAnnotated ->
                         val lineNum = index + 1
                         val isActive = lineNum in activeLinesInCurrentLang
+                        val rawLine = codeData.lines.getOrElse(index) { "" }
 
-                        val lineBg by animateColorAsState(
-                            targetValue = if (isActive) CyanSubtle else Color.Transparent,
-                            animationSpec = tween(100),
-                            label = "lineBg_$lineNum"
-                        )
+                        // ── Semantic accent mirroring: swap lines flash pink,
+                        //    pivot lines yellow, sorted checks green, else cyan ──
+                        val lineAccent = when {
+                            rawLine.contains("swap", ignoreCase = true) -> AlgoTokens.accentPink
+                            rawLine.contains("pivot", ignoreCase = true) -> AlgoTokens.accentYellow
+                            rawLine.contains("sorted", ignoreCase = true) -> AlgoTokens.accentGreen
+                            else -> AlgoTokens.accentCyan
+                        }
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(lineBg)
-                                .padding(horizontal = 8.dp, vertical = 2.5.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        // Inline variable chips: only variables referenced by this line
+                        val lineVars = remember(rawLine, step.variables) {
+                            if (!isActive || step.variables.isEmpty()) {
+                                emptyMap()
+                            } else {
+                                step.variables.filterKeys { key ->
+                                    Regex("(?<![A-Za-z0-9_])${Regex.escape(key)}(?![A-Za-z0-9_])")
+                                        .containsMatchIn(rawLine)
+                                }.entries.take(4).associate { it.key to it.value }
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = lineNum.toString().padStart(2, ' '),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (isActive) PrimaryCyan else TextDark,
-                                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 9.sp,
-                                fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.width(22.dp)
-                            )
+                            // ── Inline Variable Chips (mirrored inspector, above line) ──
+                            if (lineVars.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 35.dp, top = 2.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    lineVars.forEach { (label, value) ->
+                                        InlineVarChip(
+                                            label = label,
+                                            value = value,
+                                            accent = lineAccent
+                                        )
+                                    }
+                                }
+                            }
 
-                            Text(
-                                text = lineAnnotated,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextPrimary,
-                                fontSize = 9.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 2.5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Active-line semantic rail (glows with the sync pulse).
+                                // Pulse is read in the render phase — no recomposition.
+                                Box(
+                                    modifier = Modifier
+                                        .width(2.5.dp)
+                                        .height(13.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .then(
+                                            if (isActive) {
+                                                Modifier
+                                                    .drawBehind {
+                                                        drawRoundRect(
+                                                            color = lineAccent,
+                                                            cornerRadius = CornerRadius(2.dp.toPx())
+                                                        )
+                                                    }
+                                                    .graphicsLayer {
+                                                        alpha = 0.55f + 0.45f * syncPulse.value
+                                                    }
+                                            } else {
+                                                Modifier
+                                            }
+                                        )
+                                )
+
+                                Spacer(modifier = Modifier.width(5.dp))
+
+                                Text(
+                                    text = lineNum.toString().padStart(2, ' '),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (isActive) lineAccent else TextDark,
+                                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 9.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    modifier = Modifier.width(22.dp)
+                                )
+
+                                Text(
+                                    text = lineAnnotated,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextPrimary,
+                                    fontSize = 9.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                            }
                         }
                     }
+                }
                 }
             }
         }
 
-        // ── Bottom Split: Live Variable Inspector & Memory Call Stack ──
+        // ── Bottom: Collapsible Inspector Disclosure Buttons ──
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Live Variable Inspector
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CardBackground)
-                    .border(1.dp, PrimaryCyan.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 10.dp, vertical = 7.dp)
+            InspectorDisclosure(
+                title = "LIVE VARIABLE INSPECTOR",
+                icon = Icons.Default.Code,
+                accent = PrimaryCyan,
+                summary = if (step.variables.isNotEmpty()) "${step.variables.size} live" else "pointers",
+                expanded = varsExpanded,
+                onToggle = { varsExpanded = !varsExpanded }
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "LIVE VARIABLE INSPECTOR:",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextMuted,
-                        fontSize = 8.sp,
-                        letterSpacing = 0.8.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (step.variables.isNotEmpty()) {
-                            step.variables.forEach { (k, v) ->
-                                VarBadge(label = k, value = v)
-                            }
-                        } else {
-                            // Fallback from pointers
-                            step.bottomPointers.forEach { (label, index) ->
-                                val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
-                                VarBadge(label = label, value = "$index ($arrVal)")
-                            }
-                            step.topPointers.forEach { (label, index) ->
-                                val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
-                                VarBadge(label = label, value = "$index ($arrVal)")
-                            }
-                            if (step.bottomPointers.isEmpty() && step.topPointers.isEmpty()) {
-                                VarBadge(label = "step", value = "${step.stepIndex + 1}")
-                            }
-                        }
-                    }
-                }
+                VariableInspectorContent(step = step)
             }
 
-            // Memory Call Stack Depth
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CardBackground)
-                    .border(1.dp, SecondaryPurple.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 10.dp, vertical = 7.dp)
+            InspectorDisclosure(
+                title = "MEMORY CALL STACK",
+                icon = Icons.Default.Terminal,
+                accent = PurpleGlow,
+                summary = "depth ${step.recursionDepth + 1}",
+                expanded = stackExpanded,
+                onToggle = { stackExpanded = !stackExpanded }
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "MEMORY CALL STACK DEPTH:",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PurpleGlow,
-                        fontSize = 8.sp,
-                        letterSpacing = 0.8.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(PurpleSubtle)
-                            .border(1.dp, SecondaryPurple.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "$algorithmName(size=${step.array.size})",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PurpleGlow,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 8.5.sp
-                            )
-                            Text(
-                                text = "mode: ${step.renderMode.name.lowercase()}, active line: ${activeLinesInCurrentLang.joinToString(", ")}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextMuted,
-                                fontSize = 7.5.sp
-                            )
-                        }
-                    }
-                }
+                MemoryCallStackContent(
+                    algorithmName = algorithmName,
+                    step = step,
+                    activeLines = activeLinesInCurrentLang
+                )
             }
         }
     }
@@ -1094,6 +1178,176 @@ fun CodeTracePane(
     )
 }
 
+/**
+ * Collapsible disclosure button used for the Variable Inspector & Memory Call
+ * Stack. Collapsed by default to give the code listing maximum room; expanding
+ * uses the shared low-stiffness panel spring so it never feels snappy.
+ */
+@Composable
+private fun InspectorDisclosure(
+    title: String,
+    icon: ImageVector,
+    accent: Color,
+    summary: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "inspectorChevron_$title"
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(CardBackground)
+            .border(
+                1.dp,
+                accent.copy(alpha = if (expanded) 0.45f else 0.2f),
+                RoundedCornerShape(10.dp)
+            )
+            .clickable(onClick = onToggle)
+            .smoothPanelExpansion()
+            .padding(horizontal = 10.dp, vertical = 7.dp)
+    ) {
+        // ── Disclosure header button ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(13.dp)
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = accent,
+                fontSize = 8.sp,
+                letterSpacing = 0.8.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted,
+                fontSize = 7.5.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = TextMuted,
+                modifier = Modifier
+                    .size(14.dp)
+                    .graphicsLayer { rotationZ = chevronRotation }
+            )
+        }
+
+        // ── Collapsible content ──
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(
+                spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + fadeIn(tween(160)),
+            exit = shrinkVertically(
+                spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + fadeOut(tween(120))
+        ) {
+            Column(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+/**
+ * Content of the collapsible Live Variable Inspector disclosure.
+ */
+@Composable
+private fun VariableInspectorContent(step: VisualizerStep) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (step.variables.isNotEmpty()) {
+            step.variables.forEach { (k, v) ->
+                VarBadge(label = k, value = v)
+            }
+        } else {
+            // Fallback from pointers
+            step.bottomPointers.forEach { (label, index) ->
+                val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
+                VarBadge(label = label, value = "$index ($arrVal)")
+            }
+            step.topPointers.forEach { (label, index) ->
+                val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
+                VarBadge(label = label, value = "$index ($arrVal)")
+            }
+            if (step.bottomPointers.isEmpty() && step.topPointers.isEmpty()) {
+                VarBadge(label = "step", value = "${step.stepIndex + 1}")
+            }
+        }
+    }
+}
+
+/**
+ * Content of the collapsible Memory Call Stack disclosure.
+ */
+@Composable
+private fun MemoryCallStackContent(
+    algorithmName: String,
+    step: VisualizerStep,
+    activeLines: List<Int>
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(PurpleSubtle)
+            .border(1.dp, SecondaryPurple.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = "$algorithmName(size=${step.array.size})",
+                style = MaterialTheme.typography.labelSmall,
+                color = PurpleGlow,
+                fontWeight = FontWeight.Bold,
+                fontSize = 8.5.sp
+            )
+            Text(
+                text = "mode: ${step.renderMode.name.lowercase()}, active line: ${activeLines.joinToString(", ")}",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted,
+                fontSize = 7.5.sp
+            )
+        }
+    }
+}
+
 @Composable
 private fun VarBadge(label: String, value: String) {
     Box(
@@ -1108,6 +1362,45 @@ private fun VarBadge(label: String, value: String) {
             color = PrimaryCyan,
             fontWeight = FontWeight.SemiBold,
             fontSize = 9.sp
+        )
+    }
+}
+
+/**
+ * Inline variable chip badge mirrored directly above active code lines
+ * (e.g. `i = 0`, `pivot = 7`). Uses the line's semantic accent so the
+ * chip, rail and canvas glow all speak the same functional color.
+ */
+@Composable
+private fun InlineVarChip(
+    label: String,
+    value: String,
+    accent: Color
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(accent.copy(alpha = 0.14f))
+            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+            .padding(horizontal = 5.dp, vertical = 1.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = accent,
+            fontWeight = FontWeight.Bold,
+            fontSize = 7.5.sp,
+            fontFamily = FontFamily.Monospace
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextSecondary,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 7.5.sp,
+            fontFamily = FontFamily.Monospace
         )
     }
 }

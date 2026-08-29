@@ -1,5 +1,12 @@
 package com.example.algolens.ui.visualizer
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,11 +15,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -25,18 +35,16 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -442,39 +450,65 @@ object AlgorithmTheoryRepository {
 }
 
 /**
- * Dedicated Algorithm Theory & Deep Dive Bottom Sheet Modal.
+ * Dedicated Algorithm Theory & Deep Dive side drawer.
+ * Slides in from the right edge over a dimmed scrim, while the host
+ * workspace applies an animated backdrop blur (AlgoTokens.backdropBlur
+ * = 16.dp, RenderEffect on API 31+).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlgorithmTheorySheet(
     algorithm: Algorithm,
+    isVisible: Boolean = true,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val theory = AlgorithmTheoryRepository.getTheory(algorithm.name)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = CardBackground,
-        dragHandle = {
+    BackHandler(enabled = isVisible) { onDismiss() }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Scrim backdrop (tap to dismiss; pairs with host workspace blur)
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(260)),
+            exit = fadeOut(tween(220))
+        ) {
             Box(
                 modifier = Modifier
-                    .padding(top = 10.dp, bottom = 6.dp)
-                    .size(width = 36.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(99.dp))
-                    .background(Color.White.copy(alpha = 0.2f))
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .clickable(onClick = onDismiss)
             )
         }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 6.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+
+        // Sliding right-edge drawer with glass surface + cyan seam glow
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = slideInHorizontally { it } + fadeIn(tween(260)),
+            exit = slideOutHorizontally { it } + fadeOut(tween(220)),
+            modifier = Modifier.align(Alignment.CenterEnd)
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(344.dp)
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(vertical = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp))
+                        .background(CardBackground.copy(alpha = 0.96f))
+                        .border(
+                            1.dp,
+                            BorderCyan.copy(alpha = 0.5f),
+                            RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp)
+                        )
+                        .padding(horizontal = 20.dp, vertical = 6.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -736,6 +770,8 @@ fun AlgorithmTheorySheet(
             }
 
             Spacer(modifier = Modifier.height(10.dp))
+                }
+            }
         }
     }
 }

@@ -97,6 +97,293 @@ data class ChallengeFeedback(
 )
 
 /**
+ * Computes the set of array indices that are valid answers for the current
+ * challenge question. The VisualizerScreen feeds these to the canvas so the
+ * eligible cells render with pulsing glowing target rings — turning the
+ * main visualizer itself into the interactive answer surface.
+ */
+fun challengeEligibleIndices(
+    step: VisualizerStep,
+    nextStep: VisualizerStep?,
+    type: ChallengeQuestionType
+): Set<Int> = when (type) {
+    ChallengeQuestionType.SWAP_DECISION -> {
+        val active = step.elementStates.filter {
+            it.value == ElementState.COMPARING || it.value == ElementState.SWAPPING
+        }.keys
+        if (active.size >= 2) {
+            active
+        } else {
+            val pointers = (step.bottomPointers.values + step.topPointers.values)
+                .distinct()
+                .sorted()
+            if (pointers.size >= 2) pointers.take(2).toSet() else setOf(0, 1)
+        }
+    }
+    ChallengeQuestionType.SELECT_PIVOT -> {
+        val pivot = step.pivotIndex
+            ?: step.topPointers.entries
+                .firstOrNull { it.key.equals("pivot", ignoreCase = true) }?.value
+        if (pivot != null) {
+            setOf(pivot)
+        } else {
+            step.activeRange?.let { setOf((it.first + it.last) / 2) } ?: emptySet()
+        }
+    }
+    ChallengeQuestionType.SELECT_COMPARE_PAIR -> {
+        val comparing = step.elementStates
+            .filter { it.value == ElementState.COMPARING }.keys
+        if (comparing.size >= 2) {
+            comparing
+        } else {
+            step.bottomPointers.values.distinct().sorted().take(2).toSet()
+        }
+    }
+}
+
+/**
+ * Compact Challenge Mode prompt rendered as a floating glass overlay on top
+ * of the visualizer canvas (replaces the old detached top banner). Playback
+ * controls are locked by the host screen until the question is answered.
+ */
+@Composable
+fun CanvasChallengePrompt(
+    step: VisualizerStep,
+    nextStep: VisualizerStep?,
+    state: ChallengeState,
+    onStateChange: (ChallengeState) -> Unit,
+    onContinueNext: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isSwapLikely = nextStep?.comparisonExpr?.contains("SWAP", ignoreCase = true) == true ||
+        nextStep?.elementStates?.values?.any { it == ElementState.SWAPPING } == true
+
+    val borderColor = when {
+        state.feedback?.isCorrect == true -> AccentGreen
+        state.feedback?.isCorrect == false -> AccentRed
+        else -> SecondaryPurple.copy(alpha = 0.5f)
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(CardBackgroundElevated.copy(alpha = 0.94f))
+            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 7.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(PinkSubtle)
+                            .border(1.dp, AccentPink.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = AccentPink,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Text(
+                                text = "${state.streak}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AccentPink,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 8.sp
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(YellowSubtle)
+                            .border(1.dp, AccentYellow.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.EmojiEvents,
+                                contentDescription = null,
+                                tint = AccentYellow,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Text(
+                                text = "${state.score} PTS",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AccentYellow,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 8.sp
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = "🎯 PREDICT NEXT STEP",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PrimaryCyan,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 8.sp,
+                    letterSpacing = 0.8.sp
+                )
+            }
+
+                if (state.feedback == null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Will these highlighted cells swap? " +
+                                "(${step.comparisonExpr ?: step.description})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 9.sp,
+                            lineHeight = 12.sp,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(GreenSubtle)
+                                .border(1.dp, AccentGreen.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
+                                .clickable {
+                                    val isCorrect = isSwapLikely
+                                    val pts = if (isCorrect) 100 + (state.streak * 20) else 0
+                                    onStateChange(
+                                        state.copy(
+                                            score = state.score + pts,
+                                            streak = if (isCorrect) state.streak + 1 else 0,
+                                            totalQuestions = state.totalQuestions + 1,
+                                            correctAnswers = state.correctAnswers + (if (isCorrect) 1 else 0),
+                                            feedback = ChallengeFeedback(
+                                                isCorrect = isCorrect,
+                                                message = if (isCorrect) {
+                                                    "Spot on! The elements satisfy the swap condition. 🎯"
+                                                } else {
+                                                    "Incorrect: elements were already in order."
+                                                },
+                                                pointsAwarded = pts
+                                            )
+                                        )
+                                    )
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "YES (SWAP)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AccentGreen,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(PinkSubtle)
+                                .border(1.dp, AccentPink.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
+                                .clickable {
+                                    val isCorrect = !isSwapLikely
+                                    val pts = if (isCorrect) 100 + (state.streak * 20) else 0
+                                    onStateChange(
+                                        state.copy(
+                                            score = state.score + pts,
+                                            streak = if (isCorrect) state.streak + 1 else 0,
+                                            totalQuestions = state.totalQuestions + 1,
+                                            correctAnswers = state.correctAnswers + (if (isCorrect) 1 else 0),
+                                            feedback = ChallengeFeedback(
+                                                isCorrect = isCorrect,
+                                                message = if (isCorrect) {
+                                                    "Correct! No swap was necessary. 🌟"
+                                                } else {
+                                                    "Oops! A swap occurs next."
+                                                },
+                                                pointsAwarded = pts
+                                            )
+                                        )
+                                    )
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "NO (KEEP)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AccentPink,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp
+                            )
+                        }
+                    }
+                } else {
+                    val fb = state.feedback
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = (if (fb.isCorrect) "🎉 CORRECT (+${fb.pointsAwarded} PTS) " else "❌ INCORRECT ") + fb.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (fb.isCorrect) AccentGreen else AccentRed,
+                            fontSize = 9.sp,
+                            lineHeight = 12.sp,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(if (fb.isCorrect) PrimaryCyan else SecondaryPurple)
+                                .clickable {
+                                    onStateChange(state.copy(feedback = null))
+                                    onContinueNext()
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "NEXT ➔",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = DarkBackground,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 8.5.sp
+                            )
+                        }
+                    }
+                }
+        }
+    }
+}
+
+/**
  * Challenge Mode interactive question card & score bar displayed above the visualizer.
  */
 @Composable

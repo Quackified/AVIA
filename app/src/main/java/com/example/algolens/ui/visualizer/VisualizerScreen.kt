@@ -1,8 +1,13 @@
 package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,7 +15,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,7 +22,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,15 +29,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,8 +43,8 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,8 +52,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -61,36 +64,51 @@ import androidx.compose.ui.unit.sp
 import com.example.algolens.data.AlgorithmStepRepository
 import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
-import com.example.algolens.ui.components.OfflineBadge
-import com.example.algolens.ui.theme.AccentGreen
-import com.example.algolens.ui.theme.AccentOrange
-import com.example.algolens.ui.theme.AccentPink
-import com.example.algolens.ui.theme.AccentYellow
+import com.example.algolens.ui.components.AlgoWorkspaceBackground
+import com.example.algolens.ui.components.AmbientGlowDivider
 import com.example.algolens.ui.theme.AlgoLensTheme
-import com.example.algolens.ui.theme.BorderMedium
+import com.example.algolens.ui.theme.AlgoTokens
+import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.BorderSubtle
-import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.theme.CardBackground
-import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.CyanSubtle
 import com.example.algolens.ui.theme.DarkBackground
-import com.example.algolens.ui.theme.GreenSubtle
-import com.example.algolens.ui.theme.OrangeSubtle
 import com.example.algolens.ui.theme.PinkSubtle
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.PurpleGlow
 import com.example.algolens.ui.theme.PurpleSubtle
 import com.example.algolens.ui.theme.SecondaryPurple
-import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextNavy
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.smoothPanelExpansion
 import com.example.algolens.ui.tutor.AiTutorSheet
 import kotlinx.coroutines.delay
 
+/**
+ * ============================================================================
+ *  VisualizerScreen — IDE-Style Workspace Coordinator
+ * ============================================================================
+ *  Connects the three workspace regions into one continuous surface:
+ *
+ *   ┌──────────────────────────────────────┐
+ *   │  Compact Header (title / modes)      │
+ *   ├──────────────────────────────────────┤
+ *   │  Algorithm Canvas        (55%)       │ ← challenge prompts & glowing
+ *   ├─────── ambient glow divider ─────────┤   targets live ON the canvas
+ *   │  ▶ ⏮ ⏭ ──scrubber── 1x 🏆 ✦        │ ← playback embedded in boundary
+ *   ├──────────────────────────────────────┤
+ *   │  Synchronized Code Trace  (45%)      │ ← variable chips + semantic
+ *   └──────────────────────────────────────┘   rails mirror canvas states
+ *
+ *  Cross-feature synchronicity: a shared [syncPulse] heartbeat fires on
+ *  every step transition and drives the divider pulse, the canvas cell
+ *  mirror-glow and the code trace active-line glow simultaneously.
+ * ============================================================================
+ */
 enum class ArrayViewMode {
-    CELLS, // Box / Cell mode with top & bottom pointers & multi-language code trace
+    CELLS, // Box / Cell mode with top & bottom pointers
     BARS   // Vertical animated bar chart
 }
 
@@ -115,9 +133,6 @@ fun VisualizerScreen(
     val steps = remember(algorithm, arrayData) {
         AlgorithmStepRepository.generateStepsForAlgorithm(algorithm, arrayData)
     }
-    val codeLines = remember(algorithm) {
-        AlgorithmStepRepository.getCodeLinesForAlgorithm(algorithm)
-    }
 
     var currentStepIdx by remember(steps) { mutableIntStateOf(0) }
     var isPlaying by remember { mutableStateOf(false) }
@@ -133,9 +148,14 @@ fun VisualizerScreen(
     val totalSteps = steps.size.coerceAtLeast(1)
     val currentStep = steps.getOrElse(currentStepIdx.coerceIn(0, totalSteps - 1)) { steps.first() }
 
+    // Playback locks while a challenge question awaits an answer
+    val challengeLocked = challengeState.isActive && challengeState.feedback == null
+
     // Auto Playback ticker
-    LaunchedEffect(isPlaying, currentStepIdx, totalSteps, playbackSpeedMs) {
-        if (isPlaying) {
+    LaunchedEffect(isPlaying, currentStepIdx, totalSteps, playbackSpeedMs, challengeLocked) {
+        if (challengeLocked) {
+            isPlaying = false
+        } else if (isPlaying) {
             if (currentStepIdx < totalSteps - 1) {
                 delay(playbackSpeedMs)
                 currentStepIdx++
@@ -147,595 +167,604 @@ fun VisualizerScreen(
 
     val isArrayBased = algorithm.category == "Sorting" || algorithm.category == "Searching"
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
+    // ── Cross-feature sync heartbeat: spikes on every state transition ──
+    val syncPulse = remember { Animatable(0f) }
+    // State<Float> view of the pulse for render-phase reads downstream
+    // (Animatable is not a State; this wrapper keeps the per-frame pulse
+    // value out of composition entirely).
+    val syncPulseState = remember { derivedStateOf { syncPulse.value } }
+    LaunchedEffect(currentStepIdx) {
+        syncPulse.snapTo(1f)
+        syncPulse.animateTo(0f, tween(550))
+    }
+
+    // ── Challenge glowing target cells (the canvas IS the answer surface) ──
+    val challengeTargets = if (challengeState.isActive && challengeState.feedback == null) {
+        challengeEligibleIndices(
+            step = currentStep,
+            nextStep = steps.getOrNull(currentStepIdx + 1),
+            type = challengeState.questionType
+        )
+    } else {
+        emptySet()
+    }
+
+    // ── Animated backdrop blur for the Theory side-drawer (16.dp token) ──
+    val backdropBlur by animateDpAsState(
+        targetValue = if (showTheorySheet) AlgoTokens.backdropBlur else 0.dp,
+        animationSpec = tween(300),
+        label = "theoryBackdropBlur"
+    )
+
+    AlgoWorkspaceBackground(modifier = modifier.fillMaxSize()) {
+        // Workspace content — blurred while the theory drawer overlays it
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(CanvasBackground)
-                .statusBarsPadding()
+                .blur(backdropBlur)
         ) {
-            // ── 1. Header & Badges ──
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // ── 1. Compact Workspace Header ──
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .smoothPanelExpansion(),
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(CardBackground)
-                                .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-                                .clickable { onBack() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = TextSecondary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = algorithm.name.uppercase(),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                text = "Step ${currentStepIdx + 1} of $totalSteps",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextMuted,
-                                fontSize = 8.5.sp
-                            )
-                        }
-                    }
-
-                    // Action Icons: Theory Sheet, Guided Tour & Complexity Badges
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Guided Tour Button
-                        Box(
-                            modifier = Modifier
-                                .size(26.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(CardBackground)
-                                .border(1.dp, BorderSubtle, RoundedCornerShape(6.dp))
-                                .clickable { showGuidedTour = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.HelpOutline,
-                                contentDescription = "Guided Tour",
-                                tint = PrimaryCyan,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-
-                        // Theory Deep Dive Button
-                        Box(
-                            modifier = Modifier
-                                .size(26.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(PurpleSubtle)
-                                .border(1.dp, SecondaryPurple.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                .clickable { showTheorySheet = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                                contentDescription = "Theory Sheet",
-                                tint = PurpleGlow,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-
-                        // Complexity Badges (Clickable -> Opens Theory Sheet)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(CyanSubtle)
-                                .border(1.dp, PrimaryCyan.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                                .clickable { showTheorySheet = true }
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "TIME ${algorithm.timeComplexity}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PrimaryCyan,
-                                fontSize = 7.5.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(PurpleSubtle)
-                                .border(1.dp, SecondaryPurple.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                                .clickable { showTheorySheet = true }
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "SPACE ${algorithm.spaceComplexity}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PurpleGlow,
-                                fontSize = 7.5.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-
-                // Description / Subtitle
-                Text(
-                    text = when (algorithm.name.lowercase()) {
-                        "quick sort" -> "A divide & conquer algorithm that partitions the array around a pivot element."
-                        "bubble sort" -> "Repeatedly steps through the list, compares adjacent elements and swaps them if out of order."
-                        "binary search" -> "Search a sorted array by repeatedly dividing the search interval in half."
-                        "breadth-first search (bfs)", "bfs" -> "Level-by-level exploration using a Queue data structure."
-                        "depth-first search (dfs)", "dfs" -> "Explores deep branch paths using recursion/stack before backtracking."
-                        "stack" -> "LIFO (Last In First Out) linear data structure for push/pop/peek operations."
-                        "queue" -> "FIFO (First In First Out) linear data structure for enqueue/dequeue operations."
-                        "binary search tree" -> "Hierarchical node structure where left child < node < right child."
-                        else -> "${algorithm.name} algorithm execution and state inspection."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                    fontSize = 8.5.sp,
-                    lineHeight = 12.sp
-                )
-
-                // Mode Selector for Array Algorithms (Cells vs Bars) + Edit Input
-                if (isArrayBased) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(CardBackgroundElevated)
-                                .border(1.dp, BorderSubtle, RoundedCornerShape(6.dp))
-                                .padding(2.dp),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(if (arrayViewMode == ArrayViewMode.CELLS) PrimaryCyan else Color.Transparent)
-                                    .clickable { arrayViewMode = ArrayViewMode.CELLS }
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = "Box / Trace Mode",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (arrayViewMode == ArrayViewMode.CELLS) DarkBackground else TextMuted,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 8.sp
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(if (arrayViewMode == ArrayViewMode.BARS) PrimaryCyan else Color.Transparent)
-                                    .clickable { arrayViewMode = ArrayViewMode.BARS }
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = "Bar Chart Mode",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (arrayViewMode == ArrayViewMode.BARS) DarkBackground else TextMuted,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 8.sp
-                                )
-                            }
-                        }
-
-                        // Edit Input Button
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(CyanSubtle)
-                                .border(1.dp, PrimaryCyan.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
-                                .clickable { showInputSheet = true }
-                                .padding(horizontal = 8.dp, vertical = 3.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Tune,
-                                contentDescription = "Customize",
-                                tint = PrimaryCyan,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Text(
-                                text = "CUSTOMIZE",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PrimaryCyan,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 8.sp
-                            )
-                        }
-                    }
-                }
-            }
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                    .background(CardBackground)
+                                    .border(1.dp, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                                    .clickable { onBack() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = TextSecondary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
 
-            // ── Challenge Mode Question Banner (If Active) ──
-            if (challengeState.isActive) {
-                Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
-                    ChallengeCard(
-                        step = currentStep,
-                        nextStep = steps.getOrNull(currentStepIdx + 1),
-                        state = challengeState,
-                        onStateChange = { challengeState = it },
-                        onContinueNext = {
-                            if (currentStepIdx < totalSteps - 1) {
-                                currentStepIdx++
+                            Column {
+                                Text(
+                                    text = algorithm.name.uppercase(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = "Step ${currentStepIdx + 1} of $totalSteps",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextMuted,
+                                    fontSize = 8.5.sp
+                                )
                             }
                         }
+
+                        // Right cluster: tour, theory drawer, complexity pills
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(CardBackground)
+                                    .border(1.dp, BorderSubtle, RoundedCornerShape(6.dp))
+                                    .clickable { showGuidedTour = true },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                                    contentDescription = "Guided Tour",
+                                    tint = PrimaryCyan,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(PurpleSubtle)
+                                    .border(
+                                        1.dp,
+                                        SecondaryPurple.copy(alpha = 0.4f),
+                                        RoundedCornerShape(6.dp)
+                                    )
+                                    .clickable { showTheorySheet = true },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                    contentDescription = "Theory Sheet",
+                                    tint = PurpleGlow,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(CyanSubtle)
+                                    .border(1.dp, PrimaryCyan.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                    .clickable { showTheorySheet = true }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "TIME ${algorithm.timeComplexity}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PrimaryCyan,
+                                    fontSize = 7.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(PurpleSubtle)
+                                    .border(1.dp, SecondaryPurple.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                    .clickable { showTheorySheet = true }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "SPACE ${algorithm.spaceComplexity}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PurpleGlow,
+                                    fontSize = 7.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    // Description / Subtitle
+                    Text(
+                        text = when (algorithm.name.lowercase()) {
+                            "quick sort" -> "A divide & conquer algorithm that partitions the array around a pivot element."
+                            "bubble sort" -> "Repeatedly steps through the list, compares adjacent elements and swaps them if out of order."
+                            "binary search" -> "Search a sorted array by repeatedly dividing the search interval in half."
+                            "breadth-first search (bfs)", "bfs" -> "Level-by-level exploration using a Queue data structure."
+                            "depth-first search (dfs)", "dfs" -> "Explores deep branch paths using recursion/stack before backtracking."
+                            "stack" -> "LIFO (Last In First Out) linear data structure for push/pop/peek operations."
+                            "queue" -> "FIFO (First In First Out) linear data structure for enqueue/dequeue operations."
+                            "binary search tree" -> "Hierarchical node structure where left child < node < right child."
+                            else -> "${algorithm.name} algorithm execution and state inspection."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary,
+                        fontSize = 8.5.sp,
+                        lineHeight = 12.sp
                     )
+
+                    // Mode Selector for Array Algorithms (Cells vs Bars) + Edit Input
+                    if (isArrayBased) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(CardBackground)
+                                    .border(1.dp, BorderSubtle, RoundedCornerShape(6.dp))
+                                    .padding(2.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(
+                                            if (arrayViewMode == ArrayViewMode.CELLS) PrimaryCyan
+                                            else Color.Transparent
+                                        )
+                                        .clickable { arrayViewMode = ArrayViewMode.CELLS }
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Text(
+                                        text = "Box / Trace Mode",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (arrayViewMode == ArrayViewMode.CELLS) DarkBackground else TextMuted,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 8.sp
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(
+                                            if (arrayViewMode == ArrayViewMode.BARS) PrimaryCyan
+                                            else Color.Transparent
+                                        )
+                                        .clickable { arrayViewMode = ArrayViewMode.BARS }
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Text(
+                                        text = "Bar Chart Mode",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (arrayViewMode == ArrayViewMode.BARS) DarkBackground else TextMuted,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 8.sp
+                                    )
+                                }
+                            }
+
+                            // Customize Input Button
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(CyanSubtle)
+                                    .border(1.dp, PrimaryCyan.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
+                                    .clickable { showInputSheet = true }
+                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Tune,
+                                    contentDescription = "Customize",
+                                    tint = PrimaryCyan,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Text(
+                                    text = "CUSTOMIZE",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PrimaryCyan,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 8.sp
+                                )
+                            }
+                        }
+                    }
                 }
-            }
 
-            // ── 2. Visualizer Canvas Main Section ──
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 2.dp)
-            ) {
-                when (currentStep.renderMode) {
-                    // Buffer Mode: Stack / Queue
-                    VisualizerRenderMode.BUFFER -> {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(CardBackground)
-                                    .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = currentStep.description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary,
-                                    lineHeight = 13.sp,
-                                    fontSize = 8.5.sp
-                                )
-                            }
-
-                            BufferVisualizer(
-                                step = currentStep,
-                                isStack = algorithm.name.equals("Stack", ignoreCase = true),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(280.dp)
-                            )
-                        }
-                    }
-
-                    // 2D Graph / Tree Canvas
-                    VisualizerRenderMode.GRAPH_TREE -> {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(CardBackground)
-                                    .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = currentStep.description,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary,
-                                    lineHeight = 13.sp,
-                                    fontSize = 8.5.sp
-                                )
-                            }
-
-                            GraphTreeVisualizer(
-                                step = currentStep,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(300.dp)
-                            )
-                        }
-                    }
-
-                    // Array / Search Algorithms (Cells vs Bars)
-                    else -> {
-                        if (arrayViewMode == ArrayViewMode.CELLS) {
-                            CellArrayVisualizer(
-                                step = currentStep,
-                                algorithmName = algorithm.name,
-                                codeLines = codeLines,
-                                selectedCellIndices = challengeState.selectedIndices,
-                                onCellClick = { tappedIdx ->
-                                    val currentSet = challengeState.selectedIndices
-                                    val updatedSet = if (currentSet.contains(tappedIdx)) {
-                                        currentSet - tappedIdx
-                                    } else {
-                                        currentSet + tappedIdx
-                                    }
-                                    challengeState = challengeState.copy(selectedIndices = updatedSet)
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
+                // ── 2. Algorithm Canvas Region (55% of workspace) ──
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(55f)
+                ) {
+                    when (currentStep.renderMode) {
+                        VisualizerRenderMode.BUFFER -> {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
                                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // Description shown only when no phaseLabel (phase banner handles it)
-                                if (currentStep.phaseLabel.isBlank()) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = currentStep.description,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = TextSecondary,
-                                            lineHeight = 13.sp,
-                                            fontSize = 8.5.sp
-                                        )
-                                    }
-                                }
-
-                                ArrayVisualizer(
-                                    step = currentStep,
-                                    algorithmName = algorithm.name,
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .weight(1f)
+                                        .padding(horizontal = 10.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(CardBackground)
+                                        .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = currentStep.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextSecondary,
+                                        lineHeight = 13.sp,
+                                        fontSize = 8.5.sp
+                                    )
+                                }
+
+                                BufferVisualizer(
+                                    step = currentStep,
+                                    isStack = algorithm.name.equals("Stack", ignoreCase = true),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(280.dp)
                                 )
                             }
                         }
-                    }
-                }
-            }
 
-            // ── 3. Timeline Scrubber Slider ──
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp),
-                verticalArrangement = Arrangement.spacedBy(1.dp)
-            ) {
-                Slider(
-                    value = currentStepIdx.toFloat(),
-                    onValueChange = {
-                        isPlaying = false
-                        currentStepIdx = it.toInt().coerceIn(0, totalSteps - 1)
-                    },
-                    valueRange = 0f..(totalSteps - 1).coerceAtLeast(1).toFloat(),
-                    steps = (totalSteps - 2).coerceAtLeast(0),
-                    colors = SliderDefaults.colors(
-                        thumbColor = PrimaryCyan,
-                        activeTrackColor = PrimaryCyan,
-                        inactiveTrackColor = CardBackground
-                    ),
-                    modifier = Modifier.height(20.dp)
-                )
+                        // 2D Graph / Tree Canvas
+                        VisualizerRenderMode.GRAPH_TREE -> {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(CardBackground)
+                                        .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = currentStep.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextSecondary,
+                                        lineHeight = 13.sp,
+                                        fontSize = 8.5.sp
+                                    )
+                                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Start (Step 1)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextNavy,
-                        fontSize = 7.5.sp
-                    )
-                    Text(
-                        text = "Step ${currentStepIdx + 1} / $totalSteps",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextNavy,
-                        fontSize = 7.5.sp
-                    )
-                }
-            }
-
-            // ── 4. Bottom Playback Control Bar ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CardBackgroundElevated)
-                    .border(width = 1.dp, color = BorderSubtle)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Reset
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(CardBackground)
-                        .border(1.dp, BorderSubtle, CircleShape)
-                        .clickable {
-                            isPlaying = false
-                            currentStepIdx = 0
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Reset",
-                        tint = TextMuted,
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-
-                // Skip Back
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(CardBackground)
-                        .border(1.dp, BorderSubtle, CircleShape)
-                        .clickable {
-                            isPlaying = false
-                            if (currentStepIdx > 0) currentStepIdx--
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Step Back",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                // Play / Pause FAB
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                        .background(PrimaryCyan)
-                        .clickable {
-                            if (!isPlaying && currentStepIdx >= totalSteps - 1) {
-                                currentStepIdx = 0
-                            }
-                            isPlaying = !isPlaying
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = DarkBackground,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                // Skip Forward
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(CardBackground)
-                        .border(1.dp, BorderSubtle, CircleShape)
-                        .clickable {
-                            isPlaying = false
-                            if (currentStepIdx < totalSteps - 1) currentStepIdx++
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Step Forward",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                // Speed Selector Toggle
-                val speedLabel = when (playbackSpeedMs) {
-                    1000L -> "0.5x"
-                    600L -> "1.0x"
-                    300L -> "2.0x"
-                    else -> "1.0x"
-                }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(CardBackground)
-                        .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-                        .clickable {
-                            playbackSpeedMs = when (playbackSpeedMs) {
-                                1000L -> 600L
-                                600L -> 300L
-                                300L -> 1000L
-                                else -> 600L
+                                GraphTreeVisualizer(
+                                    step = currentStep,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(300.dp)
+                                )
                             }
                         }
-                        .padding(horizontal = 7.dp, vertical = 5.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = speedLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PrimaryCyan,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 8.5.sp
-                    )
-                }
 
-                // Challenge Mode Toggle Button
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(if (challengeState.isActive) PinkSubtle else CardBackground)
-                        .border(
-                            1.dp,
-                            if (challengeState.isActive) AccentPink else BorderSubtle,
-                            CircleShape
+                        // Array / Search Algorithms (Cells vs Bars)
+                        else -> {
+                            if (arrayViewMode == ArrayViewMode.CELLS) {
+                                CellArrayVisualizer(
+                                    step = currentStep,
+                                    algorithmName = algorithm.name,
+                                    selectedCellIndices = challengeState.selectedIndices,
+                                    challengeTargetIndices = challengeTargets,
+                                    syncPulse = syncPulseState,
+                                    onCellClick = { tappedIdx ->
+                                        val currentSet = challengeState.selectedIndices
+                                        val updatedSet = if (currentSet.contains(tappedIdx)) {
+                                            currentSet - tappedIdx
+                                        } else {
+                                            currentSet + tappedIdx
+                                        }
+                                        challengeState = challengeState.copy(selectedIndices = updatedSet)
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    if (currentStep.phaseLabel.isBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = currentStep.description,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = TextSecondary,
+                                                lineHeight = 13.sp,
+                                                fontSize = 8.5.sp
+                                            )
+                                        }
+                                    }
+
+                                    ArrayVisualizer(
+                                        step = currentStep,
+                                        algorithmName = algorithm.name,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // ── Challenge prompt overlays the canvas itself (not a banner) ──
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = challengeState.isActive,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        enter = fadeIn(tween(220)) + expandVertically(),
+                        exit = fadeOut(tween(180)) + shrinkVertically()
+                    ) {
+                        CanvasChallengePrompt(
+                            step = currentStep,
+                            nextStep = steps.getOrNull(currentStepIdx + 1),
+                            state = challengeState,
+                            onStateChange = { challengeState = it },
+                            onContinueNext = {
+                                if (currentStepIdx < totalSteps - 1) {
+                                    currentStepIdx++
+                                }
+                            }
                         )
-                        .clickable {
-                            isPlaying = false
-                            challengeState = challengeState.copy(isActive = !challengeState.isActive)
-                        },
-                    contentAlignment = Alignment.Center
+                    }
+                }
+
+                // ── 3. Boundary: Ambient Glow Divider (pulses on state transitions) ──
+                AmbientGlowDivider(pulseProvider = { syncPulse.value })
+
+                // (Playback rail relocated to the bottom of the workspace — see section 5.)
+
+                // ── 4. Synchronized Code Trace & Variable Inspector (45%) ──
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(45f)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = "Challenge Mode",
-                        tint = if (challengeState.isActive) AccentPink else TextMuted,
-                        modifier = Modifier.size(16.dp)
+                    CodeTracePane(
+                        step = currentStep,
+                        algorithmName = algorithm.name,
+                        syncPulse = syncPulseState,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
 
-                // AI Tutor Bot Button
-                Box(
+                // ── 5. Bottom Playback Rail (anchored to the screen bottom) ──
+                Row(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(PurpleSubtle)
-                        .border(1.dp, SecondaryPurple.copy(alpha = 0.4f), CircleShape)
-                        .clickable { showTutorSheet = true },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .background(AlgoTokens.glassElevated.copy(alpha = 0.92f))
+                        .border(width = 1.dp, color = BorderSubtle)
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = "AI Tutor",
-                        tint = PurpleGlow,
-                        modifier = Modifier.size(15.dp)
+                    // Reset
+                    RailIconButton(
+                        icon = Icons.Default.Refresh,
+                        contentDescription = "Reset",
+                        boxSize = 30,
+                        iconSize = 13,
+                        tint = TextMuted,
+                        container = CardBackground,
+                        borderColor = BorderSubtle,
+                        enabled = !challengeLocked
+                    ) {
+                        isPlaying = false
+                        currentStepIdx = 0
+                    }
+
+                    // Step Back
+                    RailIconButton(
+                        icon = Icons.Default.SkipPrevious,
+                        contentDescription = "Step Back",
+                        boxSize = 32,
+                        iconSize = 15,
+                        tint = TextPrimary,
+                        container = CardBackground,
+                        borderColor = BorderSubtle,
+                        enabled = !challengeLocked
+                    ) {
+                        isPlaying = false
+                        if (currentStepIdx > 0) currentStepIdx--
+                    }
+
+                    // Play / Pause
+                    RailIconButton(
+                        icon = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        boxSize = 42,
+                        iconSize = 20,
+                        tint = DarkBackground,
+                        container = PrimaryCyan,
+                        borderColor = Color.Transparent,
+                        enabled = !challengeLocked
+                    ) {
+                        if (!isPlaying && currentStepIdx >= totalSteps - 1) {
+                            currentStepIdx = 0
+                        }
+                        isPlaying = !isPlaying
+                    }
+
+                    // Step Forward
+                    RailIconButton(
+                        icon = Icons.Default.SkipNext,
+                        contentDescription = "Step Forward",
+                        boxSize = 32,
+                        iconSize = 15,
+                        tint = TextPrimary,
+                        container = CardBackground,
+                        borderColor = BorderSubtle,
+                        enabled = !challengeLocked
+                    ) {
+                        isPlaying = false
+                        if (currentStepIdx < totalSteps - 1) currentStepIdx++
+                    }
+
+                    // Timeline Scrubber
+                    Slider(
+                        value = currentStepIdx.toFloat(),
+                        onValueChange = {
+                            isPlaying = false
+                            currentStepIdx = it.toInt().coerceIn(0, totalSteps - 1)
+                        },
+                        valueRange = 0f..(totalSteps - 1).coerceAtLeast(1).toFloat(),
+                        steps = (totalSteps - 2).coerceAtLeast(0),
+                        enabled = !challengeLocked,
+                        colors = SliderDefaults.colors(
+                            thumbColor = PrimaryCyan,
+                            activeTrackColor = PrimaryCyan,
+                            inactiveTrackColor = CardBackground
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(20.dp)
+                            .alpha(if (challengeLocked) AlgoTokens.disabledAlpha else 1f)
                     )
+
+                    // Speed Selector Toggle
+                    val speedLabel = when (playbackSpeedMs) {
+                        1000L -> "0.5x"
+                        600L -> "1.0x"
+                        300L -> "2.0x"
+                        else -> "1.0x"
+                    }
+                    Box(
+                        modifier = Modifier
+                            .alpha(if (challengeLocked) AlgoTokens.disabledAlpha else 1f)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .background(CardBackground)
+                            .border(1.dp, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                            .clickable(enabled = !challengeLocked) {
+                                playbackSpeedMs = when (playbackSpeedMs) {
+                                    1000L -> 600L
+                                    600L -> 300L
+                                    300L -> 1000L
+                                    else -> 600L
+                                }
+                            }
+                            .padding(horizontal = 7.dp, vertical = 5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = speedLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PrimaryCyan,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 8.5.sp
+                        )
+                    }
+
+                    // Challenge Mode Toggle
+                    RailIconButton(
+                        icon = Icons.Default.EmojiEvents,
+                        contentDescription = "Challenge Mode",
+                        boxSize = 32,
+                        iconSize = 14,
+                        tint = if (challengeState.isActive) AccentPink else TextMuted,
+                        container = if (challengeState.isActive) PinkSubtle else CardBackground,
+                        borderColor = if (challengeState.isActive) AccentPink else BorderSubtle
+                    ) {
+                        isPlaying = false
+                        challengeState = challengeState.copy(isActive = !challengeState.isActive)
+                    }
+
+                    // AI Tutor
+                    RailIconButton(
+                        icon = Icons.Default.AutoAwesome,
+                        contentDescription = "AI Tutor",
+                        boxSize = 32,
+                        iconSize = 14,
+                        tint = PurpleGlow,
+                        container = PurpleSubtle,
+                        borderColor = SecondaryPurple.copy(alpha = 0.4f)
+                    ) {
+                        showTutorSheet = true
+                    }
                 }
             }
         }
@@ -753,12 +782,13 @@ fun VisualizerScreen(
             )
         }
 
-        if (showTheorySheet) {
-            AlgorithmTheorySheet(
-                algorithm = algorithm,
-                onDismiss = { showTheorySheet = false }
-            )
-        }
+        // Theory side-drawer stays composed for enter/exit animations;
+        // the workspace behind it is blurred via `backdropBlur`.
+        AlgorithmTheorySheet(
+            algorithm = algorithm,
+            isVisible = showTheorySheet,
+            onDismiss = { showTheorySheet = false }
+        )
 
         if (showTutorSheet) {
             AiTutorSheet(
@@ -776,12 +806,47 @@ fun VisualizerScreen(
     }
 }
 
+/**
+ * Compact circular transport button for the embedded boundary playback rail.
+ */
+@Composable
+private fun RailIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    boxSize: Int,
+    iconSize: Int,
+    tint: Color,
+    container: Color,
+    borderColor: Color,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .alpha(if (enabled) 1f else AlgoTokens.disabledAlpha)
+            .size(boxSize.dp)
+            .clip(CircleShape)
+            .background(container)
+            .border(1.dp, borderColor, CircleShape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(iconSize.dp)
+        )
+    }
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
 @Composable
 fun VisualizerScreenPreview() {
     AlgoLensTheme {
         VisualizerScreen(
-            algorithm = SampleData.algorithms.find { it.name == "Quick Sort" } ?: SampleData.algorithms.first(),
+            algorithm = SampleData.algorithms.find { it.name == "Quick Sort" }
+                ?: SampleData.algorithms.first(),
             onBack = {}
         )
     }
