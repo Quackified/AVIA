@@ -23,37 +23,46 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.algolens.model.SortStep
-import com.example.algolens.model.StepType
 import com.example.algolens.ui.theme.AccentRed
 import com.example.algolens.ui.theme.AccentYellow
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BarUnsorted
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.PrimaryCyan
+import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextMuted
 
 /**
- * Custom Compose algorithm bar chart visualizer.
- * Built with Compose Layout and dynamic animations.
+ * Unified 1D bar visualizer — talks to the [VisualizerStep] model so it
+ * stays in lockstep with the cells, graph and buffer renderers. Active
+ * range, swap pair, sorted tail and per-element [ElementState] are all
+ * read from the same step object that the code trace / challenge mode
+ * observe.
+ *
+ * Tokenized surfaces ([AlgoTokens.radiusMd], [AlgoTokens.strokeThin],
+ * [AlgoTokens.disabledAlpha]) keep this composable aligned with the rest
+ * of the workspace.
  */
 @Composable
 fun BarVisualizer(
-    step: SortStep,
-    maxVal: Int,
+    step: VisualizerStep,
     modifier: Modifier = Modifier
 ) {
+    val maxVal = step.array.maxOrNull()?.coerceAtLeast(1) ?: 1
+    val sortedBoundary = step.sortedBoundary
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
             .background(CardBackgroundElevated)
-            .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
+            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusMd))
             .padding(start = 12.dp, end = 12.dp, top = 24.dp, bottom = 48.dp)
     ) {
         Row(
@@ -62,6 +71,12 @@ fun BarVisualizer(
             verticalAlignment = Alignment.Bottom
         ) {
             step.array.forEachIndexed { index, value ->
+                val state = step.elementStates[index] ?: ElementState.IDLE
+                val isInActiveRange = step.activeRange?.contains(index) ?: true
+                val isSwapped = step.swappedIndices?.let { it.first == index || it.second == index } ?: false
+                val isSorted = sortedBoundary?.let { index >= it } ?: false
+                val isPivot = step.pivotIndex == index
+
                 val targetFraction = (value.toFloat() / maxVal.coerceAtLeast(1)).coerceIn(0.06f, 1f)
                 val animatedHeightFraction by animateFloatAsState(
                     targetValue = targetFraction,
@@ -69,13 +84,12 @@ fun BarVisualizer(
                     label = "barHeight_$index"
                 )
 
-                // Determine bar color based on step type and indices
-                val targetColor = when {
-                    step.type == StepType.DONE -> PrimaryCyan
-                    index in step.indices -> {
-                        if (step.type == StepType.SWAP) AccentRed else AccentYellow
-                    }
-                    else -> BarUnsorted
+                val targetColor = when (state) {
+                    ElementState.SORTED, ElementState.FOUND -> PrimaryCyan
+                    ElementState.SWAPPING -> AccentRed
+                    ElementState.COMPARING -> AccentYellow
+                    ElementState.PIVOT, ElementState.TARGET -> SecondaryPurple
+                    else -> if (isSorted) PrimaryCyan else BarUnsorted
                 }
 
                 val animatedColor by animateColorAsState(
@@ -87,7 +101,8 @@ fun BarVisualizer(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight(),
+                        .fillMaxHeight()
+                        .alpha(if (isInActiveRange) 1f else AlgoTokens.disabledAlpha + 0.2f),
                     verticalArrangement = Arrangement.Bottom,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -101,7 +116,10 @@ fun BarVisualizer(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .fillMaxHeight(animatedHeightFraction)
+                                .fillMaxHeight(
+                                    if (isSwapped) (animatedHeightFraction * 1.06f).coerceAtMost(1f)
+                                    else animatedHeightFraction
+                                )
                                 .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                                 .background(animatedColor)
                         )
@@ -110,11 +128,12 @@ fun BarVisualizer(
                     Spacer(modifier = Modifier.height(3.dp))
 
                     // Value Label Below Bar
+                    val isActive = state != ElementState.IDLE || isPivot
                     Text(
                         text = value.toString(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (index in step.indices) animatedColor else TextMuted,
-                        fontWeight = if (index in step.indices) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isActive) animatedColor else TextMuted,
+                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
                         fontSize = 8.5.sp,
                         maxLines = 1
                     )
@@ -124,19 +143,23 @@ fun BarVisualizer(
     }
 }
 
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
 @Composable
 fun BarVisualizerPreview() {
     com.example.algolens.ui.theme.AlgoLensTheme {
         Box(modifier = Modifier.height(260.dp).padding(16.dp)) {
             BarVisualizer(
-                step = SortStep(
+                step = VisualizerStep(
+                    stepIndex = 1,
+                    description = "Comparing 34 and 25",
                     array = listOf(64, 34, 25, 12, 22, 11, 90),
-                    type = StepType.COMPARE,
-                    indices = listOf(1, 2),
-                    description = "Comparing 34 and 25"
-                ),
-                maxVal = 90
+                    elementStates = mapOf(
+                        1 to ElementState.COMPARING,
+                        2 to ElementState.COMPARING
+                    ),
+                    swappedIndices = null,
+                    activeRange = 0..6
+                )
             )
         }
     }

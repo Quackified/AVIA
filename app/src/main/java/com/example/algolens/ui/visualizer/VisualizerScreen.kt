@@ -457,126 +457,38 @@ fun VisualizerScreen(
                         .fillMaxWidth()
                         .weight(55f)
                 ) {
-                    when (currentStep.renderMode) {
-                        VisualizerRenderMode.BUFFER -> {
-                            Column(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 10.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(CardBackground)
-                                        .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                ) {
-                                    Text(
-                                        text = currentStep.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = TextSecondary,
-                                        lineHeight = 13.sp,
-                                        fontSize = 8.5.sp
-                                    )
+                    val hostSpec = AlgorithmRegistry.specFor(algorithm.id)
+                    if (hostSpec != null) {
+                        VisualizerHost(
+                            spec = hostSpec,
+                            currentStep = currentStep,
+                            arrayViewMode = arrayViewMode,
+                            selectedCellIndices = challengeState.selectedIndices,
+                            challengeTargetIndices = challengeTargets,
+                            syncPulse = syncPulseState,
+                            onCellClick = { tappedIdx ->
+                                val currentSet = challengeState.selectedIndices
+                                val updatedSet = if (currentSet.contains(tappedIdx)) {
+                                    currentSet - tappedIdx
+                                } else {
+                                    currentSet + tappedIdx
                                 }
-
-                                BufferVisualizer(
-                                    step = currentStep,
-                                    isStack = AlgorithmRegistry.specFor(algorithm.id)?.isStack ?: true,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(280.dp)
-                                )
+                                challengeState = challengeState.copy(selectedIndices = updatedSet)
                             }
-                        }
-
-                        // 2D Graph / Tree Canvas
-                        VisualizerRenderMode.GRAPH_TREE -> {
-                            Column(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 10.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(CardBackground)
-                                        .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                ) {
-                                    Text(
-                                        text = currentStep.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = TextSecondary,
-                                        lineHeight = 13.sp,
-                                        fontSize = 8.5.sp
-                                    )
-                                }
-
-                                GraphTreeVisualizer(
-                                    step = currentStep,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(300.dp)
-                                )
-                            }
-                        }
-
-                        // Array / Search Algorithms (Cells vs Bars)
-                        else -> {
-                            if (arrayViewMode == ArrayViewMode.CELLS) {
-                                CellArrayVisualizer(
-                                    step = currentStep,
-                                    algorithmName = algorithm.name,
-                                    selectedCellIndices = challengeState.selectedIndices,
-                                    challengeTargetIndices = challengeTargets,
-                                    syncPulse = syncPulseState,
-                                    onCellClick = { tappedIdx ->
-                                        val currentSet = challengeState.selectedIndices
-                                        val updatedSet = if (currentSet.contains(tappedIdx)) {
-                                            currentSet - tappedIdx
-                                        } else {
-                                            currentSet + tappedIdx
-                                        }
-                                        challengeState = challengeState.copy(selectedIndices = updatedSet)
-                                    },
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    if (currentStep.phaseLabel.isBlank()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 4.dp)
-                                        ) {
-                                            Text(
-                                                text = currentStep.description,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = TextSecondary,
-                                                lineHeight = 13.sp,
-                                                fontSize = 8.5.sp
-                                            )
-                                        }
-                                    }
-
-                                    ArrayVisualizer(
-                                        step = currentStep,
-                                        algorithmName = algorithm.name,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .weight(1f)
-                                    )
-                                }
-                            }
+                        )
+                    } else {
+                        // Defensive fallback — should not happen because
+                        // the registry guards generateStepsForAlgorithm,
+                        // but render a clear empty state if it ever does.
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Visualizer not registered for ${algorithm.name}",
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
 

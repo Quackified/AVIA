@@ -63,8 +63,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.algolens.model.SortStep
-import com.example.algolens.model.StepType
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentOrange
 import com.example.algolens.ui.theme.AccentPink
@@ -1142,40 +1140,6 @@ fun CodeTracePane(
             }
         }
     }
-}
-
-/**
- * Backward compatibility overload for legacy SortStep.
- */
-@Composable
-fun CodeTracePane(
-    step: SortStep,
-    stepIdx: Int,
-    modifier: Modifier = Modifier
-) {
-    val visualizerStep = remember(step, stepIdx) {
-        val activeLine = when (step.type) {
-            StepType.COMPARE -> 5
-            StepType.SWAP -> 6
-            StepType.DONE -> 7
-        }
-        VisualizerStep(
-            stepIndex = stepIdx,
-            array = step.array,
-            activeCodeLines = listOf(activeLine),
-            variables = mapOf(
-                "i" to (stepIdx / 5).toString(),
-                "j" to (step.indices.firstOrNull() ?: 0).toString(),
-                "swapped" to (step.type == StepType.SWAP).toString()
-            )
-        )
-    }
-
-    CodeTracePane(
-        step = visualizerStep,
-        algorithmName = "Bubble Sort",
-        modifier = modifier
-    )
 }
 
 /**
