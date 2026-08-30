@@ -43,11 +43,11 @@ object AlgorithmRegistry {
             id = AlgorithmId.MERGE_SORT,
             defaultInput = AlgorithmStepRepository.DEFAULT_INPUT,
             supportsCustomInput = true,
-            // The bespoke MergeSortVisualizer owns the full layout
-            // (recursion tree + phase strip + merge detail). No
-            // overlays, no auxiliaries, no dimmer — the cells/bars
-            // toggle in the header is hidden because this algorithm
-            // is in the MERGE_SORT family, not LINEAR_1D.
+            // Standard LINEAR_1D rendering (CellArrayVisualizer /
+            // BarVisualizer). The cell renderer has built-in merge
+            // sort support (recursion level info + merge blocks)
+            // driven purely by the step metadata.
+            dimOutOfRangeCells = true,
         ),
         AlgorithmId.QUICK_SORT to AlgorithmSpec(
             id = AlgorithmId.QUICK_SORT,

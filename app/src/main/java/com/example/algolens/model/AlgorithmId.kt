@@ -29,7 +29,7 @@ enum class AlgorithmId(
     BUBBLE_SORT("Bubble Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(n²)", "O(1)", PrimaryCyan, "Sorting"),
     SELECTION_SORT("Selection Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(n²)", "O(1)", PrimaryCyan, "Sorting"),
     INSERTION_SORT("Insertion Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(n²)", "O(1)", PrimaryCyan, "Sorting"),
-    MERGE_SORT("Merge Sort", VisualizerFamily.MERGE_SORT, InputKind.ARRAY, "Medium", "O(n log n)", "O(n)", PrimaryCyan, "Sorting"),
+    MERGE_SORT("Merge Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Medium", "O(n log n)", "O(n)", PrimaryCyan, "Sorting"),
     QUICK_SORT("Quick Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Medium", "O(n log n)", "O(log n)", PrimaryCyan, "Sorting"),
     LINEAR_SEARCH("Linear Search", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(n)", "O(1)", SecondaryPurple, "Searching"),
     BINARY_SEARCH("Binary Search", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(log n)", "O(1)", SecondaryPurple, "Searching"),
@@ -58,8 +58,6 @@ enum class VisualizerFamily {
     GRAPH_2D,
     /** Stack / queue / deque buffer container. */
     BUFFER,
-    /** Bespoke recursion-tree visualizer (Merge Sort only). */
-    MERGE_SORT,
 }
 
 /** What kind of user input the algorithm accepts (controls the Customize sheet). */

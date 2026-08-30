@@ -26,14 +26,14 @@ class AuxiliaryComponentTest {
 
     @Test
     fun mergeSort_specHasNoAuxiliaries() {
-        // The bespoke MergeSortVisualizer owns the full layout
-        // (recursion tree + phase strip + merge detail). The
-        // previous bands / phase / buffer row auxiliaries are
-        // obsolete — the registry no longer attaches them.
+        // Merge Sort renders through the standard LINEAR_1D family
+        // (CellArrayVisualizer / BarVisualizer). The old bands /
+        // phase / buffer row auxiliaries and the bespoke
+        // MergeSortVisualizer are gone — no auxiliaries attached.
         val spec = AlgorithmRegistry.specFor(AlgorithmId.MERGE_SORT)
         assertNotNull("Merge Sort must be in the registry", spec)
         assertTrue(
-            "Merge Sort must have zero auxiliary components (bespoke visualizer)",
+            "Merge Sort must have zero auxiliary components (standard renderer)",
             spec!!.auxiliaryComponents.isEmpty()
         )
     }
@@ -54,23 +54,17 @@ class AuxiliaryComponentTest {
     }
 
     @Test
-    fun dimOutOfRangeCells_isTrueForBinarySearchAndQuickSort() {
-        // Binary Search and Quick Sort carry an activeRange that
-        // narrows during playback. The dimmer applies to both
-        // (cells and bars modes). Merge Sort uses the bespoke
-        // visualizer; the dimmer doesn't apply (no cells to dim).
-        for (id in listOf(AlgorithmId.BINARY_SEARCH, AlgorithmId.QUICK_SORT)) {
+    fun dimOutOfRangeCells_isTrueForDivideAndConquer() {
+        // Binary Search, Quick Sort and Merge Sort all carry an
+        // activeRange that narrows during playback. The dimmer
+        // applies to all three (cells and bars modes).
+        for (id in listOf(AlgorithmId.BINARY_SEARCH, AlgorithmId.QUICK_SORT, AlgorithmId.MERGE_SORT)) {
             val spec = AlgorithmRegistry.specFor(id)!!
             assertTrue(
                 "$id must have dimOutOfRangeCells=true",
                 spec.dimOutOfRangeCells
             )
         }
-        val mergeSort = AlgorithmRegistry.specFor(AlgorithmId.MERGE_SORT)!!
-        assertFalse(
-            "Merge Sort must NOT have dimOutOfRangeCells (bespoke visualizer)",
-            mergeSort.dimOutOfRangeCells
-        )
     }
 
     @Test

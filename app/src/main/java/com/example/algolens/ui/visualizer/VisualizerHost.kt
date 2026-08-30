@@ -87,12 +87,6 @@ fun VisualizerHost(
                 currentStep = currentStep,
                 spec = spec
             )
-
-            VisualizerFamily.MERGE_SORT -> MergeSortVisualizer(
-                spec = spec,
-                currentStep = currentStep,
-                state = state
-            )
         }
 
         // Per-algorithm overlays (recursion tree, weight badges, pointer
