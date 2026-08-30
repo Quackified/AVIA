@@ -99,11 +99,17 @@ import kotlin.math.sqrt
 fun GraphTreeVisualizer(
     step: VisualizerStep,
     modifier: Modifier = Modifier,
+    algorithmKey: String = "",
     onGraphModified: ((List<GraphNodeState>, List<GraphEdgeState>) -> Unit)? = null
 ) {
-    // Dynamic interactive node & edge states
-    var dynamicNodes by remember(step) { mutableStateOf(step.nodes) }
-    var dynamicEdges by remember(step) { mutableStateOf(step.edges) }
+    // Dynamic interactive node & edge states. Keyed on [algorithmKey]
+    // (not [step]) so the user's custom-built nodes/edges survive
+    // across step transitions and play/pause. The state is only
+    // re-initialized when the user navigates to a different algorithm
+    // (which gives a different `algorithmKey`), or when they tap the
+    // existing "Reset Graph" button.
+    var dynamicNodes by remember(algorithmKey) { mutableStateOf(step.nodes) }
+    var dynamicEdges by remember(algorithmKey) { mutableStateOf(step.edges) }
 
     // Gesture builder state
     var selectedNodeId by remember { mutableStateOf<String?>(null) }
@@ -111,12 +117,6 @@ fun GraphTreeVisualizer(
     var currentDragPos by remember { mutableStateOf<Offset?>(null) }
     var hoveredTargetNodeId by remember { mutableStateOf<String?>(null) }
     var isBuilderActive by remember { mutableStateOf(false) }
-
-    // Sync when step changes
-    LaunchedEffect(step.nodes, step.edges) {
-        dynamicNodes = step.nodes
-        dynamicEdges = step.edges
-    }
 
     // ── Per-node "first visit" / "just became active" scale pop ──
     // When a node first appears in the active set (either because it was

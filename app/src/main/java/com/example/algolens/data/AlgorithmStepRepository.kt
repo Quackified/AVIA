@@ -1073,7 +1073,7 @@ object AlgorithmStepRepository {
                     phaseLabel = label,
                     renderMode = VisualizerRenderMode.BUFFER,
                     buffer = items.toList(),
-                    bufferLabel = "Stack ┬À LIFO (Last In First Out)",
+                    bufferLabel = "STACK - LIFO (Last In, First Out)",
                     activeCodeLines = listOf(codeLine)
                 )
             )
@@ -1133,7 +1133,7 @@ object AlgorithmStepRepository {
                     phaseLabel = label,
                     renderMode = VisualizerRenderMode.BUFFER,
                     buffer = items.toList(),
-                    bufferLabel = "Queue ┬À FIFO (First In First Out)",
+                    bufferLabel = "QUEUE - FIFO (First In, First Out)",
                     activeCodeLines = listOf(codeLine)
                 )
             )

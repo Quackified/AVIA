@@ -192,6 +192,7 @@ private fun GraphTreeCanvas(
         )
         GraphTreeVisualizer(
             step = currentStep,
+            algorithmKey = algorithmId.name,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)

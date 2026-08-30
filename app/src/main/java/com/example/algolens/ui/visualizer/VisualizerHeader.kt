@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.algolens.model.Algorithm
@@ -115,10 +116,20 @@ fun VisualizerHeader(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
+            verticalAlignment = Alignment.Top
         ) {
-            HeaderTitle(algorithm, state.currentStepIdx, state.totalSteps, onBack)
+            // Title takes the available space and truncates with "..."
+            // when it would clip into the action cluster. Actions are
+            // pinned to the right (no second-row wrap, per user
+            // instructions).
+            HeaderTitle(
+                algorithm = algorithm,
+                currentStepIdx = state.currentStepIdx,
+                totalSteps = state.totalSteps,
+                modifier = Modifier.weight(1f),
+                onBack = onBack
+            )
             HeaderActions(
                 state = state,
                 algorithm = algorithm,
@@ -145,9 +156,11 @@ private fun HeaderTitle(
     algorithm: Algorithm,
     currentStepIdx: Int,
     totalSteps: Int,
+    modifier: Modifier = Modifier,
     onBack: () -> Unit
 ) {
     Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
     ) {
@@ -162,19 +175,23 @@ private fun HeaderTitle(
             onClick = onBack
         )
 
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = algorithm.name.uppercase(),
                 style = MaterialTheme.typography.titleMedium,
                 color = TextPrimary,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
+                letterSpacing = 1.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = "Step ${currentStepIdx + 1} of $totalSteps",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextMuted,
-                fontSize = 8.5.sp
+                fontSize = 8.5.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -203,6 +220,10 @@ private fun HeaderActions(
     callStackOpen: Boolean,
     onCallStackOpenChange: (Boolean) -> Unit
 ) {
+    // Plain Row so the TIME / SPACE / help / kebab chips stay on a
+    // single row, flush-right against the title. The title's
+    // `weight(1f)` lets it shrink / ellipsize instead of pushing
+    // the actions off-screen.
     Row(
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
         verticalAlignment = Alignment.CenterVertically
