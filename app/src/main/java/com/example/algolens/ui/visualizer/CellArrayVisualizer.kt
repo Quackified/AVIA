@@ -146,15 +146,19 @@ data class OffscreenPointerTarget(
 @Composable
 fun CellArrayVisualizer(
     step: VisualizerStep,
-    algorithmName: String = "Bubble Sort",
+    spec: com.example.algolens.model.AlgorithmSpec? = null,
     selectedCellIndices: Set<Int> = emptySet(),
     challengeTargetIndices: Set<Int> = emptySet(),
     syncPulse: State<Float> = mutableStateOf(0f),
     onCellClick: ((Int) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val algorithmName = spec?.id?.displayName ?: "Bubble Sort"
+    val isQuickSort = spec?.id == com.example.algolens.model.AlgorithmId.QUICK_SORT
+    val isMergeSort = spec?.id == com.example.algolens.model.AlgorithmId.MERGE_SORT
+    val dimOutOfRange = spec?.dimOutOfRangeCells == true
+
     val lazyListState = rememberLazyListState()
-    val auxLazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
     // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -325,8 +329,6 @@ fun CellArrayVisualizer(
     val isBubbleSort = algorithmName.contains("bubble", ignoreCase = true)
     val isSelectionSort = algorithmName.contains("selection", ignoreCase = true)
     val isInsertionSort = algorithmName.contains("insertion", ignoreCase = true)
-    val isQuickSort = algorithmName.contains("quick", ignoreCase = true)
-    val isMergeSort = algorithmName.contains("merge", ignoreCase = true)
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         // Responsive tactile-canvas sizing: card dimensions, type scale and
@@ -468,12 +470,12 @@ fun CellArrayVisualizer(
                                 text = buildAnnotatedString {
                                     if (isSwapping) {
                                         withStyle(SpanStyle(color = AlgoTokens.accentPink)) {
-                                            append("âš¡ ")
+                                            append("⚡ ")
                                         }
-                                        append("BUBBLE UP SWAP: arr[${step.leftPointer}] â‡„ arr[${step.rightPointer}]")
+                                        append("BUBBLE UP SWAP: arr[${step.leftPointer}] ↔ arr[${step.rightPointer}]")
                                     } else {
                                         withStyle(SpanStyle(color = AlgoTokens.accentCyan)) {
-                                            append("ðŸ” ")
+                                            append("🔍 ")
                                         }
                                         append("ADJACENT COMPARE: arr[${step.leftPointer}] vs arr[${step.rightPointer}]")
                                     }
@@ -497,14 +499,14 @@ fun CellArrayVisualizer(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "â—„ SORTED REGION (0..${step.sortedBoundary - 1})",
+                            text = "◄ SORTED REGION (0..${step.sortedBoundary - 1})",
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentGreen,
                             fontWeight = FontWeight.Bold,
                             fontSize = 7.5.sp
                         )
                         Text(
-                            text = "UNSORTED CANDIDATES (${step.sortedBoundary}..${step.array.size - 1}) â–º",
+                            text = "UNSORTED CANDIDATES (${step.sortedBoundary}..${step.array.size - 1}) ►",
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentYellow,
                             fontWeight = FontWeight.Bold,
@@ -563,10 +565,14 @@ fun CellArrayVisualizer(
                         val isSelectedForChallenge = selectedCellIndices.contains(index)
                         val isChallengeTarget = index in challengeTargetIndices
 
-                        // Quick Sort Partition Dimming (Dim elements outside low..high)
+                        // Divide-and-conquer active-range dimming
+                        // (Binary Search, Quick Sort, Merge Sort during
+                        // divide). The spec opt-in replaces a string
+                        // match on `algorithmName.contains("quick")`
+                        // so all three algorithms share one check.
                         val isInActiveRange = step.activeRange == null || index in step.activeRange
                         val cellAlphaState = animateFloatAsState(
-                            targetValue = if (isQuickSort && !isInActiveRange) 0.35f else 1f,
+                            targetValue = if (dimOutOfRange && !isInActiveRange) 0.35f else 1f,
                             animationSpec = tween(150),
                             label = "cellAlpha_$index"
                         )
@@ -827,120 +833,6 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // â”€â”€ E. Merge Sort: Tier 2 (Auxiliary Merge Buffer & Flow Indicator) â”€â”€
-                if (isMergeSort && step.auxiliaryArray != null && step.auxiliaryArray.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF070B14))
-                            .border(1.dp, PurpleSubtle, RoundedCornerShape(8.dp))
-                            .padding(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Layers,
-                                    contentDescription = "Auxiliary Array",
-                                    tint = PrimaryCyan,
-                                    modifier = Modifier.size(11.dp)
-                                )
-                                Text(
-                                    text = "AUXILIARY MERGE BUFFER",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = PrimaryCyan,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 7.5.sp
-                                )
-                            }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowUpward,
-                                    contentDescription = "Merge into Main Array",
-                                    tint = AccentGreen,
-                                    modifier = Modifier.size(10.dp)
-                                )
-                                Text(
-                                    text = "Merging to Main Array",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = AccentGreen,
-                                    fontSize = 7.sp
-                                )
-                            }
-                        }
-
-                        // Aux Array Cells
-                        LazyRow(
-                            state = auxLazyListState,
-                            modifier = Modifier.fillMaxWidth(),
-                            contentPadding = PaddingValues(horizontal = 2.dp),
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            itemsIndexed(step.auxiliaryArray, key = { index, _ -> "aux_$index" }) { auxIdx, auxVal ->
-                                val isAuxPointerI = step.auxiliaryIndices["i"] == auxIdx
-                                val isAuxPointerJ = step.auxiliaryIndices["j"] == auxIdx
-                                val isAuxActive = isAuxPointerI || isAuxPointerJ
-
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    // Pointer indicator above aux cell
-                                    Box(modifier = Modifier.height(12.dp), contentAlignment = Alignment.Center) {
-                                        if (isAuxPointerI) {
-                                            Text(text = "i", style = MaterialTheme.typography.labelSmall, color = PrimaryCyan, fontWeight = FontWeight.Bold, fontSize = 7.5.sp)
-                                        } else if (isAuxPointerJ) {
-                                            Text(text = "j", style = MaterialTheme.typography.labelSmall, color = AccentYellow, fontWeight = FontWeight.Bold, fontSize = 7.5.sp)
-                                        }
-                                    }
-
-                                    // Aux Cell Box
-                                    Box(
-                                        modifier = Modifier
-                                            .size(width = 28.dp, height = 30.dp)
-                                            .clip(RoundedCornerShape(5.dp))
-                                            .background(if (isAuxActive) CyanSubtle else CardBackgroundHover)
-                                            .border(
-                                                1.dp,
-                                                if (isAuxActive) PrimaryCyan else BorderSubtle,
-                                                RoundedCornerShape(5.dp)
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = auxVal.toString(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (isAuxActive) PrimaryCyan else TextSecondary,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp
-                                        )
-                                    }
-
-                                    // Aux index
-                                    Text(
-                                        text = auxIdx.toString(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = TextMuted,
-                                        fontSize = 7.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
 
                 // â”€â”€ Animated Off-Screen Pointer Pop-Up Cell Indicators â”€â”€
                 if (leftOffscreen.isNotEmpty() || rightOffscreen.isNotEmpty()) {
@@ -1265,7 +1157,7 @@ fun CellArrayVisualizerPreview() {
                     ),
                     activeCodeLines = listOf(5)
                 ),
-                algorithmName = "Quick Sort"
+                spec = com.example.algolens.data.AlgorithmRegistry.specFor(com.example.algolens.model.AlgorithmId.QUICK_SORT)
             )
         }
     }

@@ -57,3 +57,6 @@ val BarSwap = AccentRed
 val BarSorted = PrimaryCyan
 val BarPivot = SecondaryPurple
 val BarPointer = AccentYellow
+
+// Graph edges (the unhighlighted edge color; highlighted edges use AccentGreen).
+val GraphEdgeDefault = Color(0xFF1E293B)

@@ -14,12 +14,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.algolens.data.AlgorithmRegistry
+import com.example.algolens.model.AuxiliarySlot
 import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.AlgorithmSpec
 import com.example.algolens.model.VisualizerFamily
@@ -60,19 +62,20 @@ fun VisualizerHost(
     challengeTargetIndices: Set<Int>,
     syncPulse: State<Float>,
     onCellClick: (Int) -> Unit,
+    state: VisualizerScreenState,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         when (spec.id.family) {
             VisualizerFamily.LINEAR_1D -> Linear1DCanvas(
+                spec = spec,
                 currentStep = currentStep,
                 arrayViewMode = arrayViewMode,
-                algorithmId = spec.id,
-                algorithmName = spec.id.displayName,
                 selectedCellIndices = selectedCellIndices,
                 challengeTargetIndices = challengeTargetIndices,
                 syncPulse = syncPulse,
-                onCellClick = onCellClick
+                onCellClick = onCellClick,
+                state = state
             )
 
             VisualizerFamily.GRAPH_2D -> GraphTreeCanvas(
@@ -84,55 +87,101 @@ fun VisualizerHost(
                 currentStep = currentStep,
                 spec = spec
             )
+
+            VisualizerFamily.MERGE_SORT -> MergeSortVisualizer(
+                spec = spec,
+                currentStep = currentStep,
+                state = state
+            )
+        }
+
+        // Per-algorithm overlays (recursion tree, weight badges, pointer
+        // banner, …) float above the family renderer. They are layered
+        // here so they can use `Modifier.align(...)` or
+        // `Modifier.matchParentSize()` without competing with the
+        // renderer for layout weight.
+        spec.overlays.forEach { overlay ->
+            overlay.Content(
+                step = currentStep,
+                state = state,
+                modifier = Modifier
+            )
         }
     }
 }
 
 /**
- * 1D linear cells or bars. Renders the description banner (only when
- * there is no phase label, mirroring the original behaviour) and the
- * chosen sub-renderer. Defaults to CELLS; user can toggle to BARS via
- * the screen-level [ArrayViewMode] chip.
+ * 1D linear cells or bars. Composes the family renderer (cells
+ * or bars) with any per-algorithm structural auxiliaries declared
+ * on the [spec]. Auxiliaries are composed around the family
+ * renderer in a single `Column`, with `weight(1f)` reserved for
+ * the renderer; the spec controls the layout, not the host.
+ *
+ * Defaults to CELLS; user can toggle to BARS via the
+ * screen-level [ArrayViewMode] chip.
  */
 @Composable
 private fun Linear1DCanvas(
+    spec: AlgorithmSpec,
     currentStep: VisualizerStep,
     arrayViewMode: ArrayViewMode,
-    algorithmId: AlgorithmId,
-    algorithmName: String,
     selectedCellIndices: Set<Int>,
     challengeTargetIndices: Set<Int>,
     syncPulse: State<Float>,
     onCellClick: (Int) -> Unit,
+    state: VisualizerScreenState,
 ) {
-    if (arrayViewMode == ArrayViewMode.CELLS) {
-        CellArrayVisualizer(
-            step = currentStep,
-            algorithmName = algorithmName,
-            selectedCellIndices = selectedCellIndices,
-            challengeTargetIndices = challengeTargetIndices,
-            syncPulse = syncPulse,
-            onCellClick = onCellClick,
-            modifier = Modifier.fillMaxSize()
-        )
-    } else {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if (currentStep.phaseLabel.isBlank()) {
-                DescriptionBanner(currentStep.description)
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Top auxiliaries (recursion bands, phase strip, …).
+        spec.auxiliaryComponents
+            .filter { it.slot == AuxiliarySlot.TOP }
+            .forEach { aux ->
+                key(aux.key) {
+                    aux.content(
+                        currentStep,
+                        state,
+                        Modifier.fillMaxWidth().weight(aux.weight)
+                    )
+                }
             }
-            // Use the unified BarVisualizer  talks to VisualizerStep and
-            // AlgoTokens like the rest of the workspace.
-            BarVisualizer(
-                step = currentStep,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            )
+
+        // Family renderer (cells or bars) — takes the remaining space.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            if (arrayViewMode == ArrayViewMode.CELLS) {
+                CellArrayVisualizer(
+                    step = currentStep,
+                    spec = spec,
+                    selectedCellIndices = selectedCellIndices,
+                    challengeTargetIndices = challengeTargetIndices,
+                    syncPulse = syncPulse,
+                    onCellClick = onCellClick,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                BarVisualizer(
+                    step = currentStep,
+                    spec = spec,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
+
+        // Bottom auxiliaries (merge buffer row, …).
+        spec.auxiliaryComponents
+            .filter { it.slot == AuxiliarySlot.BOTTOM }
+            .forEach { aux ->
+                key(aux.key) {
+                    aux.content(
+                        currentStep,
+                        state,
+                        Modifier.fillMaxWidth().weight(aux.weight)
+                    )
+                }
+            }
     }
 }
 

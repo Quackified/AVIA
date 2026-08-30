@@ -53,8 +53,10 @@ import com.example.algolens.ui.theme.TextMuted
 @Composable
 fun BarVisualizer(
     step: VisualizerStep,
+    spec: com.example.algolens.model.AlgorithmSpec? = null,
     modifier: Modifier = Modifier
 ) {
+    val dimOutOfRange = spec?.dimOutOfRangeCells == true
     val maxVal = step.array.maxOrNull()?.coerceAtLeast(1) ?: 1
     val sortedBoundary = step.sortedBoundary
     Box(
@@ -102,7 +104,10 @@ fun BarVisualizer(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .alpha(if (isInActiveRange) 1f else AlgoTokens.disabledAlpha + 0.2f),
+                        .alpha(
+                            if (!isInActiveRange && dimOutOfRange) AlgoTokens.disabledAlpha + 0.2f
+                            else 1f
+                        ),
                     verticalArrangement = Arrangement.Bottom,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {

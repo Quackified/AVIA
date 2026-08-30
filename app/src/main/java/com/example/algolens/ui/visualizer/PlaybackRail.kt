@@ -1,0 +1,184 @@
+package com.example.algolens.ui.visualizer
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.algolens.ui.components.RailIconButton
+import com.example.algolens.ui.theme.AccentPink
+import com.example.algolens.ui.theme.AlgoTokens
+import com.example.algolens.ui.theme.BorderSubtle
+import com.example.algolens.ui.theme.CardBackground
+import com.example.algolens.ui.theme.PinkSubtle
+import com.example.algolens.ui.theme.PrimaryCyan
+import com.example.algolens.ui.theme.PurpleGlow
+import com.example.algolens.ui.theme.PurpleSubtle
+import com.example.algolens.ui.theme.SecondaryPurple
+import com.example.algolens.ui.theme.TextMuted
+import com.example.algolens.ui.theme.TextPrimary
+
+/**
+ * Bottom-edge playback control surface. The transport row contains:
+ *
+ *  [ Reset ] [ Step-Back ] [ Play / Pause ] [ Step-Forward ] [ ── scrubber ── ] [ Speed ] [ Challenge ] [ AI Tutor ]
+ *
+ *  - **Step-back / scrubber / step-forward / speed** are all
+ *    [AlgoTokens.disabledAlpha]-dimmed when the challenge is in
+ *    flight, because the user is mid-prompt and shouldn't be jumping
+ *    the algorithm.
+ *  - **Challenge and AI Tutor** stay enabled even during a prompt
+ *    because they don't mutate the playback position.
+ *
+ * The rail reads *only* from [VisualizerScreenState] and invokes
+ * its mutators — no local state, no nested LaunchedEffects.
+ */
+@Composable
+fun PlaybackRail(
+    state: VisualizerScreenState,
+    modifier: Modifier = Modifier
+) {
+    val challengeLocked = state.challengeInFlight
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(AlgoTokens.glassElevated.copy(alpha = 0.92f))
+            .border(AlgoTokens.strokeThin, BorderSubtle)
+            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RailIconButton(
+            icon = Icons.Default.Refresh,
+            contentDescription = "Reset",
+            boxSize = AlgoTokens.iconButtonSm,
+            iconSize = AlgoTokens.inlineIconMd - 1.dp,
+            tint = TextMuted,
+            container = CardBackground,
+            borderColor = BorderSubtle,
+            onClick = { state.reset() }
+        )
+
+        RailIconButton(
+            icon = Icons.Default.SkipPrevious,
+            contentDescription = "Step Back",
+            boxSize = AlgoTokens.iconButtonMd,
+            iconSize = AlgoTokens.inlineIconMd,
+            tint = TextPrimary,
+            container = CardBackground,
+            borderColor = BorderSubtle,
+            enabled = !challengeLocked,
+            onClick = { state.stepBackward() }
+        )
+
+        RailIconButton(
+            icon = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+            contentDescription = if (state.isPlaying) "Pause" else "Play",
+            boxSize = AlgoTokens.iconButtonLg,
+            iconSize = AlgoTokens.inlineIconLg,
+            tint = PrimaryCyan,
+            container = CardBackground,
+            borderColor = PrimaryCyan.copy(alpha = 0.4f),
+            enabled = !challengeLocked || !state.isPlaying,
+            onClick = { state.togglePlay() }
+        )
+
+        RailIconButton(
+            icon = Icons.Default.SkipNext,
+            contentDescription = "Step Forward",
+            boxSize = AlgoTokens.iconButtonMd,
+            iconSize = AlgoTokens.inlineIconMd,
+            tint = TextPrimary,
+            container = CardBackground,
+            borderColor = BorderSubtle,
+            enabled = !challengeLocked,
+            onClick = { state.stepForward() }
+        )
+
+        Slider(
+            value = state.currentStepIdx.toFloat(),
+            onValueChange = { state.scrubTo(it.toInt()) },
+            valueRange = 0f..(state.totalSteps - 1).coerceAtLeast(1).toFloat(),
+            steps = (state.totalSteps - 2).coerceAtLeast(0),
+            enabled = !challengeLocked,
+            colors = SliderDefaults.colors(
+                thumbColor = PrimaryCyan,
+                activeTrackColor = PrimaryCyan,
+                inactiveTrackColor = CardBackground
+            ),
+            modifier = Modifier
+                .weight(1f)
+                .height(20.dp)
+                .alpha(if (challengeLocked) AlgoTokens.disabledAlpha else 1f)
+        )
+
+        // Speed chip
+        Box(
+            modifier = Modifier
+                .alpha(if (challengeLocked) AlgoTokens.disabledAlpha else 1f)
+                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                .background(CardBackground)
+                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                .clickable(enabled = !challengeLocked) { state.cycleSpeed() }
+                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = state.speedLabel,
+                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                color = PrimaryCyan,
+                fontWeight = FontWeight.Bold,
+                fontSize = 8.5.sp
+            )
+        }
+
+        // Challenge toggle
+        RailIconButton(
+            icon = Icons.Default.EmojiEvents,
+            contentDescription = "Challenge Mode",
+            boxSize = AlgoTokens.iconButtonMd,
+            iconSize = AlgoTokens.inlineIconMd,
+            tint = if (state.challengeState.isActive) AccentPink else TextMuted,
+            container = if (state.challengeState.isActive) PinkSubtle else CardBackground,
+            borderColor = if (state.challengeState.isActive) AccentPink else BorderSubtle,
+            onClick = { state.toggleChallenge() }
+        )
+
+        // AI Tutor
+        RailIconButton(
+            icon = Icons.Default.AutoAwesome,
+            contentDescription = "AI Tutor",
+            boxSize = AlgoTokens.iconButtonMd,
+            iconSize = AlgoTokens.inlineIconMd,
+            tint = PurpleGlow,
+            container = PurpleSubtle,
+            borderColor = SecondaryPurple.copy(alpha = 0.4f),
+            onClick = { state.showTutorSheet = true }
+        )
+    }
+}

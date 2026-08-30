@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-29T00:00:00Z",
+  "title": "Design System: AlgoLens",
+  "extensions": {
+    "colorMeta": {
+      "workspace-surface":     { "role": "neutral", "displayName": "Workspace Surface",  "canonical": "#0B0F19", "tonalRamp": ["#06080F", "#0A0E18", "#0B0F19", "#11141E", "#181C28", "#222636", "#2D3346", "#3A4158"] },
+      "canvas-well":           { "role": "neutral", "displayName": "Canvas Well",        "canonical": "#060A14", "tonalRamp": ["#03050A", "#060A14", "#0A0F1F", "#0F152A", "#161D38", "#1F2748", "#2A3258", "#363D6A"] },
+      "glass-fill":            { "role": "neutral", "displayName": "Glass Fill",         "canonical": "#0C1526", "tonalRamp": ["#080D1B", "#0C1526", "#111D30", "#172438", "#1E2C42", "#27354E", "#313E5A", "#3D4A68"] },
+      "glass-elevated":        { "role": "neutral", "displayName": "Glass Elevated",     "canonical": "#111D30", "tonalRamp": ["#0C1526", "#111D30", "#172438", "#1E2C42", "#27354E", "#313E5A", "#3D4A68", "#4A577A"] },
+      "glass-sunken":          { "role": "neutral", "displayName": "Glass Sunken",       "canonical": "#080D1B", "tonalRamp": ["#04060E", "#080D1B", "#0C1526", "#111D30", "#172438", "#1E2C42", "#27354E", "#313E5A"] },
+      "traversal-cyan":        { "role": "primary", "displayName": "Traversal Cyan",     "canonical": "#00E5FF", "tonalRamp": ["#001F22", "#003B40", "#00585F", "#00757E", "#00929D", "#00AFBB", "#00CBD9", "#00E5FF"] },
+      "tracking-purple":       { "role": "secondary","displayName": "Tracking Purple",   "canonical": "#8B5CF6", "tonalRamp": ["#1A0F2E", "#2D1B4D", "#42276B", "#573388", "#6B3FA5", "#7F4BC1", "#8B5CF6", "#A78BFA"] },
+      "mutation-pink":         { "role": "secondary","displayName": "Mutation Pink",     "canonical": "#FF3366", "tonalRamp": ["#2E0612", "#4D0C1F", "#6B122C", "#891839", "#A71E46", "#C52453", "#E12A60", "#FF3366"] },
+      "verified-green":        { "role": "tertiary","displayName": "Verified Green",     "canonical": "#00E676", "tonalRamp": ["#001F0F", "#003320", "#004D2C", "#00663A", "#008048", "#009957", "#00B366", "#00E676"] },
+      "pivot-yellow":          { "role": "tertiary","displayName": "Pivot Yellow",       "canonical": "#FFB800", "tonalRamp": ["#2E2200", "#4D3700", "#6B4D00", "#896300", "#A77900", "#C58F00", "#E3A500", "#FFB800"] },
+      "warn-red":              { "role": "error",  "displayName": "Warn Red",            "canonical": "#FF4B4B", "tonalRamp": ["#2E0606", "#4D0C0C", "#6B1212", "#891818", "#A71E1E", "#C52424", "#E12A2A", "#FF4B4B"] },
+      "data-orange":           { "role": "tertiary","displayName": "Data Orange",        "canonical": "#FB923C", "tonalRamp": ["#2E1A06", "#4D2C0C", "#6B3F12", "#895118", "#A7631E", "#C57524", "#E3872A", "#FB923C"] },
+      "bar-unsorted":          { "role": "bar-state","displayName": "Bar Unsorted",      "canonical": "#1A2E50", "tonalRamp": ["#0B1326", "#13203A", "#1A2E50", "#223D66", "#2D4D7C", "#385D92", "#436EA8", "#4E7FBE"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Algorithm name in the hero state. Used once per screen at most." },
+      "title":   { "displayName": "Title",   "purpose": "Section headers, card titles, the workhorse text role." },
+      "body":    { "displayName": "Body",    "purpose": "Description banners, code-trace body, paragraph copy." },
+      "label":   { "displayName": "Label",   "purpose": "Pills, chips, status text, density-bound micro labels." }
+    },
+    "shadows": [
+      { "name": "no-shadow",     "value": "none",                                            "purpose": "The system is flat-by-default. Cards convey depth through tonal layering, not box-shadow." },
+      { "name": "ambient-glow",  "value": "0 0 24px rgba(0, 229, 255, 0.20)",                "purpose": "The single ambient pulse divider between the canvas and the code trace. Cyan @ 20%." },
+      { "name": "cell-glow",     "value": "0 0 14px {colors.traversal-cyan}40",              "purpose": "The cell glow halo while mirroring the active code-trace line. 14dp radius." }
+    ],
+    "motion": [
+      { "name": "panelSpring",      "value": "spring(dampingRatio=NoBouncy, stiffness=Low)",                      "purpose": "Expanding / collapsing panels (theory drawer, segmented toggle resize). 600ms ceiling." },
+      { "name": "cellTravelSpring", "value": "spring(dampingRatio=MediumBouncy, stiffness=MediumLow)",            "purpose": "Cell 'pop up, shift, settle' travel during a swap." },
+      { "name": "evalSpring",       "value": "spring(dampingRatio=MediumBouncy, stiffness=Low)",                  "purpose": "Cell 'being evaluated' 1.1–1.2x pop. Hover, compare, found." },
+      { "name": "pointerSpring",    "value": "spring(dampingRatio=NoBouncy, stiffness=Medium)",                   "purpose": "Pointer badge hop between slots (pivot / min / max chase)." },
+      { "name": "lineTrackSpring",  "value": "spring(dampingRatio=MediumBouncy, stiffness=Low)",                  "purpose": "The sliding active-line pill in the code trace, synced to the canvas step." },
+      { "name": "liftSpring",       "value": "spring(dampingRatio=NoBouncy, stiffness=Medium)",                   "purpose": "Swap-arc lift phase: pop straight up off the slot." },
+      { "name": "settleSpring",     "value": "spring(dampingRatio=0.55, stiffness=Medium)",                       "purpose": "Swap-arc settle phase: descend into the destination slot." },
+      { "name": "slider-tween",     "value": "tween(durationMillis=100)",                                        "purpose": "The fastest perceptible animation in the app — scrubber drag tracking." }
+    ],
+    "breakpoints": [
+      { "name": "phone-compact",   "value": "<600dp width" }
+    ],
+    "elevation": {
+      "elevRaised":   "2dp",
+      "elevFloating": "8dp",
+      "elevTraveling":"18dp (in-flight cells only)"
+    }
+  },
+  "components": [
+    {
+      "name": "RailIconButton",
+      "kind": "button",
+      "refersTo": "rail-icon-button",
+      "description": "The only icon button. Circular, tokenized, owns its own disabled-alpha.",
+      "html": "<button class=\"ds-rail-icon-button\" aria-label=\"Play\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\"><path d=\"M8 5v14l11-7z\" fill=\"currentColor\"/></svg></button>",
+      "css": ".ds-rail-icon-button { width: var(--icon-button-md, 32px); height: var(--icon-button-md, 32px); display: inline-flex; align-items: center; justify-content: center; padding: 0; background: var(--colors-glass-fill, #0C1526); color: var(--colors-text-secondary, #94A3B8); border: 1px solid var(--colors-border-subtle, rgba(255,255,255,0.06)); border-radius: 9999px; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; } .ds-rail-icon-button:hover { background: var(--colors-glass-elevated, #111D30); border-color: var(--colors-border-medium, rgba(255,255,255,0.10)); color: var(--colors-text-primary, #E2E8F0); } .ds-rail-icon-button:focus-visible { outline: 2px solid var(--colors-traversal-cyan, #00E5FF); outline-offset: 2px; } .ds-rail-icon-button[aria-disabled=\"true\"] { opacity: 0.38; pointer-events: none; } .ds-rail-icon-button .ds-icon { width: var(--inline-icon-md, 14px); height: var(--inline-icon-md, 14px); } .ds-rail-icon-button--primary { width: var(--icon-button-lg, 36px); height: var(--icon-button-lg, 36px); } .ds-rail-icon-button--primary .ds-icon { width: var(--inline-icon-lg, 18px); height: var(--inline-icon-lg, 18px); }"
+    },
+    {
+      "name": "IconPillButton",
+      "kind": "chip",
+      "refersTo": "icon-pill-button",
+      "description": "Inline status pill — leading icon + label on a paired accent container.",
+      "html": "<button class=\"ds-icon-pill\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 2L2 22h20L12 2z\" fill=\"currentColor\"/></svg><span class=\"ds-label\">TIME O(n log n)</span></button>",
+      "css": ".ds-icon-pill { display: inline-flex; align-items: center; gap: var(--space-2, 4px); padding: var(--space-2, 4px) var(--space-4, 8px); background: var(--colors-cyan-fill, rgba(0,229,255,0.12)); color: var(--colors-traversal-cyan, #00E5FF); border: 1px solid rgba(0,229,255,0.30); border-radius: var(--rounded-xs, 4px); cursor: pointer; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 7.5px; font-weight: 700; letter-spacing: 0.12px; text-transform: uppercase; line-height: 1; transition: background 0.15s ease, border-color 0.15s ease; } .ds-icon-pill:hover { background: rgba(0,229,255,0.18); border-color: rgba(0,229,255,0.45); } .ds-icon-pill:focus-visible { outline: 2px solid var(--colors-traversal-cyan, #00E5FF); outline-offset: 2px; } .ds-icon-pill .ds-icon { width: 11px; height: 11px; flex-shrink: 0; } .ds-icon-pill .ds-label { white-space: nowrap; }"
+    },
+    {
+      "name": "SegmentedToggle",
+      "kind": "custom",
+      "refersTo": "segmented-toggle",
+      "description": "2+ option switch. One sliding accent pill; unselected options are transparent + muted text.",
+      "html": "<div class=\"ds-segmented\" role=\"tablist\"><button class=\"ds-segmented__option ds-segmented__option--active\" role=\"tab\" aria-selected=\"true\">CELLS</button><button class=\"ds-segmented__option\" role=\"tab\" aria-selected=\"false\">BARS</button></div>",
+      "css": ".ds-segmented { display: inline-flex; gap: var(--space-1, 2px); padding: var(--space-1, 2px); background: var(--colors-glass-fill, #0C1526); border: 1px solid var(--colors-border-subtle, rgba(255,255,255,0.06)); border-radius: var(--rounded-sm, 8px); } .ds-segmented__option { padding: var(--space-2, 4px) var(--space-4, 8px); background: transparent; color: var(--colors-text-muted, #64748B); border: none; border-radius: var(--rounded-xs, 4px); cursor: pointer; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 8px; font-weight: 500; letter-spacing: 0.12px; text-transform: uppercase; line-height: 1; transition: background 0.2s ease, color 0.2s ease, font-weight 0.2s ease; } .ds-segmented__option:hover { color: var(--colors-text-secondary, #94A3B8); } .ds-segmented__option--active { background: var(--colors-traversal-cyan, #00E5FF); color: var(--colors-workspace-surface, #0B0F19); font-weight: 700; } .ds-segmented__option:focus-visible { outline: 2px solid var(--colors-traversal-cyan, #00E5FF); outline-offset: 2px; }"
+    },
+    {
+      "name": "GlassCard",
+      "kind": "card",
+      "refersTo": "rail-icon-button",
+      "description": "Default card / panel. Tonal layer; no shadow. The depth signal is hue + border + subtle fill.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card__header\">RESULTS</div><div class=\"ds-card__body\">…</div></div>",
+      "css": ".ds-card { background: var(--colors-glass-fill, #0C1526); border: 1px solid var(--colors-border-subtle, rgba(255,255,255,0.06)); border-radius: var(--rounded-md, 12px); padding: var(--space-6, 16px); } .ds-card--elevated { background: var(--colors-glass-elevated, #111D30); } .ds-card--hero { border-radius: var(--rounded-xl, 24px); padding: var(--space-7, 24px); } .ds-card--selected { border-color: var(--colors-border-cyan, rgba(0,229,255,0.22)); } .ds-card__header { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9px; font-weight: 700; letter-spacing: 0.12px; text-transform: uppercase; color: var(--colors-text-muted, #64748B); margin-bottom: var(--space-4, 8px); } .ds-card__body { color: var(--colors-text-primary, #E2E8F0); }"
+    },
+    {
+      "name": "Cell",
+      "kind": "custom",
+      "refersTo": "rail-icon-button",
+      "description": "1D renderer cell. The state-to-color mapping is a red line — update one place only.",
+      "html": "<div class=\"ds-cell\" data-state=\"IDLE\"><span class=\"ds-cell__index\">3</span><span class=\"ds-cell__value\">42</span></div>",
+      "css": ".ds-cell { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1, 2px); min-width: 36px; min-height: 44px; padding: var(--space-2, 4px) var(--space-3, 6px); background: var(--colors-bar-unsorted, #1A2E50); color: var(--colors-text-primary, #E2E8F0); border: 1px solid var(--colors-border-subtle, rgba(255,255,255,0.06)); border-radius: var(--rounded-xs, 4px); font-family: 'JetBrains Mono', ui-monospace, monospace; transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); } .ds-cell__index { font-size: 7.5px; color: var(--colors-text-muted, #64748B); } .ds-cell__value { font-size: 13px; font-weight: 600; } .ds-cell[data-state=\"IDLE\"]      { background: var(--colors-bar-unsorted, #1A2E50); } .ds-cell[data-state=\"COMPARING\"] { background: var(--colors-pivot-yellow, #FFB800); color: var(--colors-workspace-surface, #0B0F19); border-color: var(--colors-pivot-yellow, #FFB800); transform: scale(1.12); } .ds-cell[data-state=\"SWAPPING\"]  { background: var(--colors-warn-red, #FF4B4B); color: var(--colors-workspace-surface, #0B0F19); border-color: var(--colors-warn-red, #FF4B4B); } .ds-cell[data-state=\"SORTED\"]    { background: var(--colors-traversal-cyan, #00E5FF); color: var(--colors-workspace-surface, #0B0F19); border-color: var(--colors-traversal-cyan, #00E5FF); } .ds-cell[data-state=\"PIVOT\"]     { background: var(--colors-tracking-purple, #8B5CF6); color: var(--colors-workspace-surface, #0B0F19); border-color: var(--colors-tracking-purple, #8B5CF6); } .ds-cell[data-state=\"FOUND\"]     { background: var(--colors-verified-green, #00E676); color: var(--colors-workspace-surface, #0B0F19); border-color: var(--colors-verified-green, #00E676); box-shadow: 0 0 14px rgba(0, 230, 118, 0.40); }"
+    },
+    {
+      "name": "BottomNavBar",
+      "kind": "nav",
+      "refersTo": "rail-icon-button",
+      "description": "Five-target bottom navigation. Honors the 48dp Material floor; active target is cyan.",
+      "html": "<nav class=\"ds-bottom-nav\"><a class=\"ds-bottom-nav__target ds-bottom-nav__target--active\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\"><path d=\"M3 12l9-9 9 9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><span>Home</span></a><a class=\"ds-bottom-nav__target\" href=\"#\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\"><path d=\"M12 2v20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/></svg><span>Explore</span></a></nav>",
+      "css": ".ds-bottom-nav { display: flex; height: 48px; background: var(--colors-glass-elevated, #111D30); border-top: 1px solid var(--colors-border-subtle, rgba(255,255,255,0.06)); } .ds-bottom-nav__target { flex: 1; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 48px; color: var(--colors-text-muted, #64748B); opacity: 0.6; text-decoration: none; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.08px; text-transform: uppercase; transition: color 0.15s ease, opacity 0.15s ease; } .ds-bottom-nav__target:hover { color: var(--colors-text-secondary, #94A3B8); opacity: 0.9; } .ds-bottom-nav__target--active { color: var(--colors-traversal-cyan, #00E5FF); opacity: 1; border-top: 1px solid var(--colors-traversal-cyan, #00E5FF); } .ds-bottom-nav__target .ds-icon { width: 18px; height: 18px; } .ds-bottom-nav__target:focus-visible { outline: 2px solid var(--colors-traversal-cyan, #00E5FF); outline-offset: -2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Late-Night IDE",
+    "overview": "AlgoLens opens the way a developer opens their editor: same monospace, same accent grammar, same transport controls, no marketing chrome. The user is treated as someone who already lives in an IDE — the canvas is the work surface, the code trace is the spec sheet next to it, the playback rail is the tool. The aesthetic is working late on a hard problem, not opening a tutorial app. Every screen earns its place by getting the user to the visualizer faster and back out cleanly.\n\nThe system is dark, tokenised, and built on a 4dp grid. Color is functional, never decorative — five semantic accents map to five jobs (read head, tracking, mutation, verified, pivot), and the same accent pair (12–20% container fill + 30% border) is used everywhere. State is communicated by border pulse + pill, not by a green cell fill alone. Motion is one of three named springs; nothing is linear. The whole product reads as one continuous workspace rather than a stack of cards.",
+    "keyCharacteristics": [
+      "Dark-only. The DarkColorScheme is the only scheme. No light-mode override, no warm-sepia reading variant, no auto-theme toggle.",
+      "Monospace everywhere. JetBrains Mono at every text role — display, body, code, label. No sans for legibility.",
+      "Five functional accents with behavioral names. Each accent has a job (Traversal / Tracking / Mutation / Verified / Pivot) and a paired subtle fill + 30%-alpha border.",
+      "Tokenised, never hard-coded. Every color, dp, and animation reads from AlgoTokens; raw Color(0xFF…) and raw *.dp in Modifier.padding are banned outside ui/theme/Color.kt and the visualizer exception list.",
+      "State hoisted, regions narrow. VisualizerScreenState is the only state owner; the screen body is declarative.",
+      "Playback is IDE-shaped. The transport row is a 32dp rail of circular icon buttons; the canvas is a single well beneath it; the active code line slides in lockstep.",
+      "One visualizer family dispatch. VisualizerHost is the only when (family) block; algorithm-specific additions attach as overlays, never as screen-level switches."
+    ],
+    "rules": [
+      { "name": "The Functional-Accent Rule",      "body": "Every accent color has a job. If a use case does not fit one of the five roles (Traversal / Tracking / Mutation / Verified / Pivot), it does not get a new color; it gets the role that fits best, and the inconsistency is fixed at the role level. The two color escapes — Warn Red for error and Data Orange for the data-structure family — are also functional, not decorative.",                "section": "colors" },
+      { "name": "The Paired-Container Rule",       "body": "A subtle accent fill is always paired with a border derived from the same accent at 30% alpha. CyanSubtle ↔ BorderCyan. GreenSubtle ↔ a 30% green border. The fill and the border agree, or the design is wrong.",                                                                                                                                                                                                                  "section": "colors" },
+      { "name": "The Color-Is-Never-Only Rule",     "body": "State is communicated by border pulse and pill, not by color alone. Challenge mode uses a pulsing border and a TARGET pill. A green cell fill with no border does not communicate verified.",                                                                                                                                                                                                                              "section": "colors" },
+      { "name": "The No-Body-Text-Cyan Rule",       "body": "PrimaryCyan is for borders, fills, and selected accents. It is never used as a body-text color. PurpleGlow is a text color on a PurpleSubtle container; it is never a background.",                                                                                                                                                                                                                                  "section": "colors" },
+      { "name": "The Monospace-Everywhere Rule",   "body": "JetBrains Mono is the only family. No sans for headings, no serif for emphasis, no system fallback. If a label needs to be more legible, the fix is bigger (move up a step) or darker (move to TextPrimary), not a font swap.",                                                                                                                                                                                          "section": "typography" },
+      { "name": "The Uppercase-Label Rule",        "body": "Pill / chip / status text is UPPER-CASE; header titles are Title-Case. The two cases carry different jobs: UPPER-CASE reads as a tag, Title-Case reads as a name. Mixing the two on a single element breaks the signal.",                                                                                                                                                                                              "section": "typography" },
+      { "name": "The 4dp Grid Rule",               "body": "The 4dp grid is strict. The eight space1–space8 tokens (2dp, 4dp, 6dp, 8dp, 12dp, 16dp, 24dp, 32dp) are the only spacing values used. If a design needs 10dp, the components should be merged or split, not the grid broken.",                                                                                                                                                                                                "section": "layout" },
+      { "name": "The Flat-By-Default Rule",        "body": "Surfaces are flat at rest. The visual hierarchy is hue + border + subtle fill, not shadow. A drop shadow on a card is almost always wrong; if a surface needs to lift, the fix is glass-elevated + elevationFloating, not a box-shadow.",                                                                                                                                                                                  "section": "elevation" },
+      { "name": "The Traveling-Is-A-State Rule",    "body": "elevationTraveling is only for cells in the middle of a swap-arc flight. It is a state elevation, not a component elevation. Using it on a static cell makes the animation read as this cell is broken.",                                                                                                                                                                                                                "section": "elevation" },
+      { "name": "The Two-Surface Rule",            "body": "Nested surfaces must use at least two radius steps apart (e.g. a radiusMd card can contain radiusSm chips, but a radiusMd card containing radiusXs chips looks visually busy). The exception is the segmented toggle inside a chip — that one is intentionally nested close.",                                                                                                                                                       "section": "shapes" }
+    ],
+    "dos": [
+      "Do read the active accent role before picking a color. If the use case does not match a role, change the role, not the color.",
+      "Do pair every subtle accent fill with a border from the same accent at 30% alpha. The fill and the border agree.",
+      "Do animate using one of the named springs (panelSpring, cellTravelSpring, evalSpring, pointerSpring, lineTrackSpring, liftSpring, settleSpring). The fastest perceptible animation is 100ms (slider drag); the slowest is 600ms (panelSpring). Never linear.",
+      "Do honor the 4dp grid. space1 through space8 are the only spacing tokens; if a design needs 10dp, the components are wrong, not the grid.",
+      "Do derive every component from AlgoTokens. If you find yourself writing a raw Color(0xFF…) outside ui/theme/Color.kt, stop and add a token.",
+      "Do attach per-algorithm gimmicks as VisualizerOverlay (Phase 4) on the AlgorithmSpec. The renderer is never forked."
+    ],
+    "donts": [
+      "Don't introduce a gamified learning aesthetic. No XP bars, streak counters, confetti, character avatars, or bright primary-school colors. The user is a developer, not a child.",
+      "Don't introduce marketing-style hero sections. No gradient hero, no abstract marketing imagery, no Get started in 30 seconds framing. There is no marketing surface — every screen is a tool.",
+      "Don't introduce iOS design language. No Cupertino toggles, no iOS bottom sheets that ignore the system Back gesture, no swiping card stacks. The user is on Android with Material 3 conventions; the system Back gesture and the predictive Back gesture are honored.",
+      "Don't add a light-mode path. The dark workspace is the only workspace. DarkColorScheme is the only scheme.",
+      "Don't stack two strokeThin borders in place of one strokeActive border. The result reads as a thicker hairline, not as selected.",
+      "Don't use PrimaryCyan as a body-text color. It is for borders, fills, and selected accents. PurpleGlow is a text color on a PurpleSubtle container; it is never a background.",
+      "Don't place var X by remember { mutableStateOf(...) } inside VisualizerScreen.kt. All visualizer state lives in VisualizerScreenState; the screen body is declarative.",
+      "Don't branch on algorithm.name / algorithm.id / algorithm.category inside VisualizerScreen.kt. Per-algorithm behavior is a field on AlgorithmSpec."
+    ]
+  }
+}

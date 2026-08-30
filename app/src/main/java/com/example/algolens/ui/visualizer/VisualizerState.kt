@@ -97,6 +97,16 @@ data class VisualizerStep(
     val auxiliaryIndices: Map<String, Int> = emptyMap(), // Pointers in aux buffer (e.g. "k" to 2)
     val recursionDepth: Int = 0, // Recursion tree level for Merge Sort
     val mergeBlocks: List<IntRange> = emptyList(), // Color-coded block partitions for Merge Sort
+    /**
+     * The recursion path from the root to the current range. For
+     * Merge Sort, the step generator walks `sort(l, r, depth)`
+     * recursively and emits `[root, ..., current]` so the bands
+     * auxiliary can render the tree. Index 0 is the root
+     * (always `0 until array.size`); the last element is the
+     * currently-active sub-range. Empty for non-recursive
+     * algorithms.
+     */
+    val ancestorRanges: List<IntRange> = emptyList(),
     val floatingElement: Pair<Int, Int>? = null, // (value, originalIndex) elevated above slot during Insertion Sort
     val pivotIndex: Int? = null,
     val minIndex: Int? = null,

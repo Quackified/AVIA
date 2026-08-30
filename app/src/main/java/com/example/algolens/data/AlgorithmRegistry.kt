@@ -4,6 +4,7 @@ import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.AlgorithmSpec
 import com.example.algolens.model.InputKind
 import com.example.algolens.model.VisualizerFamily
+import com.example.algolens.ui.visualizer.WeightBadgeOverlay
 
 /**
  * Typed registry of [AlgorithmSpec] entries. The single source of truth
@@ -42,11 +43,17 @@ object AlgorithmRegistry {
             id = AlgorithmId.MERGE_SORT,
             defaultInput = AlgorithmStepRepository.DEFAULT_INPUT,
             supportsCustomInput = true,
+            // The bespoke MergeSortVisualizer owns the full layout
+            // (recursion tree + phase strip + merge detail). No
+            // overlays, no auxiliaries, no dimmer — the cells/bars
+            // toggle in the header is hidden because this algorithm
+            // is in the MERGE_SORT family, not LINEAR_1D.
         ),
         AlgorithmId.QUICK_SORT to AlgorithmSpec(
             id = AlgorithmId.QUICK_SORT,
             defaultInput = AlgorithmStepRepository.DEFAULT_INPUT,
             supportsCustomInput = true,
+            dimOutOfRangeCells = true,
         ),
 
         // ── Searching (2) ──
@@ -61,6 +68,7 @@ object AlgorithmRegistry {
             // mixed DEFAULT_INPUT are valid starting points.
             defaultInput = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9),
             supportsCustomInput = true,
+            dimOutOfRangeCells = true,
         ),
 
         // ── Data Structures (4) ──
@@ -92,11 +100,13 @@ object AlgorithmRegistry {
             id = AlgorithmId.BFS,
             defaultInput = emptyList(),
             supportsCustomInput = false,
+            overlays = listOf(WeightBadgeOverlay),
         ),
         AlgorithmId.DFS to AlgorithmSpec(
             id = AlgorithmId.DFS,
             defaultInput = emptyList(),
             supportsCustomInput = false,
+            overlays = listOf(WeightBadgeOverlay),
         ),
     )
 

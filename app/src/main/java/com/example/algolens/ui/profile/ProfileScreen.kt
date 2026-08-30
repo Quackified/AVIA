@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
 import com.example.algolens.ui.components.AlgoCard
+import com.example.algolens.ui.components.SectionLabel
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentOrange
 import com.example.algolens.ui.theme.BorderSubtle
@@ -307,18 +308,9 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Bookmark,
-                        contentDescription = null,
-                        tint = PrimaryCyan,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Text(
-                        text = "BOOKMARKED",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextDark,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                    SectionLabel(
+                        icon = Icons.Default.Bookmark,
+                        text = "Bookmarked"
                     )
                 }
                 Text(

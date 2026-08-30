@@ -6,6 +6,7 @@ import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentOrange
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.SecondaryPurple
+import com.example.algolens.ui.visualizer.VisualizerOverlay
 
 /**
  * Single source of truth for every algorithm that ships in the app.
@@ -28,7 +29,7 @@ enum class AlgorithmId(
     BUBBLE_SORT("Bubble Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(n²)", "O(1)", PrimaryCyan, "Sorting"),
     SELECTION_SORT("Selection Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(n²)", "O(1)", PrimaryCyan, "Sorting"),
     INSERTION_SORT("Insertion Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(n²)", "O(1)", PrimaryCyan, "Sorting"),
-    MERGE_SORT("Merge Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Medium", "O(n log n)", "O(n)", PrimaryCyan, "Sorting"),
+    MERGE_SORT("Merge Sort", VisualizerFamily.MERGE_SORT, InputKind.ARRAY, "Medium", "O(n log n)", "O(n)", PrimaryCyan, "Sorting"),
     QUICK_SORT("Quick Sort", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Medium", "O(n log n)", "O(log n)", PrimaryCyan, "Sorting"),
     LINEAR_SEARCH("Linear Search", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(n)", "O(1)", SecondaryPurple, "Searching"),
     BINARY_SEARCH("Binary Search", VisualizerFamily.LINEAR_1D, InputKind.ARRAY, "Easy", "O(log n)", "O(1)", SecondaryPurple, "Searching"),
@@ -57,6 +58,8 @@ enum class VisualizerFamily {
     GRAPH_2D,
     /** Stack / queue / deque buffer container. */
     BUFFER,
+    /** Bespoke recursion-tree visualizer (Merge Sort only). */
+    MERGE_SORT,
 }
 
 /** What kind of user input the algorithm accepts (controls the Customize sheet). */
@@ -85,4 +88,34 @@ data class AlgorithmSpec(
     val isStack: Boolean = false,
     /** Whether the builder overlay (tap-to-add-node) is exposed. */
     val builderEnabled: Boolean = false,
+    /**
+     * Per-algorithm visuals that float above the family renderer
+     * (recursion tree for Merge Sort, weight badges for graph
+     * traversals, etc.). Default empty so every existing
+     * `AlgorithmSpec(...)` call site keeps compiling.
+     *
+     * The interface lives in [com.example.algolens.ui.visualizer]
+     * because the step type it reads is defined there; this is a
+     * strictly additive `model/ -> ui/visualizer/` import, no cycles.
+     */
+    val overlays: List<VisualizerOverlay> = emptyList(),
+    /**
+     * Per-algorithm structural regions the host renders around
+     * the family renderer (recursion bands, phase strip, merge
+     * buffer row for Merge Sort). Each auxiliary reserves a
+     * slice of the canvas in the host's `Column`; the spec
+     * controls slot, weight, and order.
+     */
+    val auxiliaryComponents: List<RegionAuxiliary> = emptyList(),
+    /**
+     * Whether out-of-range cells / bars should be visually
+     * dimmed. Set true for divide-and-conquer algorithms with
+     * an [com.example.algolens.ui.visualizer.VisualizerStep.activeRange]
+     * (Binary Search, Quick Sort, Merge Sort during divide).
+     * Applied identically by [com.example.algolens.ui.visualizer.CellArrayVisualizer]
+     * and [com.example.algolens.ui.visualizer.BarVisualizer] so
+     * the user sees the same "narrowing window" effect in either
+     * mode.
+     */
+    val dimOutOfRangeCells: Boolean = false,
 )

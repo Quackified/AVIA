@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
 import com.example.algolens.ui.components.AlgoCard
+import com.example.algolens.ui.components.SegmentedToggle
 import com.example.algolens.ui.theme.AlgoLensTheme
 import com.example.algolens.ui.theme.BorderMedium
 import com.example.algolens.ui.theme.BorderSubtle
@@ -183,37 +184,22 @@ fun DashboardScreen(
         }
 
         // ── 3. Category Filter Chips ──
+        // The single-select chip row is a `SegmentedToggle` keyed on
+        // the category string. Wrapped in a horizontal scroller so
+        // long category lists don't wrap.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
-            SampleData.categories.forEach { category ->
-                val isSelected = selectedCategory == category
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) PrimaryCyan else CardBackground)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) PrimaryCyan else BorderSubtle,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .clickable { selectedCategory = category }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = category,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isSelected) DarkBackground else TextMuted,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 10.sp
-                    )
-                }
-            }
+            SegmentedToggle(
+                options = SampleData.categories.map { it to it },
+                selectedKey = selectedCategory,
+                accent = PrimaryCyan,
+                onContainer = DarkBackground,
+                onSelect = { key -> selectedCategory = key as String }
+            )
         }
 
         // ── 4. Results Count Header ──

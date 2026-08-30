@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -817,8 +818,6 @@ fun CodeTracePane(
     modifier: Modifier = Modifier
 ) {
     var selectedLanguage by remember { mutableStateOf(TraceLanguage.KOTLIN) }
-    var varsExpanded by remember { mutableStateOf(false) }
-    var stackExpanded by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
 
     val codeData = remember(algorithmName, selectedLanguage) {
@@ -894,17 +893,21 @@ fun CodeTracePane(
 
     Column(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
     ) {
-        // ── Top: Code Container ──
+        // ── Code Container ──
+        // The variable inspector and memory call stack moved into
+        // the kebab popover in [VisualizerHeader]; the code-trace
+        // pane now contains only the code container, which fills
+        // the full available height.
         Box(
             modifier = Modifier
-                .weight(1f)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .weight(1f)
+                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                 .background(CardBackgroundElevated)
-                .border(1.dp, SecondaryPurple.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                .padding(8.dp)
+                .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.25f), RoundedCornerShape(AlgoTokens.radiusMd))
+                .padding(AlgoTokens.space4)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Header with Multi-Language Segmented Tabs
@@ -1107,226 +1110,6 @@ fun CodeTracePane(
                 }
             }
         }
-
-        // ── Bottom: Collapsible Inspector Disclosure Buttons ──
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            InspectorDisclosure(
-                title = "LIVE VARIABLE INSPECTOR",
-                icon = Icons.Default.Code,
-                accent = PrimaryCyan,
-                summary = if (step.variables.isNotEmpty()) "${step.variables.size} live" else "pointers",
-                expanded = varsExpanded,
-                onToggle = { varsExpanded = !varsExpanded }
-            ) {
-                VariableInspectorContent(step = step)
-            }
-
-            InspectorDisclosure(
-                title = "MEMORY CALL STACK",
-                icon = Icons.Default.Terminal,
-                accent = PurpleGlow,
-                summary = "depth ${step.recursionDepth + 1}",
-                expanded = stackExpanded,
-                onToggle = { stackExpanded = !stackExpanded }
-            ) {
-                MemoryCallStackContent(
-                    algorithmName = algorithmName,
-                    step = step,
-                    activeLines = activeLinesInCurrentLang
-                )
-            }
-        }
-    }
-}
-
-/**
- * Collapsible disclosure button used for the Variable Inspector & Memory Call
- * Stack. Collapsed by default to give the code listing maximum room; expanding
- * uses the shared low-stiffness panel spring so it never feels snappy.
- */
-@Composable
-private fun InspectorDisclosure(
-    title: String,
-    icon: ImageVector,
-    accent: Color,
-    summary: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val chevronRotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "inspectorChevron_$title"
-    )
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(CardBackground)
-            .border(
-                1.dp,
-                accent.copy(alpha = if (expanded) 0.45f else 0.2f),
-                RoundedCornerShape(10.dp)
-            )
-            .clickable(onClick = onToggle)
-            .smoothPanelExpansion()
-            .padding(horizontal = 10.dp, vertical = 7.dp)
-    ) {
-        // ── Disclosure header button ──
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(13.dp)
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelSmall,
-                color = accent,
-                fontSize = 8.sp,
-                letterSpacing = 0.8.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = summary,
-                style = MaterialTheme.typography.labelSmall,
-                color = TextMuted,
-                fontSize = 7.5.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Icon(
-                imageVector = Icons.Default.ExpandMore,
-                contentDescription = if (expanded) "Collapse" else "Expand",
-                tint = TextMuted,
-                modifier = Modifier
-                    .size(14.dp)
-                    .graphicsLayer { rotationZ = chevronRotation }
-            )
-        }
-
-        // ── Collapsible content ──
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(
-                spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ) + fadeIn(tween(160)),
-            exit = shrinkVertically(
-                spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ) + fadeOut(tween(120))
-        ) {
-            Column(
-                modifier = Modifier.padding(top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                content()
-            }
-        }
-    }
-}
-
-/**
- * Content of the collapsible Live Variable Inspector disclosure.
- */
-@Composable
-private fun VariableInspectorContent(step: VisualizerStep) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (step.variables.isNotEmpty()) {
-            step.variables.forEach { (k, v) ->
-                VarBadge(label = k, value = v)
-            }
-        } else {
-            // Fallback from pointers
-            step.bottomPointers.forEach { (label, index) ->
-                val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
-                VarBadge(label = label, value = "$index ($arrVal)")
-            }
-            step.topPointers.forEach { (label, index) ->
-                val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
-                VarBadge(label = label, value = "$index ($arrVal)")
-            }
-            if (step.bottomPointers.isEmpty() && step.topPointers.isEmpty()) {
-                VarBadge(label = "step", value = "${step.stepIndex + 1}")
-            }
-        }
-    }
-}
-
-/**
- * Content of the collapsible Memory Call Stack disclosure.
- */
-@Composable
-private fun MemoryCallStackContent(
-    algorithmName: String,
-    step: VisualizerStep,
-    activeLines: List<Int>
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(PurpleSubtle)
-            .border(1.dp, SecondaryPurple.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = "$algorithmName(size=${step.array.size})",
-                style = MaterialTheme.typography.labelSmall,
-                color = PurpleGlow,
-                fontWeight = FontWeight.Bold,
-                fontSize = 8.5.sp
-            )
-            Text(
-                text = "mode: ${step.renderMode.name.lowercase()}, active line: ${activeLines.joinToString(", ")}",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextMuted,
-                fontSize = 7.5.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun VarBadge(label: String, value: String) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(CyanSubtle)
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-    ) {
-        Text(
-            text = "$label = $value",
-            style = MaterialTheme.typography.bodySmall,
-            color = PrimaryCyan,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 9.sp
-        )
     }
 }
 

@@ -47,7 +47,7 @@ object AlgorithmStepRepository {
         inputArray: List<Int> = DEFAULT_INPUT
     ): List<VisualizerStep> {
         if (AlgorithmRegistry.specFor(algorithm.id) == null) {
-            Log.w(TAG, "No spec registered for ${algorithm.id} â€” returning empty steps.")
+            Log.w(TAG, "No spec registered for ${algorithm.id} -- returning empty steps.")
             return emptyList()
         }
 
@@ -451,6 +451,7 @@ object AlgorithmStepRepository {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
         var sIdx = 0
+        val rootRange = 0 until arr.size
 
         steps.add(
             VisualizerStep(
@@ -459,14 +460,15 @@ object AlgorithmStepRepository {
                 phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
-                activeRange = 0 until arr.size,
-                mergeBlocks = listOf(0 until arr.size),
+                activeRange = rootRange,
+                mergeBlocks = listOf(rootRange),
                 recursionDepth = 0,
+                ancestorRanges = listOf(rootRange),
                 activeCodeLines = listOf(1, 2)
             )
         )
 
-        fun merge(l: Int, m: Int, r: Int, depth: Int) {
+        fun merge(l: Int, m: Int, r: Int, depth: Int, path: List<IntRange>) {
             val left = arr.subList(l, m + 1).toList()
             val right = arr.subList(m + 1, r + 1).toList()
             var i = 0
@@ -484,6 +486,7 @@ object AlgorithmStepRepository {
                     array = arr.toList(),
                     activeRange = l..r,
                     recursionDepth = depth,
+                    ancestorRanges = path,
                     mergeBlocks = listOf(l..m, (m + 1)..r),
                     auxiliaryArray = aux,
                     auxiliaryIndices = mapOf("i" to 0, "j" to left.size, "k" to l),
@@ -494,7 +497,6 @@ object AlgorithmStepRepository {
                 )
             )
 
-            val mergedBuffer = mutableListOf<Int>()
             while (i < left.size && j < right.size) {
                 val compVal = if (left[i] <= right[j]) left[i] else right[j]
                 val desc = if (left[i] <= right[j]) {
@@ -505,11 +507,9 @@ object AlgorithmStepRepository {
 
                 if (left[i] <= right[j]) {
                     arr[k] = left[i]
-                    mergedBuffer.add(left[i])
                     i++
                 } else {
                     arr[k] = right[j]
-                    mergedBuffer.add(right[j])
                     j++
                 }
 
@@ -523,6 +523,7 @@ object AlgorithmStepRepository {
                         array = arr.toList(),
                         activeRange = l..r,
                         recursionDepth = depth,
+                        ancestorRanges = path,
                         mergeBlocks = listOf(l..m, (m + 1)..r),
                         auxiliaryArray = aux,
                         auxiliaryIndices = mapOf("i" to i, "j" to (left.size + j), "k" to k),
@@ -536,7 +537,6 @@ object AlgorithmStepRepository {
 
             while (i < left.size) {
                 arr[k] = left[i]
-                mergedBuffer.add(left[i])
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
@@ -547,6 +547,7 @@ object AlgorithmStepRepository {
                         array = arr.toList(),
                         activeRange = l..r,
                         recursionDepth = depth,
+                        ancestorRanges = path,
                         mergeBlocks = listOf(l..m, (m + 1)..r),
                         auxiliaryArray = aux,
                         auxiliaryIndices = mapOf("i" to i, "k" to k),
@@ -560,7 +561,6 @@ object AlgorithmStepRepository {
             }
             while (j < right.size) {
                 arr[k] = right[j]
-                mergedBuffer.add(right[j])
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
@@ -571,6 +571,7 @@ object AlgorithmStepRepository {
                         array = arr.toList(),
                         activeRange = l..r,
                         recursionDepth = depth,
+                        ancestorRanges = path,
                         mergeBlocks = listOf(l..m, (m + 1)..r),
                         auxiliaryArray = aux,
                         auxiliaryIndices = mapOf("j" to (left.size + j), "k" to k),
@@ -593,6 +594,7 @@ object AlgorithmStepRepository {
                     array = arr.toList(),
                     activeRange = l..r,
                     recursionDepth = depth,
+                    ancestorRanges = path,
                     mergeBlocks = listOf(l..r),
                     elementStates = (l..r).associateWith { ElementState.ACTIVE },
                     activeCodeLines = listOf(6)
@@ -600,9 +602,10 @@ object AlgorithmStepRepository {
             )
         }
 
-        fun sort(l: Int, r: Int, depth: Int) {
+        fun sort(l: Int, r: Int, depth: Int, path: List<IntRange>) {
             if (l < r) {
                 val m = (l + r) / 2
+                val currentPath = path + listOf(l..r)
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
@@ -613,18 +616,19 @@ object AlgorithmStepRepository {
                         array = arr.toList(),
                         activeRange = l..r,
                         recursionDepth = depth,
+                        ancestorRanges = currentPath,
                         mergeBlocks = listOf(l..m, (m + 1)..r),
                         topPointers = mapOf("L" to l, "M" to m, "R" to r),
                         activeCodeLines = listOf(3, 4, 5)
                     )
                 )
-                sort(l, m, depth + 1)
-                sort(m + 1, r, depth + 1)
-                merge(l, m, r, depth)
+                sort(l, m, depth + 1, currentPath)
+                sort(m + 1, r, depth + 1, currentPath)
+                merge(l, m, r, depth, currentPath)
             }
         }
 
-        sort(0, arr.size - 1, 0)
+        sort(0, arr.size - 1, 0, listOf(rootRange))
 
         steps.add(
             VisualizerStep(
@@ -635,6 +639,7 @@ object AlgorithmStepRepository {
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
                 activeRange = 0 until arr.size,
+                ancestorRanges = listOf(rootRange),
                 elementStates = (0 until arr.size).associateWith { ElementState.SORTED },
                 activeCodeLines = listOf(6)
             )

@@ -131,6 +131,28 @@ object AlgoTokens {
     val strokeBorderSubtle: Color = BorderSubtle
     val strokeBorderMedium: Color = BorderMedium
 
+    // ── Spacing (4dp grid) ──
+    val space1: Dp = 2.dp
+    val space2: Dp = 4.dp
+    val space3: Dp = 6.dp
+    val space4: Dp = 8.dp
+    val space5: Dp = 12.dp
+    val space6: Dp = 16.dp
+    val space7: Dp = 24.dp
+    val space8: Dp = 32.dp
+
+    // ── Component Sizing ──
+    /** Minimum recommended touch target for accessibility (WCAG-aligned). */
+    val minTouchTarget: Dp = 44.dp
+    /** Compact icon button used in rails / headers. */
+    val iconButtonSm: Dp = 30.dp
+    val iconButtonMd: Dp = 32.dp
+    val iconButtonLg: Dp = 36.dp
+    /** Inline icon next to a label (e.g. header / chip). */
+    val inlineIconSm: Dp = 12.dp
+    val inlineIconMd: Dp = 14.dp
+    val inlineIconLg: Dp = 18.dp
+
     // ── Corner Radii ──
     val radiusXs: Dp = 4.dp
     val radiusSm: Dp = 8.dp
