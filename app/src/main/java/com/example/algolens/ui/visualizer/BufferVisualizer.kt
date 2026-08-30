@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +41,7 @@ import com.example.algolens.ui.theme.BorderMedium
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CardBackground
 import com.example.algolens.ui.theme.CardBackgroundElevated
+import com.example.algolens.ui.theme.CardBackgroundHover
 import com.example.algolens.ui.theme.CyanSubtle
 import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.GreenSubtle
@@ -142,38 +144,46 @@ fun BufferVisualizer(
                                     else -> Pair(if (isTop) PurpleSubtle else CardBackgroundElevated, if (isTop) PurpleGlow else TextPrimary)
                                 }
 
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .nodePop(item.state == ElementState.ACTIVE)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(bgCol)
-                                        .border(1.dp, if (isTop) SecondaryPurple else BorderMedium, RoundedCornerShape(6.dp))
-                                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = item.value,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = textCol,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp
-                                    )
-                                    if (isTop) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(3.dp))
-                                                .background(SecondaryPurple)
-                                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                                        ) {
-                                            Text(
-                                                text = "TOP",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = Color.White,
-                                                fontSize = 7.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
+                                // Keyed by the block's stable id so the
+                                // slide-in entry animation runs on every push
+                                // (a new id = a fresh animated slot).
+                                // Direction is Top so pushed blocks slide in
+                                // from above the stack rim.
+                                key(item.id) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .slideEnter(visible = true, direction = SlideDirection.Top)
+                                            .nodePop(item.state == ElementState.ACTIVE)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(bgCol)
+                                            .border(1.dp, if (isTop) SecondaryPurple else BorderMedium, RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = item.value,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = textCol,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                        if (isTop) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(3.dp))
+                                                    .background(SecondaryPurple)
+                                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                                            ) {
+                                                Text(
+                                                    text = "TOP",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Color.White,
+                                                    fontSize = 7.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -219,44 +229,52 @@ fun BufferVisualizer(
                                     else -> Pair(if (isFront) GreenSubtle else if (isRear) PurpleSubtle else CardBackgroundElevated, TextPrimary)
                                 }
 
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    // Pointer pill
-                                    Box(modifier = Modifier.height(14.dp), contentAlignment = Alignment.Center) {
-                                        if (isFront) {
-                                            Text("FRONT", style = MaterialTheme.typography.labelSmall, color = AccentGreen, fontSize = 6.5.sp, fontWeight = FontWeight.Bold)
-                                        } else if (isRear) {
-                                            Text("REAR", style = MaterialTheme.typography.labelSmall, color = PurpleGlow, fontSize = 6.5.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-
-                                    // Block
-                                    Box(
-                                        modifier = Modifier
-                                            .size(width = 44.dp, height = 48.dp)
-                                            .nodePop(item.state == ElementState.ACTIVE)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(bgCol)
-                                            .border(1.dp, if (isFront) AccentGreen else if (isRear) SecondaryPurple else BorderMedium, RoundedCornerShape(6.dp)),
-                                        contentAlignment = Alignment.Center
+                                // Keyed by the block's stable id so the
+                                // slide-in entry animation runs on every
+                                // enqueue (a new id = a fresh animated slot).
+                                // Direction is Right so enqueued blocks slide
+                                // in from the rear of the queue.
+                                key(item.id) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
+                                        // Pointer pill
+                                        Box(modifier = Modifier.height(14.dp), contentAlignment = Alignment.Center) {
+                                            if (isFront) {
+                                                Text("FRONT", style = MaterialTheme.typography.labelSmall, color = AccentGreen, fontSize = 6.5.sp, fontWeight = FontWeight.Bold)
+                                            } else if (isRear) {
+                                                Text("REAR", style = MaterialTheme.typography.labelSmall, color = PurpleGlow, fontSize = 6.5.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+
+                                        // Block
+                                        Box(
+                                            modifier = Modifier
+                                                .size(width = 44.dp, height = 48.dp)
+                                                .slideEnter(visible = true, direction = SlideDirection.Right)
+                                                .nodePop(item.state == ElementState.ACTIVE)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(bgCol)
+                                                .border(1.dp, if (isFront) AccentGreen else if (isRear) SecondaryPurple else BorderMedium, RoundedCornerShape(6.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = item.value,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                color = textCol,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+
                                         Text(
-                                            text = item.value,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            color = textCol,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
+                                            text = "#$index",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = TextDark,
+                                            fontSize = 7.5.sp
                                         )
                                     }
-
-                                    Text(
-                                        text = "#$index",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = TextDark,
-                                        fontSize = 7.5.sp
-                                    )
                                 }
                             }
                         }

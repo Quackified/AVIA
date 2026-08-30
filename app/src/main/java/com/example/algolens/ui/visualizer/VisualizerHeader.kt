@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -232,14 +235,16 @@ private fun HeaderActions(
         )
 
         Box {
+            // Bare icon button: no container fill, no border — the
+            // kebab reads as a plain overflow glyph.
             RailIconButton(
                 icon = Icons.Default.MoreVert,
                 contentDescription = "More actions",
                 boxSize = AlgoTokens.iconButtonSm - 4.dp,
                 iconSize = AlgoTokens.inlineIconMd,
                 tint = TextSecondary,
-                container = CardBackground,
-                borderColor = BorderSubtle,
+                container = Color.Transparent,
+                borderColor = Color.Transparent,
                 onClick = { onMenuOpenChange(!menuOpen) }
             )
             HeaderOverflowMenuHost(
@@ -259,14 +264,11 @@ private fun HeaderActions(
 }
 
 /**
- * Kebab popover. Uses [DropdownMenu] for the popup / dismiss /
- * outside-tap behavior, but composes its body as a tight `Column`
- * of pills and dividers (no `DropdownMenuItem` wrappers). The
- * previous version wrapped each pill in a `DropdownMenuItem`,
- * which adds the material 48dp min-height and 16dp horizontal
- * padding — that produced the "too much external padding" the
- * user reported. The popover body is now a single `Column` with
- * explicit `space1` (2dp) gaps so each row hugs its pill.
+ * Kebab popover. Standard Material 3 dropdown: one [DropdownMenuItem]
+ * row per action (leading icon + label, optional trailing chevron /
+ * summary), separated by [HorizontalDivider]s. The inspector / call
+ * stack rows are disclosure rows — tapping toggles their readout,
+ * which expands inline below the row.
  */
 @Composable
 private fun HeaderOverflowMenuHost(
@@ -284,57 +286,94 @@ private fun HeaderOverflowMenuHost(
     DropdownMenu(
         expanded = menuOpen,
         onDismissRequest = { onMenuOpenChange(false) },
-        modifier = Modifier
-            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-            .background(CardBackground)
-            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-            .padding(AlgoTokens.space3)
+        modifier = Modifier.background(CardBackground)
     ) {
         // THEORY — opens the theory sheet, dismisses the popover.
-        IconPillButton(
-            label = "THEORY SHEET",
-            accent = PurpleGlow,
-            accentContainer = PurpleSubtle,
-            borderColor = SecondaryPurple.copy(alpha = 0.3f),
-            leadingIcon = Icons.AutoMirrored.Filled.MenuBook,
+        DropdownMenuItem(
+            text = { Text("Theory Sheet", color = TextPrimary, fontSize = 13.sp) },
+            leadingIcon = {
+                Icon(
+                    Icons.AutoMirrored.Filled.MenuBook,
+                    contentDescription = null,
+                    tint = PurpleGlow,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
             onClick = {
                 onMenuOpenChange(false)
                 state.showTheorySheet = true
             }
         )
 
-        PopoverDivider()
+        HorizontalDivider()
 
-        // VARIABLE INSPECTOR — toggle. When on, the readout
-        // content expands inline below the pill.
-        PopoverToggle(
-            label = "VARIABLE INSPECTOR",
-            accent = PrimaryCyan,
-            accentContainer = CyanSubtle,
-            borderColor = PrimaryCyan.copy(alpha = 0.3f),
-            leadingIcon = Icons.Default.Code,
-            summary = if (currentStep.variables.isNotEmpty())
-                "${currentStep.variables.size} live"
-            else "pointers",
-            expanded = inspectorOpen,
-            onToggle = { onInspectorOpenChange(!inspectorOpen) }
+        // VARIABLE INSPECTOR — disclosure row.
+        DropdownMenuItem(
+            text = {
+                Column {
+                    Text("Variable Inspector", color = TextPrimary, fontSize = 13.sp)
+                    Text(
+                        text = if (currentStep.variables.isNotEmpty())
+                            "${currentStep.variables.size} live variables"
+                        else "pointers",
+                        color = TextMuted,
+                        fontSize = 11.sp
+                    )
+                }
+            },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Code,
+                    contentDescription = null,
+                    tint = PrimaryCyan,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = {
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = if (inspectorOpen) "Collapse" else "Expand",
+                    tint = TextMuted,
+                    modifier = Modifier.graphicsLayer { rotationZ = if (inspectorOpen) 180f else 0f }
+                )
+            },
+            onClick = { onInspectorOpenChange(!inspectorOpen) }
         )
         if (inspectorOpen) {
             VariableInspectorReadout(step = currentStep)
         }
 
-        PopoverDivider()
+        HorizontalDivider()
 
-        // MEMORY CALL STACK — toggle.
-        PopoverToggle(
-            label = "MEMORY CALL STACK",
-            accent = PurpleGlow,
-            accentContainer = PurpleSubtle,
-            borderColor = SecondaryPurple.copy(alpha = 0.3f),
-            leadingIcon = Icons.Default.Terminal,
-            summary = "depth ${currentStep.recursionDepth + 1}",
-            expanded = callStackOpen,
-            onToggle = { onCallStackOpenChange(!callStackOpen) }
+        // MEMORY CALL STACK — disclosure row.
+        DropdownMenuItem(
+            text = {
+                Column {
+                    Text("Memory Call Stack", color = TextPrimary, fontSize = 13.sp)
+                    Text(
+                        "depth ${currentStep.recursionDepth + 1}",
+                        color = TextMuted,
+                        fontSize = 11.sp
+                    )
+                }
+            },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Terminal,
+                    contentDescription = null,
+                    tint = PurpleGlow,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = {
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = if (callStackOpen) "Collapse" else "Expand",
+                    tint = TextMuted,
+                    modifier = Modifier.graphicsLayer { rotationZ = if (callStackOpen) 180f else 0f }
+                )
+            },
+            onClick = { onCallStackOpenChange(!callStackOpen) }
         )
         if (callStackOpen) {
             MemoryCallStackReadout(
@@ -343,16 +382,34 @@ private fun HeaderOverflowMenuHost(
             )
         }
 
-        // CUSTOMIZE — only for algorithms that support custom
-        // input. Render last; when present, prepend a divider.
+        // CUSTOMIZE — only for algorithms that support custom input.
+        // The label is family-aware so the user sees "Customize Stack" /
+        // "Customize Queue" / "Customize BST" / "Customize Traversal"
+        // instead of the generic "Customize Array". The screen-level
+        // dispatcher in `VisualizerScreen.kt` reads `spec.id.family` to
+        // decide which sheet (`CustomizeInputSheet` / `CustomizeBufferSheet`
+        // / `CustomizeGraphSheet`) to render.
         if (spec?.supportsCustomInput == true) {
-            PopoverDivider()
-            IconPillButton(
-                label = "CUSTOMIZE ARRAY",
-                accent = PrimaryCyan,
-                accentContainer = CyanSubtle,
-                borderColor = PrimaryCyan.copy(alpha = 0.3f),
-                leadingIcon = Icons.Default.Tune,
+            HorizontalDivider()
+            val customizeLabel = when (spec.id) {
+                com.example.algolens.model.AlgorithmId.STACK -> "Customize Stack"
+                com.example.algolens.model.AlgorithmId.QUEUE -> "Customize Queue"
+                com.example.algolens.model.AlgorithmId.HEAP -> "Customize Heap"
+                com.example.algolens.model.AlgorithmId.BINARY_SEARCH_TREE -> "Customize BST"
+                com.example.algolens.model.AlgorithmId.BFS,
+                com.example.algolens.model.AlgorithmId.DFS -> "Customize Traversal"
+                else -> "Customize Array"
+            }
+            DropdownMenuItem(
+                text = { Text(customizeLabel, color = TextPrimary, fontSize = 13.sp) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Tune,
+                        contentDescription = null,
+                        tint = PrimaryCyan,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
                 onClick = {
                     onMenuOpenChange(false)
                     state.showInputSheet = true
@@ -363,88 +420,9 @@ private fun HeaderOverflowMenuHost(
 }
 
 /**
- * Thin horizontal divider used between popover rows. Sized to the
- * popover's content width via `fillMaxWidth` and using the
- * design-system hairline stroke + border-subtle color.
+ * A disclosure row body: the readout that expands inline below the
+ * "Variable Inspector" / "Memory Call Stack" dropdown rows.
  */
-@Composable
-private fun ColumnScope.PopoverDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(AlgoTokens.strokeHairline)
-            .background(BorderSubtle)
-    )
-}
-
-/**
- * A toggle row in the popover. The pill is the same shape as
- * the action rows, with a right-side ON / OFF indicator and a
- * chevron that rotates based on the `expanded` state. Tapping
- * anywhere on the row toggles visibility.
- */
-@Composable
-private fun ColumnScope.PopoverToggle(
-    label: String,
-    accent: androidx.compose.ui.graphics.Color,
-    accentContainer: androidx.compose.ui.graphics.Color,
-    borderColor: androidx.compose.ui.graphics.Color,
-    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector,
-    summary: String,
-    expanded: Boolean,
-    onToggle: () -> Unit
-) {
-    val chevronRotation = if (expanded) 180f else 0f
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-            .background(accentContainer)
-            .border(AlgoTokens.strokeThin, borderColor, RoundedCornerShape(AlgoTokens.radiusXs))
-            .clickable(onClick = onToggle)
-            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-    ) {
-        Icon(
-            imageVector = leadingIcon,
-            contentDescription = null,
-            tint = accent,
-            modifier = Modifier.size(AlgoTokens.inlineIconSm - 1.dp)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = accent,
-            fontSize = 7.5.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        Text(
-            text = summary,
-            style = MaterialTheme.typography.labelSmall,
-            color = TextMuted,
-            fontSize = 7.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            text = if (expanded) "ON" else "OFF",
-            style = MaterialTheme.typography.labelSmall,
-            color = if (expanded) accent else TextMuted,
-            fontSize = 7.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Icon(
-            imageVector = Icons.Default.ArrowDropDown,
-            contentDescription = if (expanded) "Collapse" else "Expand",
-            tint = if (expanded) accent else TextMuted,
-            modifier = Modifier
-                .size(AlgoTokens.inlineIconMd)
-                .graphicsLayer { rotationZ = chevronRotation }
-        )
-    }
-}
-
 @Composable
 private fun ColumnScope.VariableInspectorReadout(step: VisualizerStep) {
     Row(
@@ -560,9 +538,22 @@ private fun StackInfoBadge(label: String, value: String) {
 private fun HeaderModeRow(state: VisualizerScreenState) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2, Alignment.End),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Cell size preset: S (0.7x), M (1x), L (1.25x) of the
+        // responsive default. Keeps 7-8+ element arrays from
+        // clipping on small screens.
+        SegmentedToggle(
+            options = listOf(
+                "S" to 0.7f,
+                "M" to 1f,
+                "L" to 1.25f
+            ),
+            selectedKey = state.cellScale,
+            onContainer = DarkBackground,
+            onSelect = { key -> state.applyCellScale(key as Float) }
+        )
         SegmentedToggle(
             options = listOf(
                 "Box / Trace Mode" to ArrayViewMode.CELLS,

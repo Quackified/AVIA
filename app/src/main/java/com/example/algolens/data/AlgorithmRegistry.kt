@@ -75,37 +75,37 @@ object AlgorithmRegistry {
         AlgorithmId.STACK to AlgorithmSpec(
             id = AlgorithmId.STACK,
             defaultInput = emptyList(),
-            supportsCustomInput = false,
+            supportsCustomInput = true,
             isStack = true,
         ),
         AlgorithmId.QUEUE to AlgorithmSpec(
             id = AlgorithmId.QUEUE,
             defaultInput = emptyList(),
-            supportsCustomInput = false,
+            supportsCustomInput = true,
             isStack = false,
         ),
         AlgorithmId.BINARY_SEARCH_TREE to AlgorithmSpec(
             id = AlgorithmId.BINARY_SEARCH_TREE,
             defaultInput = emptyList(),
-            supportsCustomInput = false,
+            supportsCustomInput = true,
         ),
         AlgorithmId.HEAP to AlgorithmSpec(
             id = AlgorithmId.HEAP,
             defaultInput = AlgorithmStepRepository.DEFAULT_INPUT.take(7),
-            supportsCustomInput = false,
+            supportsCustomInput = true,
         ),
 
         // ── Graph Traversal (2) ──
         AlgorithmId.BFS to AlgorithmSpec(
             id = AlgorithmId.BFS,
             defaultInput = emptyList(),
-            supportsCustomInput = false,
+            supportsCustomInput = true,
             overlays = listOf(WeightBadgeOverlay),
         ),
         AlgorithmId.DFS to AlgorithmSpec(
             id = AlgorithmId.DFS,
             defaultInput = emptyList(),
-            supportsCustomInput = false,
+            supportsCustomInput = true,
             overlays = listOf(WeightBadgeOverlay),
         ),
     )

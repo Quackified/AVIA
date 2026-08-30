@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.example.algolens.data.AlgorithmRegistry
 import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
+import com.example.algolens.model.VisualizerFamily
 import com.example.algolens.ui.components.AlgoWorkspaceBackground
 import com.example.algolens.ui.components.AmbientGlowDivider
 import com.example.algolens.ui.theme.AlgoLensTheme
@@ -167,16 +168,62 @@ fun VisualizerScreen(
             }
         }
 
-        //  Modals & Overlays (drawn OUTSIDE the blur so they stay sharp) 
-        if (state.showInputSheet) {
-            CustomizeInputSheet(
-                initialArray = state.arrayData,
-                onApply = { newList ->
-                    state.arrayData = newList; state.currentStepIdx = 0; state.isPlaying = false
-                    state.showInputSheet = false
-                },
-                onDismiss = { state.showInputSheet = false }
-            )
+        //  Modals & Overlays (drawn OUTSIDE the blur so they stay sharp).
+        //  The customize-input sheet is family-aware: each family has a
+        //  different shape of user input, so we dispatch on `spec.id.family`.
+        if (state.showInputSheet && spec != null) {
+            when (spec.id.family) {
+                VisualizerFamily.LINEAR_1D -> CustomizeInputSheet(
+                    initialArray = state.arrayData,
+                    initialSortOrder = state.lastAppliedSortOrder,
+                    onApply = { values, order ->
+                        state.arrayData = values
+                        state.lastAppliedSortOrder = order
+                        state.currentStepIdx = 0
+                        state.isPlaying = false
+                        state.showInputSheet = false
+                    },
+                    onDismiss = { state.showInputSheet = false }
+                )
+                VisualizerFamily.BUFFER -> {
+                    if (spec.id == com.example.algolens.model.AlgorithmId.STACK) {
+                        CustomizeBufferSheet(
+                            initialOps = state.bufferOps,
+                            onApply = { ops ->
+                                state.bufferOps = ops
+                                state.currentStepIdx = 0
+                                state.isPlaying = false
+                                state.showInputSheet = false
+                            },
+                            onDismiss = { state.showInputSheet = false }
+                        )
+                    } else {
+                        CustomizeQueueSheet(
+                            initialOps = state.queueOps,
+                            onApply = { ops ->
+                                state.queueOps = ops
+                                state.currentStepIdx = 0
+                                state.isPlaying = false
+                                state.showInputSheet = false
+                            },
+                            onDismiss = { state.showInputSheet = false }
+                        )
+                    }
+                }
+                VisualizerFamily.GRAPH_2D -> CustomizeGraphSheet(
+                    algorithmId = spec.id,
+                    initialValues = state.arrayData,
+                    initialSearchKey = (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForBst)?.searchKey,
+                    initialStartNodeId = (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForTraversal)?.startNodeId,
+                    onApply = { config ->
+                        state.graphConfig = config
+                        state.currentStepIdx = 0
+                        state.isPlaying = false
+                        state.showInputSheet = false
+                    },
+                    onDismiss = { state.showInputSheet = false }
+                )
+            }
         }
 
         AlgorithmTheorySheet(

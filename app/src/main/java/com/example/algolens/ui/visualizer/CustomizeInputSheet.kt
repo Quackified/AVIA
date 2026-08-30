@@ -59,6 +59,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.algolens.model.InputValidationResult
+import com.example.algolens.model.SortOrder
+import com.example.algolens.ui.components.SegmentedToggle
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentRed
@@ -104,19 +107,12 @@ val PRESET_OPTIONS = listOf(
     ArrayPreset("Nearly Sorted", "Nearly Sorted", Icons.Default.RestartAlt, "Sorted except for a single swapped pair")
 )
 
-/**
- * Validation state for manual array input.
- */
-sealed class InputValidationResult {
-    data class Valid(val parsed: List<Int>) : InputValidationResult()
-    data class Error(val message: String) : InputValidationResult()
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomizeInputSheet(
     initialArray: List<Int>,
-    onApply: (List<Int>) -> Unit,
+    initialSortOrder: SortOrder = SortOrder.ASC,
+    onApply: (List<Int>, SortOrder) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -124,6 +120,7 @@ fun CustomizeInputSheet(
     var inputStr by remember { mutableStateOf(initialArray.joinToString(", ")) }
     var arrayLength by remember { mutableFloatStateOf(initialArray.size.toFloat().coerceIn(5f, 15f)) }
     var selectedPreset by remember { mutableStateOf<String?>(null) }
+    var sortOrder by remember { mutableStateOf(initialSortOrder) }
 
     // Preset data generator
     fun generatePreset(preset: String, length: Int): List<Int> {
@@ -474,7 +471,25 @@ fun CustomizeInputSheet(
                 )
             }
 
-            // ── 4. Apply Button ──
+            // ── 4. Sort Order Toggle ──
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "SORT ORDER:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    fontSize = 8.sp,
+                    letterSpacing = 0.8.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                SegmentedToggle(
+                    options = listOf("ASC" to SortOrder.ASC, "DESC" to SortOrder.DESC),
+                    selectedKey = sortOrder,
+                    accent = PrimaryCyan,
+                    onSelect = { key -> sortOrder = key as SortOrder }
+                )
+            }
+
+            // ── 5. Apply Button ──
             val isValid = validationResult is InputValidationResult.Valid
             Box(
                 modifier = Modifier
@@ -484,7 +499,7 @@ fun CustomizeInputSheet(
                     .clickable(enabled = isValid) {
                         if (validationResult is InputValidationResult.Valid) {
                             val parsed = (validationResult as InputValidationResult.Valid).parsed
-                            onApply(parsed)
+                            onApply(parsed, sortOrder)
                             onDismiss()
                         }
                     }
@@ -510,7 +525,7 @@ fun CustomizeInputSheetPreview() {
     AlgoLensTheme {
         CustomizeInputSheet(
             initialArray = listOf(64, 34, 25, 12, 22, 11, 90),
-            onApply = {},
+            onApply = { _, _ -> },
             onDismiss = {}
         )
     }

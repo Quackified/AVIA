@@ -1,33 +1,21 @@
 package com.example.algolens.ui.visualizer
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.algolens.data.AlgorithmRegistry
 import com.example.algolens.model.AuxiliarySlot
 import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.AlgorithmSpec
 import com.example.algolens.model.VisualizerFamily
-import com.example.algolens.ui.theme.BorderSubtle
-import com.example.algolens.ui.theme.CardBackground
-import com.example.algolens.ui.theme.TextSecondary
 
 /**
  * Dispatcher that owns the *visualizer family* → *renderer* mapping and
@@ -153,12 +141,14 @@ private fun Linear1DCanvas(
                     challengeTargetIndices = challengeTargetIndices,
                     syncPulse = syncPulse,
                     onCellClick = onCellClick,
+                    cellScale = state.cellScale,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
                 BarVisualizer(
                     step = currentStep,
                     spec = spec,
+                    cellScale = state.cellScale,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -193,12 +183,18 @@ private fun GraphTreeCanvas(
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        DescriptionBanner(currentStep.description)
+        PhaseBanner(
+            step = currentStep,
+            algorithmName = algorithmId.displayName,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp)
+        )
         GraphTreeVisualizer(
             step = currentStep,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)
+                .weight(1f)
         )
     }
 }
@@ -216,39 +212,19 @@ private fun BufferCanvas(
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        DescriptionBanner(currentStep.description)
+        PhaseBanner(
+            step = currentStep,
+            algorithmName = spec.id.displayName,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp)
+        )
         BufferVisualizer(
             step = currentStep,
             isStack = spec.isStack,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(280.dp)
-        )
-    }
-}
-
-/**
- * Shared description banner  single source of truth for the chrome
- * that wraps every graph / buffer / bars canvas. Cell renderers own
- * their own banner inside the cell grid, so this isn't used for CELLS.
- */
-@Composable
-private fun DescriptionBanner(description: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(CardBackground)
-            .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    ) {
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodySmall,
-            color = TextSecondary,
-            lineHeight = 13.sp,
-            fontSize = 8.5.sp
+                .weight(1f)
         )
     }
 }

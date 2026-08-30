@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -12,6 +13,10 @@ import androidx.compose.runtime.setValue
 import com.example.algolens.data.AlgorithmRegistry
 import com.example.algolens.data.AlgorithmStepRepository
 import com.example.algolens.model.Algorithm
+import com.example.algolens.model.BufferOp
+import com.example.algolens.model.GraphCustomization
+import com.example.algolens.model.QueueOp
+import com.example.algolens.model.SortOrder
 import kotlinx.coroutines.delay
 
 /**
@@ -53,8 +58,12 @@ class VisualizerScreenState(
             ?: AlgorithmStepRepository.DEFAULT_INPUT
     )
 
-    /** Recomputed via the `remember` factory when [arrayData] changes. */
-    var steps: List<VisualizerStep> = emptyList()
+    /** Recomputed via the `remember` factory when [arrayData] changes.
+     *  Backed by [mutableStateOf] so assigning the generated list from
+     *  the LaunchedEffect immediately recomposes the canvas — without
+     *  this, the header showed PROCESSING and cells only appeared after
+     *  the next unrelated state change (e.g. pressing play). */
+    var steps: List<VisualizerStep> by mutableStateOf(emptyList())
         internal set
 
     // ── Playback ──
@@ -76,6 +85,29 @@ class VisualizerScreenState(
 
     // ── View mode (cells vs bars, only meaningful for LINEAR_1D) ──
     var arrayViewMode: ArrayViewMode by mutableStateOf(ArrayViewMode.CELLS)
+
+    // ── Cell size scale (user-adjustable, 0.6x .. 1.4x of the
+    //    responsive default). Lets users on small screens shrink
+    //    cells so 7-8+ element arrays stop clipping. ──
+    var cellScale: Float by mutableFloatStateOf(1f)
+
+    // ── Sort order (ASC | DESC), applied to the LINEAR_1D
+    //    customize-input sheet. Persists across algorithm switches
+    //    so a user who set DESC on Bubble Sort will see DESC on
+    //    Quick Sort too — they can re-toggle in the sheet. ──
+    var lastAppliedSortOrder: SortOrder by mutableStateOf(SortOrder.ASC)
+
+    // ── Buffer customize state (Stack / Queue). When the user
+    //    applies an operation list in the customize sheet, this
+    //    holds it so the step generator re-runs on the new list. ──
+    var bufferOps: List<BufferOp> by mutableStateOf(emptyList())
+    var queueOps: List<QueueOp> by mutableStateOf(emptyList())
+
+    // ── Graph customize state (BST / Heap / BFS / DFS). The sheet
+    //    emits a `GraphCustomization` (ForHeap | ForBst | ForTraversal)
+    //    which is stored here. The step generator dispatch reads
+    //    the active variant. ──
+    var graphConfig: GraphCustomization? by mutableStateOf(null)
 
     // ── Derived helpers ──
     /** Clamped to ≥ 1 so scrubbers / counters never render `Step 0 of 0`. */
@@ -124,6 +156,11 @@ class VisualizerScreenState(
         currentStepIdx = idx.coerceIn(0, steps.lastIndex.coerceAtLeast(0))
     }
 
+    /** Cell size preset from the header S/M/L toggle (clamped). */
+    fun applyCellScale(scale: Float) {
+        cellScale = scale.coerceIn(0.6f, 1.4f)
+    }
+
     fun cycleSpeed() {
         playbackSpeedMs = when (playbackSpeedMs) {
             1_000L -> 600L
@@ -162,11 +199,34 @@ class VisualizerScreenState(
 fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
     val state = remember(algorithm) { VisualizerScreenState(algorithm) }
 
-    // Regenerate steps when the algorithm or input data change.
-    LaunchedEffect(algorithm, state.arrayData) {
+    // Regenerate steps when the algorithm or any user-customized
+    // input changes (array values, sort order, buffer op list,
+    // graph config). The re-key list deliberately includes every
+    // input the step generator dispatch in AlgorithmStepRepository
+    // can read.
+    LaunchedEffect(
+        algorithm,
+        state.arrayData,
+        state.lastAppliedSortOrder,
+        state.bufferOps,
+        state.queueOps,
+        state.graphConfig,
+    ) {
+        // Pull graph-related values out of the GraphCustomization for
+        // clean per-parameter forwarding.
+        val bstValues = (state.graphConfig as? GraphCustomization.ForBst)?.values ?: listOf(50, 30, 70, 20, 40, 60, 80)
+        val bstSearchKey = (state.graphConfig as? GraphCustomization.ForBst)?.searchKey ?: 40
+        val traversalStart = (state.graphConfig as? GraphCustomization.ForTraversal)?.startNodeId ?: "A"
+
         state.steps = AlgorithmStepRepository.generateStepsForAlgorithm(
             algorithm,
-            state.arrayData
+            inputArray = state.arrayData,
+            sortOrder = state.lastAppliedSortOrder,
+            bufferOps = state.bufferOps,
+            queueOps = state.queueOps,
+            bstValues = bstValues,
+            bstSearchKey = bstSearchKey,
+            traversalStartNodeId = traversalStart,
         )
         state.reset()
     }

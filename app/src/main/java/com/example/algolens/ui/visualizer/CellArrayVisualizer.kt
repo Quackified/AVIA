@@ -151,6 +151,7 @@ fun CellArrayVisualizer(
     challengeTargetIndices: Set<Int> = emptySet(),
     syncPulse: State<Float> = mutableStateOf(0f),
     onCellClick: ((Int) -> Unit)? = null,
+    cellScale: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     val algorithmName = spec?.id?.displayName ?: "Bubble Sort"
@@ -335,7 +336,8 @@ fun CellArrayVisualizer(
         // slot pitch derive from the available width and total node count.
         val nodeCount = step.array.size.coerceAtLeast(1)
         val availableWidth = maxWidth - 36.dp // canvas well padding + gutters
-        val cellWidth = ((availableWidth / nodeCount).coerceAtLeast(26.dp)).coerceAtMost(44.dp)
+        // `cellScale` is the user's S/M/L header preset (0.6x..1.4x).
+        val cellWidth = (((availableWidth / nodeCount) * cellScale).coerceAtLeast(18.dp)).coerceAtMost(44.dp)
         val cellHeight = cellWidth * 1.12f
         val cellTextSize = (cellWidth.value * 0.36f).coerceIn(10f, 16f).sp
         val slotGap = 6.dp
@@ -560,7 +562,7 @@ fun CellArrayVisualizer(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    itemsIndexed(step.array, key = { index, _ -> slotFlight.elementIds.getOrElse(index) { index } }) { index, value ->
+                    itemsIndexed(step.array, key = { index, _ -> "cell_$index" }) { index, value ->
                         val state = step.elementStates[index] ?: ElementState.IDLE
                         val isSelectedForChallenge = selectedCellIndices.contains(index)
                         val isChallengeTarget = index in challengeTargetIndices
@@ -963,96 +965,11 @@ private fun DrawScope.drawCellGlow(
 }
 
 /**
- * Floating glassmorphic Phase Banner reflecting current step phase and contextual metadata.
+ * Floating glassmorphic Phase Banner — see [com.example.algolens.ui.visualizer.PhaseBanner]
+ * in `PhaseBanner.kt` for the implementation. The composable lives in the
+ * same package so call sites in this file (e.g. the preview) resolve to
+ * the shared version without needing an explicit import.
  */
-@Composable
-fun PhaseBanner(
-    step: VisualizerStep,
-    algorithmName: String,
-    modifier: Modifier = Modifier
-) {
-    val (phaseColor, phaseBg) = when (step.phaseLabel.uppercase()) {
-        "PARTITIONING", "PIVOT PLACED" -> Pair(AccentPink, PinkSubtle)
-        "MERGING", "DIVIDING", "MERGE COMPLETE" -> Pair(PurpleGlow, PurpleSubtle)
-        "MIN SEARCH", "NEW MIN FOUND", "SWAPPING MIN" -> Pair(AccentYellow, YellowSubtle)
-        "KEY ELEVATED", "SHIFTING", "KEY INSERTED" -> Pair(SecondaryPurple, PurpleSubtle)
-        "SWAPPING", "COMPARING" -> Pair(PrimaryCyan, CyanSubtle)
-        "SORTED", "PASS COMPLETE", "LOCKED IN TAIL" -> Pair(AccentGreen, GreenSubtle)
-        else -> Pair(PrimaryCyan, CyanSubtle)
-    }
-
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(CardBackgroundElevated)
-            .border(1.dp, phaseColor.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        // Phase Tag Pill
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.weight(1f, fill = false)
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(phaseBg)
-                    .border(1.dp, phaseColor.copy(alpha = 0.5f), RoundedCornerShape(5.dp))
-                    .padding(horizontal = 7.dp, vertical = 2.5.dp)
-            ) {
-                Text(
-                    text = step.phaseLabel.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = phaseColor,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 8.sp,
-                    letterSpacing = 0.6.sp
-                )
-            }
-
-            Text(
-                text = step.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
-                maxLines = 1,
-                fontSize = 8.5.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.width(6.dp))
-
-        // Contextual Quick Badge (e.g. Range, Depth, Key, Pivot)
-        val contextTag = when {
-            step.pivotIndex != null -> "PIVOT [${step.pivotIndex}]"
-            step.minIndex != null -> "MIN [${step.minIndex}]"
-            step.floatingElement != null -> "KEY ${step.floatingElement.first}"
-            step.activeRange != null -> "[${step.activeRange.first}..${step.activeRange.last}]"
-            step.sortedBoundary != null -> "SORTED: ${step.sortedBoundary}"
-            else -> null
-        }
-
-        if (contextTag != null) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFF0F172A))
-                    .border(1.dp, BorderSubtle, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
-            ) {
-                Text(
-                    text = contextTag,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 7.5.sp
-                )
-            }
-        }
-    }
-}
 
 /**
  * Animated Pop-up Pill displaying the off-screen selected/pointer element.

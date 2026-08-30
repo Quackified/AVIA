@@ -183,8 +183,8 @@ object AlgoTokens {
 
     /** Spring for the canvas cell "pop up then shift to slot" travel. */
     val cellTravelSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMediumLow
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
     )
 
     /** Spring for pointer badge / chip hopping between slots. */

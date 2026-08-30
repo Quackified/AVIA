@@ -40,8 +40,8 @@ data class FlightSpec(
         stiffness = Spring.StiffnessMedium,
     ),
     val travelSpring: AnimationSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessMediumLow,
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium,
     ),
     val settleSpring: AnimationSpec<Float> = spring(
         dampingRatio = 0.55f,

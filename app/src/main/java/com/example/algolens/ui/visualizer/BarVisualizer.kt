@@ -54,6 +54,7 @@ import com.example.algolens.ui.theme.TextMuted
 fun BarVisualizer(
     step: VisualizerStep,
     spec: com.example.algolens.model.AlgorithmSpec? = null,
+    cellScale: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     val dimOutOfRange = spec?.dimOutOfRangeCells == true
@@ -69,7 +70,10 @@ fun BarVisualizer(
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            // Bar-to-bar gap scales with the header's S/M/L cellSize
+            // preset. Bars themselves use `weight(1f)` so the gap
+            // change is the only visible delta.
+            horizontalArrangement = Arrangement.spacedBy((4f * cellScale).coerceIn(2f, 12f).dp),
             verticalAlignment = Alignment.Bottom
         ) {
             step.array.forEachIndexed { index, value ->
@@ -139,7 +143,7 @@ fun BarVisualizer(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isActive) animatedColor else TextMuted,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = 8.5.sp,
+                        fontSize = (8.5f * cellScale).coerceIn(7f, 12f).sp,
                         maxLines = 1
                     )
                 }

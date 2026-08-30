@@ -3,6 +3,7 @@ package com.example.algolens.ui.visualizer
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -115,6 +116,37 @@ fun GraphTreeVisualizer(
     LaunchedEffect(step.nodes, step.edges) {
         dynamicNodes = step.nodes
         dynamicEdges = step.edges
+    }
+
+    // ── Per-node "first visit" / "just became active" scale pop ──
+    // When a node first appears in the active set (either because it was
+    // just spawned by the builder, or because the algorithm's current
+    // step made it the active node for the first time), its scale ramps
+    // from 0.55 → 1.0 with a non-bouncy spring. The Canvas draw loop
+    // reads each node's current scale to multiply the radius / font.
+    val nodeScales = remember { mutableMapOf<String, Animatable<Float, *>>() }
+    val poppedIds = remember { mutableStateOf(setOf<String>()) }
+    LaunchedEffect(dynamicNodes, step.activeNodeId) {
+        val candidates = (dynamicNodes.map { it.id } + listOfNotNull(step.activeNodeId)).toSet()
+        // Add nodes to the "popped" set the first time they appear OR the
+        // first time they become active. The Animatable snaps back to its
+        // start value so the LaunchedEffect can re-trigger the pop on the
+        // next "first visit" if needed.
+        candidates.forEach { id ->
+            if (id !in poppedIds.value) {
+                val anim = nodeScales.getOrPut(id) { Animatable(1f) }
+                anim.snapTo(0.55f)
+                anim.animateTo(1f, tween(durationMillis = 280))
+                poppedIds.value = poppedIds.value + id
+            }
+        }
+        // Drop stale entries (nodes removed by the algorithm) so the map
+        // doesn't grow unbounded across long step histories.
+        val stale = nodeScales.keys - candidates
+        if (stale.isNotEmpty()) {
+            stale.forEach { nodeScales.remove(it) }
+            poppedIds.value = poppedIds.value - stale
+        }
     }
 
     // Helper to generate next available letter label
@@ -581,6 +613,11 @@ fun GraphTreeVisualizer(
                         val isHovered = hoveredTargetNodeId == node.id
                         val isDragSource = dragStartNode?.id == node.id
 
+                        // Per-node "first visit" pop scale. Defaults to 1f
+                        // (no effect) so nodes that have already been popped
+                        // look identical to the previous Canvas.
+                        val popScale = nodeScales[node.id]?.value ?: 1f
+
                         val (fillColor, strokeColor, textColor) = when {
                             isHovered -> Triple(PrimaryCyan.copy(alpha = 0.40f), PrimaryCyan, PrimaryCyan)
                             isDragSource -> Triple(SecondaryPurple.copy(alpha = 0.40f), SecondaryPurple, PurpleGlow)
@@ -600,19 +637,19 @@ fun GraphTreeVisualizer(
                             val breathe = if (isActive) activeHaloPulse.value else 0f
                             drawCircle(
                                 color = haloColor.copy(alpha = 0.14f + 0.10f * breathe),
-                                radius = 34f + 4f * breathe,
+                                radius = (34f + 4f * breathe) * popScale,
                                 center = center
                             )
                             // Inner sharp halo
                             drawCircle(
                                 color = haloColor.copy(alpha = 0.28f + 0.14f * breathe),
-                                radius = 26f + 2f * breathe,
+                                radius = (26f + 2f * breathe) * popScale,
                                 center = center
                             )
                         } else if (node.state == ElementState.PIVOT) {
                             drawCircle(
                                 color = AccentPink.copy(alpha = 0.20f),
-                                radius = 28f,
+                                radius = 28f * popScale,
                                 center = center
                             )
                         }
@@ -620,28 +657,29 @@ fun GraphTreeVisualizer(
                         // Node background circle
                         drawCircle(
                             color = fillColor,
-                            radius = 20f,
+                            radius = 20f * popScale,
                             center = center
                         )
 
                         // Node border stroke
                         drawCircle(
                             color = strokeColor,
-                            radius = 20f,
+                            radius = 20f * popScale,
                             center = center,
-                            style = Stroke(width = if (isActive || isHovered || isDragSource) 3f else 1.8f)
+                            style = Stroke(width = (if (isActive || isHovered || isDragSource) 3f else 1.8f) * popScale)
                         )
 
-                        // Node label text
+                        // Node label text — also scaled so the glyph grows
+                        // in lockstep with the node's first-visit pop.
                         drawContext.canvas.nativeCanvas.apply {
                             val textPaint = Paint().apply {
                                 isAntiAlias = true
                                 color = textColor.toArgb()
-                                textSize = 20f
+                                textSize = 20f * popScale
                                 textAlign = Paint.Align.CENTER
                                 typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                             }
-                            drawText(node.label, center.x, center.y + 7f, textPaint)
+                            drawText(node.label, center.x, center.y + 7f * popScale, textPaint)
                         }
                     }
                 }

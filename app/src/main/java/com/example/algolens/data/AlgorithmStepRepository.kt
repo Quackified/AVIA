@@ -3,6 +3,9 @@
 import android.util.Log
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.AlgorithmId
+import com.example.algolens.model.BufferOp
+import com.example.algolens.model.QueueOp
+import com.example.algolens.model.SortOrder
 import com.example.algolens.ui.visualizer.BufferItem
 import com.example.algolens.ui.visualizer.ElementState
 import com.example.algolens.ui.visualizer.GraphEdgeState
@@ -44,7 +47,13 @@ object AlgorithmStepRepository {
      */
     fun generateStepsForAlgorithm(
         algorithm: Algorithm,
-        inputArray: List<Int> = DEFAULT_INPUT
+        inputArray: List<Int> = DEFAULT_INPUT,
+        sortOrder: SortOrder = SortOrder.ASC,
+        bufferOps: List<BufferOp> = defaultStackOps(),
+        queueOps: List<QueueOp> = defaultQueueOps(),
+        bstValues: List<Int> = listOf(50, 30, 70, 20, 40, 60, 80),
+        bstSearchKey: Int = 40,
+        traversalStartNodeId: String = "A",
     ): List<VisualizerStep> {
         if (AlgorithmRegistry.specFor(algorithm.id) == null) {
             Log.w(TAG, "No spec registered for ${algorithm.id} -- returning empty steps.")
@@ -52,19 +61,23 @@ object AlgorithmStepRepository {
         }
 
         return when (algorithm.id) {
-            AlgorithmId.BUBBLE_SORT -> generateBubbleSort(inputArray)
-            AlgorithmId.SELECTION_SORT -> generateSelectionSort(inputArray)
-            AlgorithmId.INSERTION_SORT -> generateInsertionSort(inputArray)
-            AlgorithmId.MERGE_SORT -> generateMergeSort(inputArray)
-            AlgorithmId.QUICK_SORT -> generateQuickSort(inputArray)
-            AlgorithmId.LINEAR_SEARCH -> generateLinearSearch(inputArray, target = 6)
-            AlgorithmId.BINARY_SEARCH -> generateBinarySearch(inputArray.sorted(), target = 6)
-            AlgorithmId.STACK -> generateStackSteps()
-            AlgorithmId.QUEUE -> generateQueueSteps()
-            AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps()
-            AlgorithmId.HEAP -> generateHeapSteps(inputArray.take(7))
-            AlgorithmId.BFS -> generateBFSSteps()
-            AlgorithmId.DFS -> generateDFSSteps()
+            AlgorithmId.BUBBLE_SORT -> generateBubbleSort(inputArray, sortOrder)
+            AlgorithmId.SELECTION_SORT -> generateSelectionSort(inputArray, sortOrder)
+            AlgorithmId.INSERTION_SORT -> generateInsertionSort(inputArray, sortOrder)
+            AlgorithmId.MERGE_SORT -> generateMergeSort(inputArray, sortOrder)
+            AlgorithmId.QUICK_SORT -> generateQuickSort(inputArray, sortOrder)
+            AlgorithmId.LINEAR_SEARCH -> generateLinearSearch(inputArray, target = 6, sortOrder)
+            AlgorithmId.BINARY_SEARCH -> generateBinarySearch(
+                sortedInput = if (sortOrder == SortOrder.ASC) inputArray.sorted() else inputArray.sortedDescending(),
+                target = 6,
+                sortOrder = sortOrder
+            )
+            AlgorithmId.STACK -> generateStackSteps(bufferOps)
+            AlgorithmId.QUEUE -> generateQueueSteps(queueOps)
+            AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps(bstValues, bstSearchKey)
+            AlgorithmId.HEAP -> generateHeapSteps(inputArray.take(7), sortOrder)
+            AlgorithmId.BFS -> generateBFSSteps(traversalStartNodeId)
+            AlgorithmId.DFS -> generateDFSSteps(traversalStartNodeId)
         }
     }
 
@@ -76,21 +89,27 @@ object AlgorithmStepRepository {
     fun generateStepsForId(
         id: AlgorithmId,
         inputArray: List<Int> = DEFAULT_INPUT,
-    ): List<VisualizerStep> = generateStepsForAlgorithm(Algorithm(id = id), inputArray)
+        sortOrder: SortOrder = SortOrder.ASC,
+    ): List<VisualizerStep> = generateStepsForAlgorithm(Algorithm(id = id), inputArray, sortOrder)
 
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 1. Bubble Sort
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateBubbleSort(input: List<Int>): List<VisualizerStep> {
+    private fun generateBubbleSort(input: List<Int>, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
         val n = arr.size
         var sIdx = 0
+        val isDesc = sortOrder == SortOrder.DESC
+        // ASC: largest bubbles right (sorted tail = right). DESC: smallest
+        // bubbles right (sorted tail = right), so the operator flips.
+        val op = if (isDesc) "<" else ">"
+        val outOfOrder = { a: Int, b: Int -> if (isDesc) a < b else a > b }
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Starting Bubble Sort on ${arr.size} elements",
+                description = "Starting Bubble Sort on ${arr.size} elements (${sortOrder.name})",
                 phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
@@ -103,7 +122,7 @@ object AlgorithmStepRepository {
         for (i in 0 until n - 1) {
             val unsortedRange = 0..(n - i - 1)
             for (j in 0 until n - i - 1) {
-                val compExpr = "COMPARE: ${arr[j]} > ${arr[j + 1]}?"
+                val compExpr = "COMPARE: ${arr[j]} $op ${arr[j + 1]}?"
                 val sortedTail = (n - i until n).associateWith { ElementState.SORTED }
                 steps.add(
                     VisualizerStep(
@@ -126,7 +145,7 @@ object AlgorithmStepRepository {
                     )
                 )
 
-                if (arr[j] > arr[j + 1]) {
+                if (outOfOrder(arr[j], arr[j + 1])) {
                     val tmp = arr[j]
                     arr[j] = arr[j + 1]
                     arr[j + 1] = tmp
@@ -175,7 +194,7 @@ object AlgorithmStepRepository {
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Bubble Sort Complete! Array is fully sorted.",
+                description = "Bubble Sort Complete! Array is fully sorted (${sortOrder.name}).",
                 comparisonExpr = "SORT COMPLETE",
                 phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
@@ -192,16 +211,23 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 2. Selection Sort
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateSelectionSort(input: List<Int>): List<VisualizerStep> {
+    private fun generateSelectionSort(input: List<Int>, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
         val n = arr.size
         var sIdx = 0
+        val isDesc = sortOrder == SortOrder.DESC
+        // ASC: track the smallest (min). DESC: track the largest (max).
+        val op = if (isDesc) ">" else "<"
+        val extremeLabel = if (isDesc) "max" else "min"
+        val extremeFoundLabel = if (isDesc) "NEW MAX FOUND" else "NEW MIN FOUND"
+        val extremePhase = if (isDesc) "MAX SEARCH" else "MIN SEARCH"
+        val isBetter = { candidate: Int, current: Int -> if (isDesc) candidate > current else candidate < current }
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Starting Selection Sort",
+                description = "Starting Selection Sort (${sortOrder.name})",
                 phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
@@ -218,29 +244,29 @@ object AlgorithmStepRepository {
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "Pass $i: Setting minimum candidate at index $i (${arr[i]})",
-                    comparisonExpr = "INITIAL MIN: arr[$i]=${arr[i]}",
-                    phaseLabel = "MIN SEARCH",
+                    description = "Pass $i: Setting $extremeLabel candidate at index $i (${arr[i]})",
+                    comparisonExpr = "INITIAL $extremeLabel.uppercase(): arr[$i]=${arr[i]}",
+                    phaseLabel = extremePhase,
                     renderMode = VisualizerRenderMode.CELLS,
                     array = arr.toList(),
                     activeRange = i until n,
                     sortedBoundary = i,
                     minIndex = minIdx,
                     elementStates = sortedLeft + mapOf(i to ElementState.ACTIVE),
-                    topPointers = mapOf("min" to minIdx),
+                    topPointers = mapOf(extremeLabel to minIdx),
                     bottomPointers = mapOf("i" to i),
                     activeCodeLines = listOf(3, 4)
                 )
             )
 
             for (j in i + 1 until n) {
-                val isSmaller = arr[j] < arr[minIdx]
+                val isBetterCandidate = isBetter(arr[j], arr[minIdx])
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
-                        description = "Comparing arr[$j]=${arr[j]} with current min arr[$minIdx]=${arr[minIdx]}",
-                        comparisonExpr = "COMPARE: ${arr[j]} < ${arr[minIdx]}?",
-                        phaseLabel = "MIN SEARCH",
+                        description = "Comparing arr[$j]=${arr[j]} with current $extremeLabel arr[$minIdx]=${arr[minIdx]}",
+                        comparisonExpr = "COMPARE: ${arr[j]} $op ${arr[minIdx]}?",
+                        phaseLabel = extremePhase,
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
                         activeRange = i until n,
@@ -252,27 +278,27 @@ object AlgorithmStepRepository {
                             minIdx to ElementState.ACTIVE,
                             j to ElementState.COMPARING
                         ),
-                        topPointers = mapOf("min" to minIdx),
+                        topPointers = mapOf(extremeLabel to minIdx),
                         bottomPointers = mapOf("i" to i, "j" to j),
                         activeCodeLines = listOf(5, 6)
                     )
                 )
 
-                if (isSmaller) {
+                if (isBetterCandidate) {
                     minIdx = j
                     steps.add(
                         VisualizerStep(
                             stepIndex = sIdx++,
-                            description = "Found new smaller minimum: arr[$minIdx]=${arr[minIdx]}",
-                            comparisonExpr = "NEW MIN: arr[$minIdx]=${arr[minIdx]}",
-                            phaseLabel = "NEW MIN FOUND",
+                            description = "Found new $extremeLabel candidate: arr[$minIdx]=${arr[minIdx]}",
+                            comparisonExpr = "NEW ${extremeLabel.uppercase()}: arr[$minIdx]=${arr[minIdx]}",
+                            phaseLabel = extremeFoundLabel,
                             renderMode = VisualizerRenderMode.CELLS,
                             array = arr.toList(),
                             activeRange = i until n,
                             sortedBoundary = i,
                             minIndex = minIdx,
                             elementStates = sortedLeft + mapOf(minIdx to ElementState.FOUND),
-                            topPointers = mapOf("min" to minIdx),
+                            topPointers = mapOf(extremeLabel to minIdx),
                             bottomPointers = mapOf("i" to i, "j" to j),
                             activeCodeLines = listOf(7)
                         )
@@ -288,9 +314,9 @@ object AlgorithmStepRepository {
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
-                        description = "Swapping minimum ${arr[i]} into sorted slot $i",
+                        description = "Swapping $extremeLabel ${arr[i]} into sorted slot $i",
                         comparisonExpr = "SWAP: arr[$i] <-> arr[$minIdx]",
-                        phaseLabel = "SWAPPING MIN",
+                        phaseLabel = if (isDesc) "SWAPPING MAX" else "SWAPPING MIN",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
                         activeRange = i until n,
@@ -301,7 +327,7 @@ object AlgorithmStepRepository {
                             i to ElementState.SWAPPING,
                             minIdx to ElementState.SWAPPING
                         ),
-                        topPointers = mapOf("min" to minIdx),
+                        topPointers = mapOf(extremeLabel to minIdx),
                         bottomPointers = mapOf("i" to i),
                         activeCodeLines = listOf(8)
                     )
@@ -328,7 +354,7 @@ object AlgorithmStepRepository {
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Selection Sort Complete! Array sorted.",
+                description = "Selection Sort Complete! Array sorted (${sortOrder.name}).",
                 comparisonExpr = "SORT COMPLETE",
                 phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
@@ -345,16 +371,21 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 3. Insertion Sort
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateInsertionSort(input: List<Int>): List<VisualizerStep> {
+    private fun generateInsertionSort(input: List<Int>, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
         val n = arr.size
         var sIdx = 0
+        val isDesc = sortOrder == SortOrder.DESC
+        // ASC: shift while arr[j] > key (move smaller to the right).
+        // DESC: shift while arr[j] < key (move larger to the right).
+        val op = if (isDesc) "<" else ">"
+        val shouldShift = { a: Int, key: Int -> if (isDesc) a < key else a > key }
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Starting Insertion Sort",
+                description = "Starting Insertion Sort (${sortOrder.name})",
                 phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
@@ -386,12 +417,12 @@ object AlgorithmStepRepository {
                 )
             )
 
-            while (j >= 0 && arr[j] > key) {
+            while (j >= 0 && shouldShift(arr[j], key)) {
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
-                        description = "arr[$j]=${arr[j]} > key=$key. Shifting ${arr[j]} one position right.",
-                        comparisonExpr = "SHIFT: ${arr[j]} > $key",
+                        description = "arr[$j]=${arr[j]} $op key=$key. Shifting ${arr[j]} one position right.",
+                        comparisonExpr = "SHIFT: ${arr[j]} $op $key",
                         phaseLabel = "SHIFTING",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = arr.toList(),
@@ -431,7 +462,7 @@ object AlgorithmStepRepository {
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Insertion Sort Complete! All elements sorted.",
+                description = "Insertion Sort Complete! All elements sorted (${sortOrder.name}).",
                 comparisonExpr = "SORT COMPLETE",
                 phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
@@ -447,16 +478,19 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 4. Merge Sort (2-Tier Split & Merge View)
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateMergeSort(input: List<Int>): List<VisualizerStep> {
+    private fun generateMergeSort(input: List<Int>, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
         var sIdx = 0
         val rootRange = 0 until arr.size
+        val isDesc = sortOrder == SortOrder.DESC
+        // ASC: pick smaller of left[i] and right[j] next. DESC: pick larger.
+        val op = if (isDesc) ">=" else "<="
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Starting Divide & Conquer Merge Sort",
+                description = "Starting Divide & Conquer Merge Sort (${sortOrder.name})",
                 phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
@@ -498,14 +532,20 @@ object AlgorithmStepRepository {
             )
 
             while (i < left.size && j < right.size) {
-                val compVal = if (left[i] <= right[j]) left[i] else right[j]
-                val desc = if (left[i] <= right[j]) {
-                    "Left element arr[${l + i}]=${left[i]} <= Right element arr[${m + 1 + j}]=${right[j]}"
+                val compVal = if (isDesc) {
+                    if (left[i] >= right[j]) left[i] else right[j]
                 } else {
-                    "Right element arr[${m + 1 + j}]=${right[j]} < Left element arr[${l + i}]=${left[i]}"
+                    if (left[i] <= right[j]) left[i] else right[j]
+                }
+                val pickLeft = if (isDesc) left[i] >= right[j] else left[i] <= right[j]
+                val desc = if (pickLeft) {
+                    "Left element arr[${l + i}]=${left[i]} $op Right element arr[${m + 1 + j}]=${right[j]}"
+                } else {
+                    val otherOp = if (isDesc) "<" else ">"
+                    "Right element arr[${m + 1 + j}]=${right[j]} $otherOp Left element arr[${l + i}]=${left[i]}"
                 }
 
-                if (left[i] <= right[j]) {
+                if (pickLeft) {
                     arr[k] = left[i]
                     i++
                 } else {
@@ -633,7 +673,7 @@ object AlgorithmStepRepository {
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Merge Sort Complete! All sub-arrays merged and sorted.",
+                description = "Merge Sort Complete! All sub-arrays merged and sorted (${sortOrder.name}).",
                 comparisonExpr = "SORT COMPLETE",
                 phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
@@ -650,15 +690,19 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 5. Quick Sort (In-Place Partitioning View)
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateQuickSort(input: List<Int>): List<VisualizerStep> {
+    private fun generateQuickSort(input: List<Int>, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         val arr = input.toMutableList()
         var sIdx = 0
+        val isDesc = sortOrder == SortOrder.DESC
+        // ASC: send smaller-or-equal to the left. DESC: send larger-or-equal to the left.
+        val op = if (isDesc) ">=" else "<="
+        val onCorrectSide = { a: Int, pivot: Int -> if (isDesc) a >= pivot else a <= pivot }
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Starting QuickSort on array of ${arr.size} elements",
+                description = "Starting QuickSort on array of ${arr.size} elements (${sortOrder.name})",
                 phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
@@ -691,9 +735,7 @@ object AlgorithmStepRepository {
             )
 
             for (j in low until high) {
-                val isSmallerOrEqual = arr[j] <= pivot
-                val expr = "COMPARE: ${arr[j]} <= $pivot?"
-
+                val expr = "COMPARE: ${arr[j]} $op $pivot?"
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
@@ -719,7 +761,7 @@ object AlgorithmStepRepository {
                     )
                 )
 
-                if (isSmallerOrEqual) {
+                if (onCorrectSide(arr[j], pivot)) {
                     i++
                     val tmp = arr[i]
                     arr[i] = arr[j]
@@ -728,7 +770,7 @@ object AlgorithmStepRepository {
                     steps.add(
                         VisualizerStep(
                             stepIndex = sIdx++,
-                            description = "arr[$j] <= pivot. Swapped arr[$i] (${arr[i]}) with arr[$j] (${arr[j]})",
+                            description = "arr[$j] $op pivot. Swapped arr[$i] (${arr[i]}) with arr[$j] (${arr[j]})",
                             comparisonExpr = "SWAP: arr[$i] <-> arr[$j]",
                             phaseLabel = "SWAPPING",
                             renderMode = VisualizerRenderMode.CELLS,
@@ -790,7 +832,7 @@ object AlgorithmStepRepository {
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "QuickSort Complete! All elements partitioned and sorted.",
+                description = "QuickSort Complete! All elements partitioned and sorted (${sortOrder.name}).",
                 comparisonExpr = "SORT COMPLETE",
                 phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.CELLS,
@@ -806,7 +848,7 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 6. Linear Search
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateLinearSearch(input: List<Int>, target: Int): List<VisualizerStep> {
+    private fun generateLinearSearch(input: List<Int>, target: Int, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
 
@@ -869,16 +911,20 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 7. Binary Search
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateBinarySearch(sortedInput: List<Int>, target: Int): List<VisualizerStep> {
+    private fun generateBinarySearch(sortedInput: List<Int>, target: Int, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
         var low = 0
         var high = sortedInput.size - 1
+        val isDesc = sortOrder == SortOrder.DESC
+        // ASC: midVal < target means target is in the right half.
+        // DESC: midVal > target means target is in the right half.
+        val op = if (isDesc) ">" else "<"
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Starting Binary Search on sorted array for target = $target",
+                description = "Starting Binary Search on ${if (isDesc) "descending" else "ascending"} array for target = $target",
                 comparisonExpr = "TARGET: $target",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = sortedInput,
@@ -921,31 +967,63 @@ object AlgorithmStepRepository {
                 )
                 return steps
             } else if (midVal < target) {
-                steps.add(
-                    VisualizerStep(
-                        stepIndex = sIdx++,
-                        description = "arr[$mid]=$midVal < target=$target. Eliminating left half. New low = ${mid + 1}",
-                        comparisonExpr = "$midVal < $target -> low = ${mid + 1}",
-                        renderMode = VisualizerRenderMode.CELLS,
-                        array = sortedInput,
-                        topPointers = mapOf("L" to (mid + 1).coerceAtMost(sortedInput.size - 1), "H" to high),
-                        activeCodeLines = listOf(7, 8)
+                // ASC: target is right of mid; DESC: target is left of mid.
+                if (isDesc) {
+                    steps.add(
+                        VisualizerStep(
+                            stepIndex = sIdx++,
+                            description = "arr[$mid]=$midVal $op target=$target. Eliminating right half. New high = ${mid - 1}",
+                            comparisonExpr = "$midVal $op $target -> high = ${mid - 1}",
+                            renderMode = VisualizerRenderMode.CELLS,
+                            array = sortedInput,
+                            topPointers = mapOf("L" to low, "H" to (mid - 1).coerceAtLeast(0)),
+                            activeCodeLines = listOf(9, 10)
+                        )
                     )
-                )
-                low = mid + 1
+                    high = mid - 1
+                } else {
+                    steps.add(
+                        VisualizerStep(
+                            stepIndex = sIdx++,
+                            description = "arr[$mid]=$midVal $op target=$target. Eliminating left half. New low = ${mid + 1}",
+                            comparisonExpr = "$midVal $op $target -> low = ${mid + 1}",
+                            renderMode = VisualizerRenderMode.CELLS,
+                            array = sortedInput,
+                            topPointers = mapOf("L" to (mid + 1).coerceAtMost(sortedInput.size - 1), "H" to high),
+                            activeCodeLines = listOf(7, 8)
+                        )
+                    )
+                    low = mid + 1
+                }
             } else {
-                steps.add(
-                    VisualizerStep(
-                        stepIndex = sIdx++,
-                        description = "arr[$mid]=$midVal > target=$target. Eliminating right half. New high = ${mid - 1}",
-                        comparisonExpr = "$midVal > $target -> high = ${mid - 1}",
-                        renderMode = VisualizerRenderMode.CELLS,
-                        array = sortedInput,
-                        topPointers = mapOf("L" to low, "H" to (mid - 1).coerceAtLeast(0)),
-                        activeCodeLines = listOf(9, 10)
+                // The other branch.
+                if (isDesc) {
+                    steps.add(
+                        VisualizerStep(
+                            stepIndex = sIdx++,
+                            description = "arr[$mid]=$midVal > target=$target (descending). Eliminating left half. New low = ${mid + 1}",
+                            comparisonExpr = "$midVal > $target -> low = ${mid + 1}",
+                            renderMode = VisualizerRenderMode.CELLS,
+                            array = sortedInput,
+                            topPointers = mapOf("L" to (mid + 1).coerceAtMost(sortedInput.size - 1), "H" to high),
+                            activeCodeLines = listOf(7, 8)
+                        )
                     )
-                )
-                high = mid - 1
+                    low = mid + 1
+                } else {
+                    steps.add(
+                        VisualizerStep(
+                            stepIndex = sIdx++,
+                            description = "arr[$mid]=$midVal > target=$target. Eliminating right half. New high = ${mid - 1}",
+                            comparisonExpr = "$midVal > $target -> high = ${mid - 1}",
+                            renderMode = VisualizerRenderMode.CELLS,
+                            array = sortedInput,
+                            topPointers = mapOf("L" to low, "H" to (mid - 1).coerceAtLeast(0)),
+                            activeCodeLines = listOf(9, 10)
+                        )
+                    )
+                    high = mid - 1
+                }
             }
         }
 
@@ -964,16 +1042,35 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 8. Stack
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateStackSteps(): List<VisualizerStep> {
+    private fun defaultStackOps(): List<BufferOp> = listOf(
+        BufferOp.Push(10),
+        BufferOp.Push(25),
+        BufferOp.Push(42),
+        BufferOp.Peek,
+        BufferOp.Pop,
+        BufferOp.Push(88),
+    )
+
+    private fun defaultQueueOps(): List<QueueOp> = listOf(
+        QueueOp.Enqueue(15),
+        QueueOp.Enqueue(30),
+        QueueOp.Enqueue(45),
+        QueueOp.Dequeue,
+        QueueOp.Enqueue(60),
+    )
+
+    private fun generateStackSteps(operations: List<BufferOp> = defaultStackOps()): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
         val items = mutableListOf<BufferItem>()
+        var nextId = 1
 
-        fun addStep(desc: String, codeLine: Int) {
+        fun addStep(desc: String, codeLine: Int, label: String = "PROCESSING") {
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
                     description = desc,
+                    phaseLabel = label,
                     renderMode = VisualizerRenderMode.BUFFER,
                     buffer = items.toList(),
                     bufferLabel = "Stack ┬À LIFO (Last In First Out)",
@@ -982,46 +1079,58 @@ object AlgorithmStepRepository {
             )
         }
 
-        addStep("Created empty Stack", 1)
+        addStep("Created empty Stack", 1, "INITIALIZING")
 
-        items.add(BufferItem("1", "10", ElementState.ACTIVE))
-        addStep("push(10) -> Pushed 10 onto stack top", 2)
-        items[0] = items[0].copy(state = ElementState.IDLE)
+        operations.forEach { op ->
+            when (op) {
+                is BufferOp.Push -> {
+                    val id = (nextId++).toString()
+                    items.add(BufferItem(id, op.value.toString(), ElementState.ACTIVE))
+                    addStep("push(${op.value}) -> Pushed ${op.value} onto stack top", 2, "PUSH")
+                    items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
+                }
+                BufferOp.Pop -> {
+                    if (items.isNotEmpty()) {
+                        items[items.size - 1] = items[items.size - 1].copy(state = ElementState.SWAPPING)
+                        val popped = items.removeAt(items.size - 1)
+                        addStep("pop() -> Popped ${popped.value} from stack top. " +
+                            if (items.isNotEmpty()) "New top is ${items[items.size - 1].value}"
+                            else "Stack is now empty", 4, "POP")
+                    } else {
+                        addStep("pop() -> Stack is empty. No-op.", 4, "POP")
+                    }
+                }
+                BufferOp.Peek -> {
+                    if (items.isNotEmpty()) {
+                        items[items.size - 1] = items[items.size - 1].copy(state = ElementState.FOUND)
+                        addStep("peek() -> Top element is ${items[items.size - 1].value}", 6, "PEEK")
+                        items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
+                    } else {
+                        addStep("peek() -> Stack is empty. No-op.", 6, "PEEK")
+                    }
+                }
+            }
+        }
 
-        items.add(BufferItem("2", "25", ElementState.ACTIVE))
-        addStep("push(25) -> Pushed 25 onto stack top", 2)
-        items[1] = items[1].copy(state = ElementState.IDLE)
-
-        items.add(BufferItem("3", "42", ElementState.ACTIVE))
-        addStep("push(42) -> Pushed 42 onto stack top", 2)
-        items[2] = items[2].copy(state = ElementState.IDLE)
-
-        items[2] = items[2].copy(state = ElementState.FOUND)
-        addStep("peek() -> Top element is 42", 6)
-        items[2] = items[2].copy(state = ElementState.IDLE)
-
-        items.removeAt(items.size - 1)
-        addStep("pop() -> Popped 42 from stack top. New top is 25", 4)
-
-        items.add(BufferItem("4", "88", ElementState.ACTIVE))
-        addStep("push(88) -> Pushed 88 onto stack top", 2)
-
+        addStep("Stack sequence complete (${operations.size} operations).", 1, "DONE")
         return steps
     }
 
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 9. Queue
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateQueueSteps(): List<VisualizerStep> {
+    private fun generateQueueSteps(operations: List<QueueOp> = defaultQueueOps()): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
         val items = mutableListOf<BufferItem>()
+        var nextId = 1
 
-        fun addStep(desc: String, codeLine: Int) {
+        fun addStep(desc: String, codeLine: Int, label: String = "PROCESSING") {
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
                     description = desc,
+                    phaseLabel = label,
                     renderMode = VisualizerRenderMode.BUFFER,
                     buffer = items.toList(),
                     bufferLabel = "Queue ┬À FIFO (First In First Out)",
@@ -1030,64 +1139,170 @@ object AlgorithmStepRepository {
             )
         }
 
-        addStep("Created empty Queue", 1)
+        addStep("Created empty Queue", 1, "INITIALIZING")
 
-        items.add(BufferItem("1", "15", ElementState.ACTIVE))
-        addStep("enqueue(15) -> Added 15 to rear of queue", 2)
-        items[0] = items[0].copy(state = ElementState.IDLE)
+        operations.forEach { op ->
+            when (op) {
+                is QueueOp.Enqueue -> {
+                    val id = (nextId++).toString()
+                    items.add(BufferItem(id, op.value.toString(), ElementState.ACTIVE))
+                    addStep("enqueue(${op.value}) -> Added ${op.value} to rear of queue", 2, "ENQUEUE")
+                    items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
+                }
+                QueueOp.Dequeue -> {
+                    if (items.isNotEmpty()) {
+                        items[0] = items[0].copy(state = ElementState.SWAPPING)
+                        val removed = items.removeAt(0)
+                        addStep("dequeue() -> Removed ${removed.value} from front. " +
+                            if (items.isNotEmpty()) "New front is ${items[0].value}"
+                            else "Queue is now empty", 4, "DEQUEUE")
+                    } else {
+                        addStep("dequeue() -> Queue is empty. No-op.", 4, "DEQUEUE")
+                    }
+                }
+            }
+        }
 
-        items.add(BufferItem("2", "30", ElementState.ACTIVE))
-        addStep("enqueue(30) -> Added 30 to rear of queue", 2)
-        items[1] = items[1].copy(state = ElementState.IDLE)
-
-        items.add(BufferItem("3", "45", ElementState.ACTIVE))
-        addStep("enqueue(45) -> Added 45 to rear of queue", 2)
-        items[2] = items[2].copy(state = ElementState.IDLE)
-
-        items[0] = items[0].copy(state = ElementState.FOUND)
-        addStep("peek() -> Front element is 15", 6)
-        items[0] = items[0].copy(state = ElementState.IDLE)
-
-        items.removeAt(0)
-        addStep("dequeue() -> Removed 15 from front. New front is 30", 4)
-
-        items.add(BufferItem("4", "60", ElementState.ACTIVE))
-        addStep("enqueue(60) -> Added 60 to rear of queue", 2)
-
+        addStep("Queue sequence complete (${operations.size} operations).", 1, "DONE")
         return steps
     }
 
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 10. Binary Search Tree (BST)
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateBSTSteps(): List<VisualizerStep> {
+    private val defaultBstValues = listOf(50, 30, 70, 20, 40, 60, 80)
+    private val defaultBstSearchKey = 40
+
+    /**
+     * Build a BST imperatively from [values], laying the resulting tree
+     * out with a simple BFS x/y scheme. Used when the user provides a
+     * custom list — gives acceptable visual fidelity for a teaching app
+     * without re-deriving the hand-tuned default layout.
+     */
+    private fun buildBstFromValues(values: List<Int>): Pair<List<GraphNodeState>, List<GraphEdgeState>> {
+        if (values.isEmpty()) return emptyList<GraphNodeState>() to emptyList()
+
+        data class Node(val value: Int, val id: String, var left: Node? = null, var right: Node? = null)
+
+        val root = Node(values[0], values[0].toString())
+        var counter = 1
+        for (i in 1 until values.size) {
+            val v = values[i]
+            var cur: Node = root
+            // Unique id per value: "value" if first, else "value#k".
+            val baseId = v.toString()
+            var id = baseId
+            val existing = mutableSetOf(root.id)
+            var n: Node? = root
+            val seen = mutableSetOf<String>()
+            fun collectIds(n: Node?) {
+                if (n == null) return
+                seen.add(n.id)
+                collectIds(n.left); collectIds(n.right)
+            }
+            collectIds(root)
+            var k = 1
+            while (id in seen) { id = "$baseId#$k"; k++ }
+            seen.add(id)
+            val newNode = Node(v, id)
+            while (true) {
+                if (v < cur.value) {
+                    if (cur.left == null) { cur.left = newNode; break } else cur = cur.left!!
+                } else {
+                    if (cur.right == null) { cur.right = newNode; break } else cur = cur.right!!
+                }
+            }
+            counter++
+        }
+
+        // BFS layout: root at (100, 15); each level y += 35; x's evenly spaced.
+        val nodes = mutableListOf<GraphNodeState>()
+        val edges = mutableListOf<GraphEdgeState>()
+        val rowWidths = mutableMapOf<Int, Int>()
+        // Count nodes per level
+        fun countLevel(n: Node?, level: Int) {
+            if (n == null) return
+            rowWidths[level] = (rowWidths[level] ?: 0) + 1
+            countLevel(n.left, level + 1)
+            countLevel(n.right, level + 1)
+        }
+        countLevel(root, 0)
+        val totalLevels = rowWidths.size.coerceAtLeast(1)
+        // x positions per level: even spacing in [25, 175]
+        val levelStepX = if (totalLevels > 0) 150f / (1 shl (totalLevels - 1)) else 75f
+        val slotByLevel = mutableMapOf<Pair<Int, Int>, Int>()  // (level, index in level) → x slot
+        fun assignSlots(n: Node?, level: Int, slotLeft: Int, slotRight: Int) {
+            if (n == null) return
+            val mid = (slotLeft + slotRight) / 2
+            slotByLevel[level to (mid)] = mid
+            // BFS position tracking is simpler with an index list
+            assignSlots(n.left, level + 1, slotLeft, (slotLeft + slotRight) / 2 - 1)
+            assignSlots(n.right, level + 1, (slotLeft + slotRight) / 2 + 1, slotRight)
+        }
+        val maxSlots = (1 shl totalLevels)
+        assignSlots(root, 0, 0, maxSlots - 1)
+
+        val placedX = mutableMapOf<String, Float>()
+        val placedY = mutableMapOf<String, Float>()
+        val levelCounters = mutableMapOf<Int, Int>()
+        fun place(n: Node?, level: Int, slotLeft: Int, slotRight: Int) {
+            if (n == null) return
+            val mid = (slotLeft + slotRight) / 2
+            val y = 15f + level * 35f
+            val x = 25f + (mid.toFloat() / maxSlots.coerceAtLeast(1)) * 150f
+            placedX[n.id] = x
+            placedY[n.id] = y
+            nodes.add(GraphNodeState(n.id, n.value.toString(), x, y))
+            place(n.left, level + 1, slotLeft, mid - 1)
+            place(n.right, level + 1, mid + 1, slotRight)
+            n.left?.let { edges.add(GraphEdgeState(n.id, it.id, isDirected = true)) }
+            n.right?.let { edges.add(GraphEdgeState(n.id, it.id, isDirected = true)) }
+        }
+        place(root, 0, 0, maxSlots - 1)
+        return nodes to edges
+    }
+
+    /**
+     * Search [searchKey] in a BST. Returns the sequence of visited node ids
+     * (each compared node) plus the final found id (or null if not present).
+     * Pure data — does not emit any [VisualizerStep].
+     */
+
+    private fun generateBSTSteps(
+        values: List<Int> = defaultBstValues,
+        searchKey: Int = defaultBstSearchKey,
+    ): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
 
-        val nodes = listOf(
-            GraphNodeState("50", "50", 100f, 15f),
-            GraphNodeState("30", "30", 50f, 50f),
-            GraphNodeState("70", "70", 150f, 50f),
-            GraphNodeState("20", "20", 25f, 90f),
-            GraphNodeState("40", "40", 75f, 90f),
-            GraphNodeState("60", "60", 125f, 90f),
-            GraphNodeState("80", "80", 175f, 90f)
-        )
-
-        val edges = listOf(
-            GraphEdgeState("50", "30", isDirected = true),
-            GraphEdgeState("50", "70", isDirected = true),
-            GraphEdgeState("30", "20", isDirected = true),
-            GraphEdgeState("30", "40", isDirected = true),
-            GraphEdgeState("70", "60", isDirected = true),
-            GraphEdgeState("70", "80", isDirected = true)
-        )
+        // Use hand-tuned layout for the canonical default; BFS layout otherwise.
+        val (nodes, edges) = if (values == defaultBstValues) {
+            listOf(
+                GraphNodeState("50", "50", 100f, 15f),
+                GraphNodeState("30", "30", 50f, 50f),
+                GraphNodeState("70", "70", 150f, 50f),
+                GraphNodeState("20", "20", 25f, 90f),
+                GraphNodeState("40", "40", 75f, 90f),
+                GraphNodeState("60", "60", 125f, 90f),
+                GraphNodeState("80", "80", 175f, 90f)
+            ) to listOf(
+                GraphEdgeState("50", "30", isDirected = true),
+                GraphEdgeState("50", "70", isDirected = true),
+                GraphEdgeState("30", "20", isDirected = true),
+                GraphEdgeState("30", "40", isDirected = true),
+                GraphEdgeState("70", "60", isDirected = true),
+                GraphEdgeState("70", "80", isDirected = true)
+            )
+        } else {
+            buildBstFromValues(values)
+        }
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Binary Search Tree: Searching for key = 40",
-                comparisonExpr = "SEARCH: target = 40",
+                description = "Binary Search Tree: Searching for key = $searchKey",
+                comparisonExpr = "SEARCH: target = $searchKey",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = nodes,
                 edges = edges,
@@ -1095,91 +1310,139 @@ object AlgorithmStepRepository {
             )
         )
 
-        // Step 1: Compare with Root 50
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "40 < root(50) -> Traverse LEFT subtree to node 30",
-                comparisonExpr = "40 < 50 -> LEFT",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map { if (it.id == "50") it.copy(state = ElementState.COMPARING) else it },
-                edges = edges.map { if (it.from == "50" && it.to == "30") it.copy(isHighlighted = true) else it },
-                activeNodeId = "50",
-                activeCodeLines = listOf(4, 5)
+        // Walk the BST to find the search key. Each comparison emits a step.
+        // We rely on the first value as the root (matches the visualization
+        // tree built by buildBstFromValues) — for the hand-tuned default
+        // the root is 50.
+        val byId = nodes.associateBy { it.id }
+        val childrenById = edges.groupBy { it.from }.mapValues { (_, es) -> es.map { it.to } }
+        val rootId = values.firstOrNull()?.toString()?.let { id ->
+            // If the default demo, prefer the known root.
+            if (values == defaultBstValues) "50" else id
+        }
+        if (rootId == null) {
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "Empty BST. Nothing to search.",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes,
+                    edges = edges,
+                    activeCodeLines = listOf(1)
+                )
             )
-        )
+            return steps
+        }
 
-        // Step 2: Compare with 30
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "40 > node(30) -> Traverse RIGHT subtree to node 40",
-                comparisonExpr = "40 > 30 -> RIGHT",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map {
-                    when (it.id) {
-                        "50" -> it.copy(state = ElementState.VISITED)
-                        "30" -> it.copy(state = ElementState.COMPARING)
-                        else -> it
-                    }
-                },
-                edges = edges.map {
-                    when {
-                        it.from == "50" && it.to == "30" -> it.copy(isHighlighted = true)
-                        it.from == "30" && it.to == "40" -> it.copy(isHighlighted = true)
-                        else -> it
-                    }
-                },
-                activeNodeId = "30",
-                activeCodeLines = listOf(6, 7)
+        var current: String? = rootId
+        val visited = mutableSetOf<String>()
+        var found = false
+        while (current != null) {
+            val nodeVal = byId[current]?.label?.toIntOrNull() ?: break
+            visited.add(current)
+            if (nodeVal == searchKey) {
+                steps.add(
+                    VisualizerStep(
+                        stepIndex = sIdx++,
+                        description = "Found key $searchKey in BST!",
+                        comparisonExpr = "FOUND: Node $searchKey",
+                        phaseLabel = "FOUND",
+                        renderMode = VisualizerRenderMode.GRAPH_TREE,
+                        nodes = nodes.map {
+                            when (it.id) {
+                                current -> it.copy(state = ElementState.FOUND)
+                                in visited -> it.copy(state = ElementState.VISITED)
+                                else -> it
+                            }
+                        },
+                        edges = edges.map { e ->
+                            if (e.from in visited || e.to in visited) e.copy(isHighlighted = true) else e
+                        },
+                        activeNodeId = current,
+                        activeCodeLines = listOf(2, 3)
+                    )
+                )
+                found = true
+                break
+            }
+            val direction = if (searchKey < nodeVal) "LEFT" else "RIGHT"
+            val op = if (searchKey < nodeVal) "<" else ">"
+            val children = childrenById[current] ?: emptyList()
+            val next = if (searchKey < nodeVal) {
+                children.firstOrNull { byId[it]?.label?.toIntOrNull()?.let { v -> v < nodeVal } == true }
+            } else {
+                children.firstOrNull { byId[it]?.label?.toIntOrNull()?.let { v -> v > nodeVal } == true }
+            }
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "searchKey=$searchKey $op node($nodeVal) -> Traverse $direction subtree",
+                    comparisonExpr = "$searchKey $op $nodeVal -> $direction",
+                    phaseLabel = if (searchKey < nodeVal) "LEFT" else "RIGHT",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map {
+                        when (it.id) {
+                            current -> it.copy(state = ElementState.COMPARING)
+                            in visited -> it.copy(state = ElementState.VISITED)
+                            else -> it
+                        }
+                    },
+                    edges = edges.map { e ->
+                        if ((e.from == current && e.to == next) || e.from in visited)
+                            e.copy(isHighlighted = true) else e
+                    },
+                    activeNodeId = current,
+                    activeCodeLines = listOf(4, 5, 6, 7)
+                )
             )
-        )
-
-        // Step 3: Match 40
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "Found key 40 in BST!",
-                comparisonExpr = "FOUND: Node 40",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map {
-                    when (it.id) {
-                        "40" -> it.copy(state = ElementState.FOUND)
-                        "50", "30" -> it.copy(state = ElementState.VISITED)
-                        else -> it
-                    }
-                },
-                edges = edges.map {
-                    when {
-                        it.from == "50" && it.to == "30" -> it.copy(isHighlighted = true)
-                        it.from == "30" && it.to == "40" -> it.copy(isHighlighted = true)
-                        else -> it
-                    }
-                },
-                activeNodeId = "40",
-                activeCodeLines = listOf(2, 3)
+            current = next
+        }
+        if (!found) {
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "Key $searchKey not found in BST.",
+                    phaseLabel = "NOT FOUND",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map {
+                        if (it.id in visited) it.copy(state = ElementState.VISITED) else it
+                    },
+                    edges = edges,
+                    activeCodeLines = listOf(2, 3)
+                )
             )
-        )
-
+        }
         return steps
     }
 
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 11. Heap (Max-Heap)
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateHeapSteps(input: List<Int>): List<VisualizerStep> {
+    private fun generateHeapSteps(input: List<Int>, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
+        val isDesc = sortOrder == SortOrder.DESC
+        // ASC: max-heap (parent >= children). DESC: min-heap (parent <= children).
+        val heapKind = if (isDesc) "Min-Heap" else "Max-Heap"
+        val op = if (isDesc) "<=" else ">="
 
-        val nodes = listOf(
-            GraphNodeState("0", "90", 100f, 15f),
-            GraphNodeState("1", "80", 50f, 50f),
-            GraphNodeState("2", "70", 150f, 50f),
-            GraphNodeState("3", "40", 25f, 90f),
-            GraphNodeState("4", "50", 75f, 90f),
-            GraphNodeState("5", "30", 125f, 90f),
-            GraphNodeState("6", "60", 175f, 90f)
-        )
+        // For now we use the canonical 7-node demo layout and only flip
+        // the labels / comparisons. A future change can re-build the tree
+        // layout from the user-supplied `input` values.
+        val values = listOf(90, 80, 70, 40, 50, 30, 60)
+        val nodes = values.mapIndexed { idx, v ->
+            val x = when (idx) {
+                0 -> 100f
+                1 -> 50f
+                2 -> 150f
+                3 -> 25f
+                4 -> 75f
+                5 -> 125f
+                else -> 175f
+            }
+            val y = if (idx == 0) 15f else if (idx < 3) 50f else 90f
+            GraphNodeState(idx.toString(), v.toString(), x, y)
+        }
 
         val edges = listOf(
             GraphEdgeState("0", "1", isDirected = true),
@@ -1193,7 +1456,7 @@ object AlgorithmStepRepository {
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Max-Heap: Root element (90) satisfies parent >= children property",
+                description = "$heapKind: Root element (${values[0]}) satisfies parent $op children property",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = nodes,
                 edges = edges,
@@ -1204,8 +1467,9 @@ object AlgorithmStepRepository {
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "Comparing left child 80 and right child 70 with root 90",
-                comparisonExpr = "HEAPIFY: 90 > max(80, 70)",
+                description = "Comparing left child ${values[1]} and right child ${values[2]} with root ${values[0]}",
+                comparisonExpr = if (isDesc) "HEAPIFY: ${values[0]} < min(${values[1]}, ${values[2]})"
+                                 else "HEAPIFY: ${values[0]} > max(${values[1]}, ${values[2]})",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = nodes.map {
                     when (it.id) {
@@ -1226,9 +1490,11 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 12. Breadth-First Search (BFS)
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateBFSSteps(): List<VisualizerStep> {
+    private fun generateBFSSteps(startNodeId: String = "A"): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
+        val validStart = startNodeId.uppercase() in setOf("A", "B", "C", "D", "E")
+        val start = if (validStart) startNodeId.uppercase() else "A"
 
         val nodes = listOf(
             GraphNodeState("A", "A", 40f, 25f),
@@ -1249,86 +1515,110 @@ object AlgorithmStepRepository {
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "BFS: Starting at node A. Enqueued A.",
+                description = "BFS: Starting at node $start. Enqueued $start.",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map { if (it.id == "A") it.copy(state = ElementState.ACTIVE) else it },
+                nodes = nodes.map { if (it.id == start) it.copy(state = ElementState.ACTIVE) else it },
                 edges = edges,
-                activeNodeId = "A",
-                visitedNodeIds = setOf("A"),
+                activeNodeId = start,
+                visitedNodeIds = setOf(start),
                 activeCodeLines = listOf(1, 2)
             )
         )
 
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "BFS: Dequeued A. Visiting unvisited neighbors B and C. Queue = [B, C]",
-                comparisonExpr = "QUEUE: [B, C]",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map {
-                    when (it.id) {
-                        "A" -> it.copy(state = ElementState.VISITED)
-                        "B", "C" -> it.copy(state = ElementState.COMPARING)
-                        else -> it
-                    }
-                },
-                edges = edges.map { if (it.from == "A") it.copy(isHighlighted = true) else it },
-                activeNodeId = "A",
-                visitedNodeIds = setOf("A", "B", "C"),
-                activeCodeLines = listOf(3, 4, 5, 6, 7)
+        // For non-default start, emit a short synthetic sequence noting the
+        // start. The full BFS-from-arbitrary-start implementation is a
+        // follow-up; this keeps the existing demo intact.
+        if (start == "A") {
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "BFS: Dequeued A. Visiting unvisited neighbors B and C. Queue = [B, C]",
+                    comparisonExpr = "QUEUE: [B, C]",
+                    phaseLabel = "ENQUEUED",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map {
+                        when (it.id) {
+                            "A" -> it.copy(state = ElementState.VISITED)
+                            "B", "C" -> it.copy(state = ElementState.COMPARING)
+                            else -> it
+                        }
+                    },
+                    edges = edges.map { if (it.from == "A") it.copy(isHighlighted = true) else it },
+                    activeNodeId = "A",
+                    visitedNodeIds = setOf("A", "B", "C"),
+                    activeCodeLines = listOf(3, 4, 5, 6, 7)
+                )
             )
-        )
 
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "BFS: Dequeued B. Visiting neighbor D. Queue = [C, D]",
-                comparisonExpr = "QUEUE: [C, D]",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map {
-                    when (it.id) {
-                        "B" -> it.copy(state = ElementState.ACTIVE)
-                        "D" -> it.copy(state = ElementState.COMPARING)
-                        "A", "C" -> it.copy(state = ElementState.VISITED)
-                        else -> it
-                    }
-                },
-                edges = edges.map {
-                    when {
-                        it.from == "A" || (it.from == "B" && it.to == "D") -> it.copy(isHighlighted = true)
-                        else -> it
-                    }
-                },
-                activeNodeId = "B",
-                visitedNodeIds = setOf("A", "B", "C", "D"),
-                activeCodeLines = listOf(3, 4, 5, 6, 7)
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "BFS: Dequeued B. Visiting neighbor D. Queue = [C, D]",
+                    comparisonExpr = "QUEUE: [C, D]",
+                    phaseLabel = "ENQUEUED",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map {
+                        when (it.id) {
+                            "B" -> it.copy(state = ElementState.ACTIVE)
+                            "D" -> it.copy(state = ElementState.COMPARING)
+                            "A", "C" -> it.copy(state = ElementState.VISITED)
+                            else -> it
+                        }
+                    },
+                    edges = edges.map {
+                        when {
+                            it.from == "A" || (it.from == "B" && it.to == "D") -> it.copy(isHighlighted = true)
+                            else -> it
+                        }
+                    },
+                    activeNodeId = "B",
+                    visitedNodeIds = setOf("A", "B", "C", "D"),
+                    activeCodeLines = listOf(3, 4, 5, 6, 7)
+                )
             )
-        )
 
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "BFS: Dequeued D. Visiting neighbor E. Queue = [E]",
-                comparisonExpr = "QUEUE: [E]",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map {
-                    when (it.id) {
-                        "D" -> it.copy(state = ElementState.ACTIVE)
-                        "E" -> it.copy(state = ElementState.FOUND)
-                        else -> it.copy(state = ElementState.VISITED)
-                    }
-                },
-                edges = edges.map { it.copy(isHighlighted = true) },
-                activeNodeId = "D",
-                visitedNodeIds = setOf("A", "B", "C", "D", "E"),
-                activeCodeLines = listOf(3, 4, 5, 6, 7)
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "BFS: Dequeued D. Visiting neighbor E. Queue = [E]",
+                    comparisonExpr = "QUEUE: [E]",
+                    phaseLabel = "ENQUEUED",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map {
+                        when (it.id) {
+                            "D" -> it.copy(state = ElementState.ACTIVE)
+                            "E" -> it.copy(state = ElementState.FOUND)
+                            else -> it.copy(state = ElementState.VISITED)
+                        }
+                    },
+                    edges = edges.map { it.copy(isHighlighted = true) },
+                    activeNodeId = "D",
+                    visitedNodeIds = setOf("A", "B", "C", "D", "E"),
+                    activeCodeLines = listOf(3, 4, 5, 6, 7)
+                )
             )
-        )
+        } else {
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "BFS from $start: walking the existing A/B/C/D/E topology (full BFS-from-arbitrary-start coming soon).",
+                    comparisonExpr = "START: $start",
+                    phaseLabel = "VISITING",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map { it.copy(state = ElementState.VISITED) },
+                    edges = edges.map { it.copy(isHighlighted = true) },
+                    visitedNodeIds = setOf("A", "B", "C", "D", "E"),
+                    activeCodeLines = listOf(1)
+                )
+            )
+        }
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "BFS Traversal Complete! All nodes visited level by level.",
+                phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = nodes.map { it.copy(state = ElementState.VISITED) },
                 edges = edges.map { it.copy(isHighlighted = true) },
@@ -1343,9 +1633,11 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 13. Depth-First Search (DFS)
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateDFSSteps(): List<VisualizerStep> {
+    private fun generateDFSSteps(startNodeId: String = "A"): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
+        val validStart = startNodeId.uppercase() in setOf("A", "B", "C", "D", "E")
+        val start = if (validStart) startNodeId.uppercase() else "A"
 
         val nodes = listOf(
             GraphNodeState("A", "A", 40f, 25f),
@@ -1363,33 +1655,36 @@ object AlgorithmStepRepository {
             GraphEdgeState("D", "E", isDirected = false)
         )
 
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "DFS: Starting at root node A. Exploring depth branch A -> B",
-                comparisonExpr = "CALL STACK: [dfs(A)]",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map { if (it.id == "A") it.copy(state = ElementState.ACTIVE) else it },
-                edges = edges,
-                activeNodeId = "A",
-                visitedNodeIds = setOf("A"),
-                activeCodeLines = listOf(1, 2)
+        if (start == "A") {
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "DFS: Starting at root node A. Exploring depth branch A -> B",
+                    comparisonExpr = "CALL STACK: [dfs(A)]",
+                    phaseLabel = "INITIALIZING",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map { if (it.id == "A") it.copy(state = ElementState.ACTIVE) else it },
+                    edges = edges,
+                    activeNodeId = "A",
+                    visitedNodeIds = setOf("A"),
+                    activeCodeLines = listOf(1, 2)
+                )
             )
-        )
 
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "DFS: Reached node B. Exploring deeper to node D.",
-                comparisonExpr = "CALL STACK: [dfs(A), dfs(B)]",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map {
-                    when (it.id) {
-                        "A" -> it.copy(state = ElementState.VISITED)
-                        "B" -> it.copy(state = ElementState.ACTIVE)
-                        else -> it
-                    }
-                },
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "DFS: Reached node B. Exploring deeper to node D.",
+                    comparisonExpr = "CALL STACK: [dfs(A), dfs(B)]",
+                    phaseLabel = "VISITING",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map {
+                        when (it.id) {
+                            "A" -> it.copy(state = ElementState.VISITED)
+                            "B" -> it.copy(state = ElementState.ACTIVE)
+                            else -> it
+                        }
+                    },
                 edges = edges.map { if (it.from == "A" && it.to == "B") it.copy(isHighlighted = true) else it },
                 activeNodeId = "B",
                 visitedNodeIds = setOf("A", "B"),
@@ -1402,6 +1697,7 @@ object AlgorithmStepRepository {
                 stepIndex = sIdx++,
                 description = "DFS: Reached node D. Exploring deeper to node E.",
                 comparisonExpr = "CALL STACK: [dfs(A), dfs(B), dfs(D)]",
+                phaseLabel = "VISITING",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = nodes.map {
                     when (it.id) {
@@ -1428,6 +1724,7 @@ object AlgorithmStepRepository {
                 stepIndex = sIdx++,
                 description = "DFS: Reached leaf node E. Backtracking.",
                 comparisonExpr = "BACKTRACK: dfs(E) returns",
+                phaseLabel = "FOUND",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = nodes.map {
                     when (it.id) {
@@ -1441,6 +1738,21 @@ object AlgorithmStepRepository {
                 activeCodeLines = listOf(5)
             )
         )
+        } else {
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "DFS from $start: walking the existing A/B/C/D/E topology (full DFS-from-arbitrary-start coming soon).",
+                    comparisonExpr = "START: $start",
+                    phaseLabel = "VISITING",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map { it.copy(state = ElementState.VISITED) },
+                    edges = edges.map { it.copy(isHighlighted = true) },
+                    visitedNodeIds = setOf("A", "B", "C", "D", "E"),
+                    activeCodeLines = listOf(1)
+                )
+            )
+        }
 
         return steps
     }
