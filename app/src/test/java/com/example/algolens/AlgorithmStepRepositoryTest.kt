@@ -1,10 +1,10 @@
 package com.example.algolens
 
+import com.example.algolens.data.AlgorithmCodeRegistry
 import com.example.algolens.data.AlgorithmStepRepository
 import com.example.algolens.data.SampleData
-import com.example.algolens.ui.visualizer.AlgorithmCodeRegistry
+import com.example.algolens.data.TraceLanguage
 import com.example.algolens.ui.visualizer.ElementState
-import com.example.algolens.ui.visualizer.TraceLanguage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

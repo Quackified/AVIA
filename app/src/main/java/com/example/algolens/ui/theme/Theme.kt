@@ -127,6 +127,8 @@ object AlgoTokens {
     // ── Strokes ──
     val strokeHairline: Dp = 0.5.dp
     val strokeThin: Dp = 1.dp
+    /** Mid-weight border for buffer/rail surfaces (between hairline and active). */
+    val strokeMedium: Dp = 1.5.dp
     val strokeActive: Dp = 2.dp
     val strokeBorderSubtle: Color = BorderSubtle
     val strokeBorderMedium: Color = BorderMedium
@@ -144,6 +146,8 @@ object AlgoTokens {
     // ── Component Sizing ──
     /** Minimum recommended touch target for accessibility (WCAG-aligned). */
     val minTouchTarget: Dp = 44.dp
+    /** Extra-small icon button (cell key-card glyphs, smaller than the 30dp rail icons). */
+    val iconButtonXs: Dp = 26.dp
     /** Compact icon button used in rails / headers. */
     val iconButtonSm: Dp = 30.dp
     val iconButtonMd: Dp = 32.dp
@@ -154,6 +158,8 @@ object AlgoTokens {
     val inlineIconLg: Dp = 18.dp
 
     // ── Corner Radii ──
+    /** Tightest radius for chips / small badges (between 4dp xs and 8dp sm). */
+    val radiusXxs: Dp = 6.dp
     val radiusXs: Dp = 4.dp
     val radiusSm: Dp = 8.dp
     val radiusMd: Dp = 12.dp

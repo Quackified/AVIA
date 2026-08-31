@@ -1,7 +1,8 @@
 package com.example.algolens
 
+import com.example.algolens.data.AlgorithmCodeRegistry
 import com.example.algolens.data.SampleData
-import com.example.algolens.ui.visualizer.AlgorithmCodeRegistry
+import com.example.algolens.data.TraceLanguage
 import com.example.algolens.ui.visualizer.AlgorithmTheoryRepository
 import com.example.algolens.ui.visualizer.ChallengeState
 import com.example.algolens.ui.visualizer.ElementState
@@ -10,7 +11,6 @@ import com.example.algolens.ui.visualizer.GraphNodeState
 import com.example.algolens.ui.visualizer.PRESET_OPTIONS
 import com.example.algolens.ui.visualizer.SyntaxHighlighter
 import com.example.algolens.ui.visualizer.TOUR_STEPS
-import com.example.algolens.ui.visualizer.TraceLanguage
 import com.example.algolens.ui.visualizer.VisualizerStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -42,6 +42,7 @@ import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentRed
 import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoLensTheme
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BorderMedium
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
@@ -77,9 +78,9 @@ fun BufferVisualizer(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
             .background(CardBackgroundElevated)
-            .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
+            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusMd))
             .padding(14.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -143,7 +144,7 @@ private fun StackCanvas(step: VisualizerStep) {
         // Stack column with TOP arrow above and base below
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
             modifier = Modifier.width(200.dp)
         ) {
             // ── TOP arrow indicator ──
@@ -154,12 +155,12 @@ private fun StackCanvas(step: VisualizerStep) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
-                    .clip(RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 6.dp, bottomEnd = 6.dp))
+                    .clip(RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = AlgoTokens.radiusXxs, bottomEnd = AlgoTokens.radiusXxs))
                     .background(CardBackground)
                     .border(
                         width = 1.5.dp,
                         color = PrimaryCyan.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 6.dp, bottomEnd = 6.dp)
+                        shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = AlgoTokens.radiusXxs, bottomEnd = AlgoTokens.radiusXxs)
                     )
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 contentAlignment = Alignment.BottomCenter
@@ -167,7 +168,7 @@ private fun StackCanvas(step: VisualizerStep) {
                 if (step.buffer.isEmpty()) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
                         modifier = Modifier.align(Alignment.Center)
                     ) {
                         Text(
@@ -318,7 +319,7 @@ private fun CapacityIndicator(size: Int, capacity: Int) {
                 .height(160.dp)
                 .clip(RoundedCornerShape(3.dp))
                 .background(CanvasBackground)
-                .border(0.5.dp, BorderSubtle, RoundedCornerShape(3.dp))
+                .border(AlgoTokens.strokeHairline, BorderSubtle, RoundedCornerShape(3.dp))
         ) {
             Box(
                 modifier = Modifier
@@ -332,7 +333,7 @@ private fun CapacityIndicator(size: Int, capacity: Int) {
                     .align(Alignment.BottomStart)
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(AlgoTokens.space2))
         Text(
             text = "$size/$capacity",
             style = MaterialTheme.typography.labelSmall,
@@ -353,23 +354,23 @@ private fun QueueCanvas(step: VisualizerStep) {
     val capacity = step.bufferCapacity.coerceAtLeast(1)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
     ) {
         // Conveyor row with FRONT/REAR gates
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                 .background(CardBackground)
-                .border(width = 1.5.dp, color = PrimaryCyan.copy(alpha = 0.4f), shape = RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .border(width = AlgoTokens.strokeMedium, color = PrimaryCyan.copy(alpha = 0.4f), shape = RoundedCornerShape(AlgoTokens.radiusSm))
+                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
             contentAlignment = Alignment.Center
         ) {
             if (step.buffer.isEmpty()) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                 ) {
                     Text(
                         text = "EMPTY QUEUE",
@@ -407,7 +408,7 @@ private fun QueueCanvas(step: VisualizerStep) {
                         key(item.id) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                             ) {
                                 // FRONT / REAR gate labels
                                 if (isFront) {
@@ -424,12 +425,12 @@ private fun QueueCanvas(step: VisualizerStep) {
                                         .size(width = 44.dp, height = 48.dp)
                                         .slideEnter(visible = true, direction = SlideDirection.Right)
                                         .nodePop(item.state == ElementState.ACTIVE)
-                                        .clip(RoundedCornerShape(6.dp))
+                                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                                         .background(bgCol)
                                         .border(
                                             width = if (isFront || isRear) 1.5.dp else 1.dp,
                                             color = if (isFront) AccentGreen else if (isRear) SecondaryPurple else BorderMedium,
-                                            shape = RoundedCornerShape(6.dp)
+                                            shape = RoundedCornerShape(AlgoTokens.radiusXxs)
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {

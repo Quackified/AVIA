@@ -1,11 +1,12 @@
 # AlgoLens — Handover Brief for the Next Agent
 
 > **Context:** You are picking up the AlgoLens Android Studio project
-> after a 4-phase UI architecture refactor. Phases 0–3 are **done,
-> compiled, and tested**. The remaining work is Phase 4 (the
-> `VisualizerOverlay` extension surface for per-algorithm gimmicks)
-> and Phase 5 (hygiene: split the 2,700-line monoliths, delete dead
-> code, enforce the new design system with lint).
+> after a 5-phase UI architecture refactor. Phases 0–3 are **done,
+> compiled, and tested**. Phase 4 (the `VisualizerOverlay` extension
+> surface) is still pending. Phase 5 (hygiene: split the
+> 2,500-line monoliths, delete dead code, enforce the new design
+> system with `AlgoTokens`) is **done** (4.2.1–4.2.5; 4.2.6
+> deferred to Phase 6).
 >
 > **Tooling context:** This is an **Android Studio** project with
 > the **`jetpack-compose`** + **`impeccable`** + **`build-system`**
@@ -187,69 +188,151 @@ numbered.
 
 ---
 
-### 4.2 Phase 5 — Hygiene
+### 4.2 Phase 5 — Hygiene (✅ COMPLETE)
 
-> **Why:** Two visualizer files are still > 1,000 lines. Splitting
-> them makes every Phase 4 overlay easier to add and makes R8 /
-> lint runs cheaper. This phase also deletes the dead file left
-> behind by Phase 2 and enforces the new design system across the
+> **Why:** Three visualizer files were > 700 lines. Splitting them
+> makes every Phase 4 overlay easier to add and makes R8 / lint
+> runs cheaper. This phase also deletes the dead file left behind
+> by Phase 2 and enforces the new design system across the
 > remaining renderers.
+>
+> **Status:** All five sub-tasks except 4.2.6 are done. The 3-way
+> monolith split + dead file deletion + AlgoTokens migration is
+> complete; the screenshot test is deferred to Phase 6 alongside
+> the macrobenchmark work (it shares the same test infrastructure).
 
-**Task 4.2.1 — Delete the now-unused `visualizer/ArrayVisualizer.kt`.**
+**Task 4.2.1 — Delete the now-unused `visualizer/ArrayVisualizer.kt`.** ✅
 
-- It has no callers in production code (the only references left
-  are its own `@Preview`).
-- Run `impeccable` to confirm it's dead.
+- Had no callers in production code (the only references left
+  were its own `@Preview` and KDoc mentions in 8 other files).
+  Removed via `git rm`.
 
-**Task 4.2.2 — Split `CellArrayVisualizer.kt` (1,275 lines) into:**
+**Task 4.2.2 — Split `CellArrayVisualizer.kt` (was 1,084 lines) into:** ✅
 
-- `CellGrid.kt` — the cell rows + columns + index label rendering.
-- `CellPointerBadges.kt` — the top / bottom pointer pills.
-- `OffscreenPointerBanner.kt` — the `OffscreenPointerTarget`
-  rendering when the active index is scrolled out of view.
-- `CellGlowPainter.kt` — the `drawCellGlow` helper (extracted from
-  the draw-behind block).
-- `ChallengeGlowTargets.kt` — the Challenge Mode "TARGET" cells.
-- The public `CellArrayVisualizer` becomes a thin shell that
-  composes the above.
-- Acceptance: **no behavior change** — the existing
-  `VisualizerScreenStateTest` + the 29-test suite must still pass
-  without modification.
+- `CellGrid.kt` (326 lines) — the `LazyRow` + `itemsIndexed` block,
+  the new `CellItem` extracted composable, the selection-sort
+  boundary curtain divider, the per-cell color triple, and the
+  `graphicsLayer` swap-flight transform.
+- `CellPointerBadges.kt` (131 lines) — `TopPointerBadge` and
+  `BottomPointerBadge` extracted composables (each ~70 lines).
+- `OffscreenPointerBanner.kt` (306 lines) — the `derivedStateOf`
+  building `offscreenPointers`, the `leftOffscreen`/`rightOffscreen`
+  filters, the `Row` with the two `AnimatedVisibility` slots, and
+  the private `OffscreenCellPopup` composable. **Stays in this
+  file** (not yet merged with `PointerBannerOverlay.kt`); the
+  VisualizerOverlayTest still locks the inline semantics.
+- `CellGlowPainter.kt` (56 lines) — `internal fun DrawScope.drawCellGlow(...)`
+  extracted (was `private` in the original).
+- `ChallengeGlowTargets.kt` (40 lines) — `rememberChallengePulseState()`
+  composable + `challengeTargetColorTriple()` helper.
+- The public `CellArrayVisualizer.kt` (472 lines) is now a thin
+  shell that composes the above plus the 4 algorithm banners
+  (Insertion/Bubble/Selection/Merge), the comparison callout, and
+  the `@Preview`.
+- **Acceptance:** public API byte-identical (parameters, defaults,
+  types). The `OffscreenPointerTarget` data class stays in
+  `CellArrayVisualizer.kt` (public top-level) because
+  `FeatureEnhancementsTest.kt` references it by FQN.
 
-**Task 4.2.3 — Split `CodeTracePane.kt` (1,400 lines) into:**
+**Task 4.2.3 — Split `CodeTracePane.kt` (was 1,173 lines) into:** ✅
 
-- `CodeListing.kt` — the language tab + the syntax-highlighted
-  code body.
-- `ActiveLinePill.kt` — the sliding active-line pill (`lineTrackSpring`).
-- `VariableInspector.kt` — the `disclosure { … }` block for
-  variables + memory call stack.
-- `AlgorithmCodeRegistry.kt` — move the 4-language code registry
-  out of the file (it's pure data, should be in `data/`).
-- The public `CodeTracePane` becomes a thin shell.
+- `data/AlgorithmCodeRegistry.kt` (616 lines) — the
+  `AlgorithmCodeRegistry` object + `MultiLangCode` data class + the
+  7 private `get*Code` builders. **Also moved `TraceLanguage`
+  enum** here from `ui.visualizer` because it is part of the
+  multi-language data model. `SyntaxHighlighter` (UI-aware)
+  stayed in `ui.visualizer` in its own `SyntaxHighlighter.kt`.
+- `CodeListing.kt` (299 lines) — the language-tab header `Row`,
+  the `LazyColumn` of syntax-highlighted code lines, the
+  `InlineVarChip` private composable, and the active-line semantic
+  rail with the sync-pulse draw-behind glow.
+- `ActiveLinePill.kt` (93 lines) — the `LaunchedEffect` +
+  `snapshotFlow` + `animateFloatAsState` calls driving the pill's
+  Y/H, plus the rendered pill `Box`. Takes `accent: Color` as a
+  parameter (computed in the shell).
+- The public `CodeTracePane.kt` (162 lines) is a thin shell
+  that owns the `selectedLanguage` state, the single shared
+  `LazyListState`, the `codeData` lookup, the
+  `activeLinesInCurrentLang` mapping, the `pillAccent` computation,
+  the auto-scroll `LaunchedEffect`, and the outer panel chrome.
+- **Note:** The original 4-way plan included `VariableInspector.kt`,
+  but the legacy `disclosure { … }` block was already removed in
+  a prior refactor and moved into the kebab popover in
+  `VisualizerHeader.kt`. The remaining "variable inspector" UI is
+  the inline per-line `InlineVarChip`, which lives inside
+  `CodeListing.kt` as a private composable. **VariableInspector.kt
+  is dropped from scope.**
+- **Test impact:** Two test files updated for the package move
+  (import-only, no body changes):
+  - `FeatureEnhancementsTest.kt`: `ui.visualizer.AlgorithmCodeRegistry`
+    → `data.AlgorithmCodeRegistry`; same for `TraceLanguage`.
+  - `AlgorithmStepRepositoryTest.kt`: same.
 
-**Task 4.2.4 — Split `GraphTreeVisualizer.kt` (700 lines) into:**
+**Task 4.2.4 — Split `GraphTreeVisualizer.kt` (was 741 lines) into:** ✅
 
-- `GraphTreeRenderer.kt` — pure drawing.
-- `GraphBuilderOverlay.kt` — the tap-to-add-node builder
-  (currently `isBuilderActive` is mixed in with rendering).
-- Public `GraphTreeVisualizer` composes the two.
+- `GraphTreeRenderer.kt` (297 lines) — the `Canvas` `drawScope`
+  block (edges, drag preview, nodes with halos) and the
+  `activeHaloPulse` infinite transition.
+- `GraphBuilderOverlay.kt` (334 lines) — the toolbar
+  (`GraphBuilderToolbar`), the tap/drag `pointerInput` gesture
+  detectors (`GraphBuilderGestures`), the
+  `GraphCanvasGeometry` helper (internal, was duplicated 4× in
+  the original), and the instruction banner
+  (`GraphBuilderBanner`).
+- The public `GraphTreeVisualizer.kt` (213 lines) is a thin shell
+  that owns all the mutable builder state (`dynamicNodes`,
+  `dynamicEdges`, `dragStartNode`, `currentDragPos`,
+  `hoveredTargetNodeId`, `selectedNodeId`, `isBuilderActive`,
+  the per-node "first visit" pop `nodeScales`) and composes the
+  toolbar + gestures + renderer + banner.
+- **Dedup:** The 4 duplicated `toCanvasOffset` copies in the
+  original are now a single `GraphCanvasGeometry.toCanvasOffset()`
+  internal data class, shared by the renderer and both gesture
+  detectors.
 
-**Task 4.2.5 — Migrate the visualizer family renderers to the new `AlgoTokens` sizing constants.**
+**Task 4.2.5 — Migrate the visualizer family renderers to the new `AlgoTokens` sizing constants.** ✅
 
-- Today `CellArrayVisualizer`, `GraphTreeVisualizer`, and
-  `BufferVisualizer` still use raw `RoundedCornerShape(6.dp)`,
-  `RoundedCornerShape(12.dp)`, `size(26.dp)`, etc.
-- Replace with `RoundedCornerShape(AlgoTokens.radiusSm)`,
-  `RoundedCornerShape(AlgoTokens.radiusMd)`, `Modifier.size(AlgoTokens.iconButtonLg)`, etc.
-- This is a mechanical sweep; do not change behavior.
+- **Three new `AlgoTokens` constants** added in `Theme.kt`:
+  - `radiusXxs = 6.dp` — chip / banner / cell-box radius (was
+    the highest-volume literal without a token, 30+ call sites).
+  - `strokeMedium = 1.5.dp` — buffer / card border weight
+    (between `strokeThin=1.dp` and `strokeActive=2.dp`).
+  - `iconButtonXs = 26.dp` — cell key-card icon size (the
+    one-off `Modifier.size(26.dp)` in `CellArrayVisualizer.kt`).
+- **Correction to the original plan:** the plan said
+  `RoundedCornerShape(6.dp) → AlgoTokens.radiusSm`, but
+  `radiusSm = 8.dp`, not 6.dp. Mapping 6 → 8 would have caused
+  a 33% visual change in cell / chip / banner corners. The
+  correct mapping (with the new `radiusXxs`) is **6.dp → radiusXxs**,
+  preserving exact pixel-identical visuals.
+- **Files migrated:** the new `CellArrayVisualizer`, `CellGrid`,
+  `CellPointerBadges`, `OffscreenPointerBanner`, `CodeListing`,
+  `ActiveLinePill`, `GraphTreeVisualizer`, `GraphTreeRenderer`,
+  `GraphBuilderOverlay` were built from the ground up using
+  `AlgoTokens.*` for every value with a matching token. The
+  pre-existing `BufferVisualizer.kt` was swept mechanically
+  (12.dp → radiusMd, 8.dp → radiusSm, 6.dp → radiusXxs, 1.dp →
+  strokeThin, 1.5.dp → strokeMedium, 0.5.dp → strokeHairline,
+  2.dp spacing → space1, 4.dp spacing → space2).
+- **Out of scope (intentionally left as raw literals):** 5.dp,
+  3.dp, 9.dp, 10.dp, 11.dp, 14.dp, 18.dp, 20.dp, 36.dp, 42.dp,
+  44.dp, 48.dp, 52.dp, 120.dp, 160.dp, 180.dp, 200.dp — these
+  are domain-specific component dimensions (buffer heights, cell
+  icon sizes, button sizes) where no generic spacing token
+  applies. Phase 6's lint rules will decide whether they need
+  their own tokens.
 
-**Task 4.2.6 — Add a Compose preview screenshot test for the visualizer.**
+**Task 4.2.6 — Add a Compose preview screenshot test for the visualizer.** ⏸ DEFERRED
 
-- New file `app/src/androidTest/.../VisualizerScreenTest.kt` using
-  the Compose UI testing skill.
-- Capture one screenshot per `VisualizerFamily` and per
-  `ElementState` highlight. No assertions on pixel content; just
-  ensure the previews don't crash.
+- The plan was to create `app/src/androidTest/.../VisualizerScreenTest.kt`
+  capturing one screenshot per `VisualizerFamily` + `ElementState`.
+- **Deferred to Phase 6** alongside the `Macrobenchmark` module
+  and the lint rules. Reason: this is the first `androidTest`
+  file in the project; adding new test infrastructure (Compose UI
+  test dependency, screenshot capture plumbing) is real setup
+  work that is better grouped with the macrobenchmark module
+  which needs the same scaffolding.
+- Tracked as a follow-up issue.
 
 ---
 
