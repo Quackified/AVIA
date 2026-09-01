@@ -148,11 +148,55 @@ fun CellArrayVisualizer(
     val targetIndex = remember(activeIndices, pointerIndices) {
         (activeIndices + pointerIndices).minOrNull()
     }
-    LaunchedEffect(step.stepIndex, targetIndex) {
-        if (targetIndex != null && step.array.isNotEmpty()) {
-            val safeIndex = targetIndex.coerceIn(0, step.array.size - 1)
-            if (safeIndex !in visibleItemIndices) {
-                lazyListState.animateScrollToItem(safeIndex)
+
+    // Adaptive scroll strategy (3 cases):
+    //   1. Array fits in viewport  -> center it.
+    //   2. Array overflows, no active target -> pin index 0 to the
+    //      left edge (UX brief: 'left index shifts towards the
+    //      left, bounding area + current margin').
+    //   3. Array overflows, active target present -> scroll so the
+    //      leftmost active target is the leftmost visible item
+    //      (preserves the original 'keep active elements in
+    //      view' behavior). The centering math uses the viewport
+    //      width measured inside BoxWithConstraints; we hoist the
+    //      computed sizing into state so the effect can read it.
+    var outerCellWidth by remember { mutableStateOf(0.dp) }
+    var outerCellGap by remember { mutableStateOf(0.dp) }
+    var outerViewportWidthDp by remember { mutableStateOf(0.dp) }
+
+    LaunchedEffect(step.stepIndex, step.array.size, outerCellWidth, outerCellGap, outerViewportWidthDp) {
+        if (step.array.isEmpty()) return@LaunchedEffect
+        if (outerViewportWidthDp == 0.dp) return@LaunchedEffect
+        if (outerCellWidth == 0.dp) return@LaunchedEffect
+        val nodeCount = step.array.size
+        // Cell-only width: the LazyRow itself accounts for the
+        // inter-cell gap via Arrangement.spacedBy, so for the
+        // purposes of "does the row fit in the viewport?" we
+        // only need the cell area. The new sizing makes this
+        // equal to the available width, so Case 1 (centered)
+        // fires whenever cells fill the canvas.
+        val cellArea = outerCellWidth * nodeCount
+        if (cellArea <= outerViewportWidthDp) {
+            // Case 1: array fits -> center. The LazyRow uses a
+            // pixel scroll offset. With the row anchored to
+            // index 0 and offset = -(extraSpace/2), the visible
+            // items span equally on both sides -> centered.
+            val extraSpace = outerViewportWidthDp - cellArea
+            val targetPx = -(extraSpace.value / 2f * density.density).toInt()
+            val info = lazyListState.layoutInfo
+            val firstVisible = info.visibleItemsInfo.firstOrNull()?.index ?: 0
+            val currentOffset = info.visibleItemsInfo.firstOrNull()?.offset ?: 0
+            val alreadyCentered = firstVisible == 0 && kotlin.math.abs(currentOffset - targetPx) <= 2
+            if (!alreadyCentered) {
+                lazyListState.animateScrollToItem(0, targetPx)
+            }
+        } else {
+            // Cases 2 & 3: array overflows. Pick the leftmost anchor:
+            // - If there is an active target, use it.
+            // - Otherwise pin index 0 to the left edge.
+            val anchor = (targetIndex ?: 0).coerceIn(0, nodeCount - 1)
+            if (anchor !in visibleItemIndices) {
+                lazyListState.animateScrollToItem(anchor)
             }
         }
     }
@@ -166,11 +210,36 @@ fun CellArrayVisualizer(
         // slot pitch derive from the available width and total node count.
         val nodeCount = step.array.size.coerceAtLeast(1)
         val availableWidth = maxWidth - 36.dp // canvas well padding + gutters
-        // `cellScale` is the user's S/M/L header preset (0.6x..1.4x).
-        val cellWidth = (((availableWidth / nodeCount) * cellScale).coerceAtLeast(18.dp)).coerceAtMost(44.dp)
+        // Adaptive cell sizing: cells grow to fill the available
+        // width so the row always spans the canvas (with the
+        // existing centring autoscroll, this makes a 9-cell
+        // array at S scale fill the screen edge-to-edge
+        // instead of leaving 120dp of blank space on the right).
+        // The 44dp cap still applies to very small arrays (3-5
+        // cells) so cells do not get comically large; the 14dp
+        // floor protects readability for very large arrays at
+        // extreme scales. `cellScale` is applied to the font
+        // size below, not the cell width -- S/M/L is more
+        // intuitive as "small/large digits" than "small/large
+        // cells with empty space around them".
+        val cellWidth = (availableWidth / nodeCount).coerceIn(14.dp, 44.dp)
         val cellHeight = cellWidth * 1.12f
-        val cellTextSize = (cellWidth.value * 0.36f).coerceIn(10f, 16f).sp
+        val cellTextSize = (cellWidth.value * 0.36f * cellScale).coerceIn(7f, 16f).sp
         val slotGap = AlgoTokens.space3
+
+        // Mirror the computed sizing into the state that the
+        // adaptive-scroll LaunchedEffect above reads. We pass by
+        // value (not assignment) so the effect re-fires whenever
+        // the box re-measures (orientation change, resize, etc).
+        LaunchedEffect(cellWidth, slotGap, maxWidth) {
+            // Inner params shadow the outer vars. Use the
+            // outer \x27cellWidthField\x27 delegate (the var by
+            // remember inside the function) by reading the
+            // outer scope.
+            outerCellWidth = cellWidth
+            outerCellGap = slotGap
+            outerViewportWidthDp = maxWidth - 36.dp
+        }
 
         LaunchedEffect(cellWidth) {
             slotPitchPx = with(density) { (cellWidth + slotGap + AlgoTokens.space2).toPx() }

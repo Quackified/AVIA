@@ -60,6 +60,24 @@ fun GraphTreeVisualizer(
     var dynamicNodes by remember(algorithmKey) { mutableStateOf(step.nodes) }
     var dynamicEdges by remember(algorithmKey) { mutableStateOf(step.edges) }
 
+    // Whether the user has diverged from the step via the builder.
+    // When true, the sync effect below stops writing to dynamic*
+    // so local edits are preserved across step transitions.
+    // Reset to false by the "Reset Graph" toolbar action below.
+    var hasLocalEdits by remember(algorithmKey) { mutableStateOf(false) }
+
+    // Sync dynamic state from the step whenever the step pushes a
+    // new graph layout (e.g. on first composition after steps are
+    // generated, or when the user customizes input / scrubs to a
+    // different step). The user must NOT have made any local
+    // builder edits, otherwise their graph is preserved.
+    LaunchedEffect(step.nodes, step.edges, hasLocalEdits) {
+        if (!hasLocalEdits) {
+            dynamicNodes = step.nodes
+            dynamicEdges = step.edges
+        }
+    }
+
     // Gesture builder state
     var selectedNodeId by remember { mutableStateOf<String?>(null) }
     var dragStartNode by remember { mutableStateOf<GraphNodeState?>(null) }
@@ -129,6 +147,7 @@ fun GraphTreeVisualizer(
                     selectedNodeId = null
                     dragStartNode = null
                     currentDragPos = null
+                    hasLocalEdits = false
                     onGraphModified?.invoke(step.nodes, step.edges)
                 }
             )
@@ -148,8 +167,8 @@ fun GraphTreeVisualizer(
                     selectedNodeId = selectedNodeId,
                     dragStartNode = dragStartNode,
                     hoveredTargetNodeId = hoveredTargetNodeId,
-                    onNodesChanged = { dynamicNodes = it },
-                    onEdgesChanged = { dynamicEdges = it },
+                    onNodesChanged = { dynamicNodes = it; hasLocalEdits = true },
+                    onEdgesChanged = { dynamicEdges = it; hasLocalEdits = true },
                     onSelectedNodeIdChanged = { selectedNodeId = it },
                     onDragStartNodeChanged = { dragStartNode = it },
                     onCurrentDragPosChanged = { currentDragPos = it },
