@@ -60,3 +60,12 @@ val BarPointer = AccentYellow
 
 // Graph edges (the unhighlighted edge color; highlighted edges use AccentGreen).
 val GraphEdgeDefault = Color(0xFF1E293B)
+
+// Sunken chip backdrop used by banners / comparison callouts.
+val ChipBackground = Color(0xFF0F172A)
+// Unselected option / toggle track fill.
+val OptionUnselected = Color(0xFF1A2540)
+// Pink glow halo behind the active cell during swap flight.
+val AccentPinkGlow = Color(0x44FF3366)
+// Muted slate fallback for pointer badges.
+val BadgeMuted = Color(0xFF475569)

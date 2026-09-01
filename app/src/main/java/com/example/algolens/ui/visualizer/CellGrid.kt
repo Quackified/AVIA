@@ -1,4 +1,4 @@
-package com.example.algolens.ui.visualizer
+﻿package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -45,6 +45,7 @@ import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
+import com.example.algolens.ui.theme.AccentPinkGlow
 import kotlin.math.abs
 
 /**
@@ -59,7 +60,7 @@ import kotlin.math.abs
  * public shell from the available width and the cell-scale preset; this
  * composable just consumes them.
  *
- * Selection sort boundary curtain (the green→yellow vertical divider) and
+ * Selection sort boundary curtain (the greenâ†’yellow vertical divider) and
  * challenge-target halos (yellow pulse) live here because they are tightly
  * coupled to the cell paint.
  */
@@ -152,8 +153,8 @@ private fun CellItem(
         label = "cellAlpha_$index"
     )
 
-    // Tactile evaluation pop (bouncy 1.1x–1.2x) for cells being scanned.
-    // Held as State — read in the graphicsLayer below, not in composition.
+    // Tactile evaluation pop (bouncy 1.1xâ€“1.2x) for cells being scanned.
+    // Held as State â€” read in the graphicsLayer below, not in composition.
     val isEvaluated = state == ElementState.COMPARING ||
         state == ElementState.ACTIVE ||
         state == ElementState.FOUND
@@ -193,7 +194,7 @@ private fun CellItem(
                 .padding(horizontal = AlgoTokens.space1)
                 .graphicsLayer {
                     // All per-frame animated values are read HERE, in the
-                    // render phase — animation frames only re-record this
+                    // render phase â€” animation frames only re-record this
                     // layer and never recompose the cell subtree.
                     val ox = slotFlight.transform(index).offsetX.value
                     val oy = slotFlight.transform(index).offsetY.value
@@ -217,12 +218,12 @@ private fun CellItem(
                     onCellClick?.invoke(index)
                 }
         ) {
-            // ── Top Pointer Badge ──
+            // â”€â”€ Top Pointer Badge â”€â”€
             TopPointerBadge(entry = topPointerEntry)
 
-            // ── Cell Box ──
+            // â”€â”€ Cell Box â”€â”€
             // Contrast rule: the semantic accent lives on the BORDER and
-            // FILL TINT only — the element VALUE digit must always render
+            // FILL TINT only â€” the element VALUE digit must always render
             // in a high-contrast colour (white / bright accent). Never map
             // a low-luminance accent (e.g. pink #FF3366) to the value text,
             // or the digit vanishes into its own tinted fill.
@@ -235,12 +236,12 @@ private fun CellItem(
                     AlgoTokens.accentYellow, AlgoTokens.yellowFill, Color.White
                 )
                 // Compare flash: pink frame + pink tint, but the value
-                // stays WHITE — a red digit on a red tint is unreadable.
+                // stays WHITE â€” a red digit on a red tint is unreadable.
                 state == ElementState.COMPARING -> Triple(
                     AlgoTokens.accentPink, AlgoTokens.pinkFill, Color.White
                 )
                 state == ElementState.SWAPPING -> Triple(
-                    AlgoTokens.accentPink, Color(0x44FF3366), Color.White
+                    AlgoTokens.accentPink, AccentPinkGlow, Color.White
                 )
                 state == ElementState.ACTIVE ||
                     state == ElementState.VISITED ||
@@ -309,7 +310,7 @@ private fun CellItem(
                 )
             }
 
-            // ── Index Label ──
+            // â”€â”€ Index Label â”€â”€
             Text(
                 text = index.toString(),
                 style = MaterialTheme.typography.labelSmall,
@@ -322,7 +323,7 @@ private fun CellItem(
                 fontSize = 8.5.sp
             )
 
-            // ── Bottom Pointer Badge ──
+            // â”€â”€ Bottom Pointer Badge â”€â”€
             BottomPointerBadge(entry = bottomPointerEntry)
         }
     }

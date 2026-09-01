@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,7 +37,6 @@ import com.example.algolens.ui.theme.SecondaryPurple
  *
  * Thin public shell — composes the following private modules in the same package:
  *  - [CodeListing]    — language tabs + syntax-highlighted code body
- *  - [ActiveLinePill] — sliding active-line pill driven by [lineTrackSpring]
  *  - `SyntaxHighlighter` — keyword/type/comment/number highlighter (in-package helper)
  *  - `AlgorithmCodeRegistry` / `TraceLanguage` (in `data/`) — multi-language code data
  *
@@ -75,12 +73,6 @@ fun CodeTracePane(
     val highlightedLines = remember(codeData, selectedLanguage) {
         codeData.lines.map { line -> SyntaxHighlighter.highlight(line, selectedLanguage) }
     }
-
-    // The pill takes the highest-precedence accent across ALL active lines,
-    // so a single step that activates e.g. `[5, 8]` (one of which is a swap)
-    // correctly renders the pill pink even though another active line is
-    // a plain assignment. See [CodeLineAccent] for the family ordering.
-    val pillAccent = CodeLineAccent.resolveForActiveSet(codeData.lines, activeLinesInCurrentLang)
 
     // Smoothly keep the active lines in view only when out of viewport
     LaunchedEffect(activeLinesInCurrentLang) {
@@ -124,15 +116,6 @@ fun CodeTracePane(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // The active-line pill is layered ON TOP of the listing so the
-            // bouncy spring tracker visually highlights the line even as
-            // the LazyColumn is mid-scroll.
-            ActiveLinePill(
-                activeLines = activeLinesInCurrentLang,
-                syncPulse = syncPulse,
-                accent = pillAccent,
-                lazyListState = lazyListState
-            )
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.example.algolens.ui.visualizer
+﻿package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -27,11 +27,12 @@ import androidx.compose.ui.unit.sp
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.SecondaryPurple
+import com.example.algolens.ui.theme.BadgeMuted
 
 /**
  * Top-of-cell pointer pill (e.g. PIVOT, L, R, target, min, key).
  *
- * Owns the badge sizing, the label→colour mapping for the canonical sort
+ * Owns the badge sizing, the labelâ†’colour mapping for the canonical sort
  * pointer names, and the scale+fade enter/exit animation. Wrapped in an
  * [AnimatedVisibility] keyed on the entry's nullness so it appears/disappears
  * smoothly as pointers land on and leave a cell.
@@ -59,7 +60,7 @@ fun TopPointerBadge(
                     isMin -> AlgoTokens.accentYellow to DarkBackground
                     label.equals("key", ignoreCase = true) -> SecondaryPurple to Color.White
                     label.equals("target", ignoreCase = true) -> SecondaryPurple to Color.White
-                    else -> Color(0xFF475569) to Color.White
+                    else -> BadgeMuted to Color.White
                 }
 
                 Box(
@@ -84,7 +85,7 @@ fun TopPointerBadge(
 /**
  * Bottom-of-cell pointer pill (e.g. i, j, mid, low, high, k).
  *
- * A 18×18dp square with a single letter and a label→colour mapping for the
+ * A 18Ã—18dp square with a single letter and a labelâ†’colour mapping for the
  * canonical sort pointer names.
  */
 @Composable

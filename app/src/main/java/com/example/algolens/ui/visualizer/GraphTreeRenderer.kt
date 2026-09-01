@@ -1,4 +1,4 @@
-package com.example.algolens.ui.visualizer
+﻿package com.example.algolens.ui.visualizer
 
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -30,12 +30,14 @@ import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.GraphEdgeDefault
+import com.example.algolens.ui.theme.CanvasBackground
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Pure rendering of the graph/tree canvas — edges, drag preview, nodes with
+ * Pure rendering of the graph/tree canvas â€” edges, drag preview, nodes with
  * halos. Owns the `activeHaloPulse` infinite transition that breathes the
  * active node's halo. Has no interactive state of its own; the public
  * [GraphTreeVisualizer] shell passes in the live state values to read each
@@ -71,7 +73,7 @@ fun GraphTreeRenderer(
 
         val geom = GraphCanvasGeometry.from(nodes, size)
 
-        // ── 1. Draw Existing Edges ──
+        // â”€â”€ 1. Draw Existing Edges â”€â”€
         for (edge in edges) {
             val fromNode = nodes.find { it.id == edge.from } ?: continue
             val toNode = nodes.find { it.id == edge.to } ?: continue
@@ -80,7 +82,7 @@ fun GraphTreeRenderer(
             val end = geom.toCanvasOffset(toNode.x, toNode.y)
 
             val isHighlighted = edge.isHighlighted
-            val edgeColor = if (isHighlighted) AccentGreen else Color(0xFF1E293B)
+            val edgeColor = if (isHighlighted) AccentGreen else GraphEdgeDefault
             val strokeWidth = if (isHighlighted) 4.5f else 2f
 
             // Draw path highlight glow
@@ -127,12 +129,12 @@ fun GraphTreeRenderer(
                 val midY = (start.y + end.y) / 2
 
                 drawRect(
-                    color = Color(0xFF060A14),
+                    color = CanvasBackground,
                     topLeft = Offset(midX - 14f, midY - 10f),
                     size = Size(28f, 20f)
                 )
                 drawRect(
-                    color = if (isHighlighted) AccentGreen else Color(0xFF1E293B),
+                    color = if (isHighlighted) AccentGreen else GraphEdgeDefault,
                     topLeft = Offset(midX - 14f, midY - 10f),
                     size = Size(28f, 20f),
                     style = Stroke(width = 1f)
@@ -151,7 +153,7 @@ fun GraphTreeRenderer(
             }
         }
 
-        // ── 2. Draw Interactive Drag Preview Line (Rubber-Band Edge) ──
+        // â”€â”€ 2. Draw Interactive Drag Preview Line (Rubber-Band Edge) â”€â”€
         val dragFrom = dragStartNode
         val dragTo = currentDragPos
         if (dragFrom != null && dragTo != null) {
@@ -178,7 +180,7 @@ fun GraphTreeRenderer(
             )
         }
 
-        // ── 3. Draw Nodes with Glowing Halos ──
+        // â”€â”€ 3. Draw Nodes with Glowing Halos â”€â”€
         for (node in nodes) {
             val center = geom.toCanvasOffset(node.x, node.y)
             val isVisited = visitedNodeIds.contains(node.id) || node.state == ElementState.VISITED
@@ -203,7 +205,7 @@ fun GraphTreeRenderer(
                 else -> Triple(CardBackground, PrimaryCyan.copy(alpha = 0.5f), TextSecondary)
             }
 
-            // ── Halo Glow Rendering Underneath Touch Targets ──
+            // â”€â”€ Halo Glow Rendering Underneath Touch Targets â”€â”€
             if (isActive || isHovered || isDragSource) {
                 val haloColor = if (isHovered || isDragSource) PrimaryCyan else AccentGreen
                 // Outer ambient halo (breathes when node is the active one)
@@ -242,7 +244,7 @@ fun GraphTreeRenderer(
                 style = Stroke(width = (if (isActive || isHovered || isDragSource) 3f else 1.8f) * popScale)
             )
 
-            // Node label text — also scaled so the glyph grows
+            // Node label text â€” also scaled so the glyph grows
             // in lockstep with the node's first-visit pop.
             drawContext.canvas.nativeCanvas.apply {
                 val textPaint = Paint().apply {

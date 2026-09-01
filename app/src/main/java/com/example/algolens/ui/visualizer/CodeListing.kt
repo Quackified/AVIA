@@ -53,9 +53,7 @@ import com.example.algolens.ui.theme.TextSecondary
  * language tabs (Kotlin / Java / Python / C++) on the right, then a
  * `LazyColumn` of syntax-highlighted code lines.
  *
- * The active-line pill ([ActiveLinePill]) is rendered separately by the
- * public [CodeTracePane] shell so it can share the same [LazyListState] with
- * the `LazyColumn` here.
+ * The listing shares its [LazyListState] withthe public [CodeTracePane] shell.
  *
  * Per-line `InlineVarChip` badges are rendered inline above each line; they
  * are an internal helper because the legacy `disclosure { … }` block was
@@ -202,9 +200,8 @@ fun CodeListing(
                                 .padding(horizontal = AlgoTokens.space4, vertical = 2.5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // (Left-rail removed — the big translucent [ActiveLinePill] + the
-                            //  line-number color and the per-line [InlineVarChip] already
-                            //  convey "this line is active and its semantic family".)
+                            // (Left-rail removed â€”the line-number colourandthe per-line [InlineVarChip]
+                            //   already convey "this line is activeand its semantic family".)
 
                             Text(
                                 text = lineNum.toString().padStart(2, ' '),

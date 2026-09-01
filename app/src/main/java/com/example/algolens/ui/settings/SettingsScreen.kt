@@ -63,6 +63,7 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextNavy
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.CardBackgroundHover
 
 @Composable
 fun SettingsScreen(
@@ -95,7 +96,7 @@ fun SettingsScreen(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // ── Header ──
+        // â”€â”€ Header â”€â”€
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,7 +150,7 @@ fun SettingsScreen(
             }
         }
 
-        // ── 1. Language Preference ──
+        // â”€â”€ 1. Language Preference â”€â”€
         SettingsCard {
             SectionLabel(icon = Icons.Default.Code, text = "Preferred Language")
             Row(
@@ -189,7 +190,7 @@ fun SettingsScreen(
             )
         }
 
-        // ── 2. Playback Speed ──
+        // â”€â”€ 2. Playback Speed â”€â”€
         SettingsCard {
             SectionLabel(icon = Icons.Default.Speed, text = "Animation Playback Speed")
             Row(
@@ -232,7 +233,7 @@ fun SettingsScreen(
             }
         }
 
-        // ── 3. Offline Mode ──
+        // â”€â”€ 3. Offline Mode â”€â”€
         SettingsCard {
             SectionLabel(icon = Icons.Default.WifiOff, text = "Offline Mode")
 
@@ -297,7 +298,7 @@ fun SettingsScreen(
                             .height(5.dp)
                             .clip(CircleShape),
                         color = PrimaryCyan,
-                        trackColor = Color(0xFF111D30),
+                        trackColor = CardBackgroundHover,
                         strokeCap = StrokeCap.Round
                     )
 
@@ -322,7 +323,7 @@ fun SettingsScreen(
             }
         }
 
-        // ── 4. Display Preferences ──
+        // â”€â”€ 4. Display Preferences â”€â”€
         SettingsCard {
             SectionLabel(icon = Icons.Default.DisplaySettings, text = "Display")
 
@@ -373,7 +374,7 @@ fun SettingsScreen(
             }
         }
 
-        // ── 5. Data Management (Danger Zone) ──
+        // â”€â”€ 5. Data Management (Danger Zone) â”€â”€
         SettingsCard {
             SectionLabel(icon = Icons.Default.Storage, text = "Data Management")
 
@@ -407,7 +408,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Bookmarks · History",
+                    text = "Bookmarks \u00B7· History",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     fontSize = 8.5.sp
@@ -423,7 +424,7 @@ fun SettingsScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "AlgoLens v2.4.1 · Build 204 · MIT License",
+                text = "AlgoLens v2.4.1 \u00B7· Build 204 \u00B7· MIT License",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextNavy,
                 fontSize = 8.5.sp

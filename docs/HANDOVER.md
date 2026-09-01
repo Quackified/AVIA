@@ -332,7 +332,11 @@ numbered.
   test dependency, screenshot capture plumbing) is real setup
   work that is better grouped with the macrobenchmark module
   which needs the same scaffolding.
-- Tracked as a follow-up issue.
+- Tracked as a follow-up issue. **Disposition: a `VisualizerScreenshotTest` now
+  exists in `app/src/androidTest/.../` and compiles (verified via
+  `compileDebugAndroidTestKotlin`); it is a non-blank smoke check rather than a
+  golden-image visual regression harness. Low priority — left unexercised on a
+  device, not blocking.**
 
 ---
 
@@ -352,6 +356,9 @@ follow-ups for any rule that fires.**
   "modifier order"). Each PR should be small and the diff
   should be focused.
 
+> **Status: DEFERRED — low priority.** Produces follow-up issues rather than
+> fixes; not blocking. Run if/when the repo is opened for a new feature PR.
+
 **Task 4.3.2 — Compose `Macrobenchmark` for the visualizer.**
 
 - Add a `benchmark` module per the `profilers/android-profiler` skill.
@@ -362,6 +369,15 @@ follow-ups for any rule that fires.**
   previous APK; the visualizer was 870 lines + 12 remember
   blocks + nested LaunchedEffects). Expect: faster TTI, fewer
   recompositions per second.
+
+> **Status: DEFERRED — low priority.** A `benchmark/` module exists with a
+> cold-startup (`StartupBenchmark`) and 10s frame-timing (`FrameTimingBenchmark`)
+> test and now **compiles** (added `androidx.test.ext:junit` for `AndroidJUnit4`;
+> it previously didn't build). However it never delivers its stated "before vs
+> after" value: there is **no pre-refactor APK** to compare against, R8 is
+> disabled (`optimization { enable = false }`), and it needs a physical device
+> to run. Left as runnable-but-unexercised; a real before/after comparison is not
+> possible with the artefacts available.
 
 **Task 4.3.3 — Add a lint rule (or Detekt rule) that flags:
 
@@ -376,6 +392,28 @@ follow-ups for any rule that fires.**
 This is what `impeccable/scripts/detector` can scaffold. Don't write
 the rules by hand unless the scaffold is insufficient.
 
+> **Status: DONE.** A `:lint` module (`lint/`) registers four detectors
+> in `AlgoLensIssueRegistry` (ids `AlgolensHardcodedHexColor`,
+> `AlgolensRoundedCornerShapeLiteral`, `AlgolensRawDpSpacing`,
+> `AlgolensVisualizerScreenMutation`) and is wired into `:app` via
+> `lintChecks(project(":lint"))`. All four fire in the real `:app:lintDebug`
+> run (verified with a temporary `RedlineProbe`; `:lint:test` is green).
+>
+> **Two bugs that originally made them look "unwired":**
+> 1. The detector regexes were over-escaped (e.g. `\\b` instead of `\b`),
+>    so `hasDpLiteralArg()` / `hasHexLiteralArg()` never matched real code.
+> 2. `getApplicableConstructorTypes` doesn't resolve library constructors
+>    under AGP 9, so `RoundedCornerShape` never fired in the real build.
+>    Rewrote all four on the UAST-handler API (`getApplicableUastTypes` +
+>    `createUastHandler`) with a `callName()` helper that resolves
+>    constructor names via `methodName ?: resolve()?.name`.
+>
+> Pre-existing violations (mostly raw `.dp` in `size/padding/spacedBy`
+> across less-tokenized screens like `AiTutorSheet`, `GuidedTourOverlay`,
+> `SettingsScreen`, `VisualizerHeader`) are grandfathered in
+> `app/lint-baseline.xml`; any NEW violation fails the build. `gradlew
+> :app:updateLintBaseline` refreshes the baseline.
+
 **Task 4.3.4 — Run `r8-analyzer` (skill) on a release build and verify the visualizer family's class graph is smaller than before.**
 
 - Compare against the pre-refactor APK (check the build artefacts
@@ -383,6 +421,12 @@ the rules by hand unless the scaffold is insufficient.
 - Expected: the visualizer family renderer / dispatch classes
   should be tree-shake-friendly; unused families should drop
   cleanly.
+
+> **Status: BLOCKED / NOT ACHIEVABLE as specified — low priority.** No
+> pre-refactor APK exists in the repo, and R8 is disabled for release
+> (`release { optimization { enable = false } }`), so there is no R8-minified
+> build and no before/after class-graph to diff. Enabling R8 purely to satisfy
+> this would be scope creep with no baseline to measure against. Parking it.
 
 ---
 

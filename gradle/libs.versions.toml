@@ -31,8 +31,17 @@ androidx-compose-foundation = { group = "androidx.compose.foundation", name = "f
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+lint-api = { group = "com.android.tools.lint", name = "lint-api", version = "32.2.1" }
+lint-checks = { group = "com.android.tools.lint", name = "lint-checks", version = "32.2.1" }
+lint = { group = "com.android.tools.lint", name = "lint", version = "32.2.1" }
+lint-tests = { group = "com.android.tools.lint", name = "lint-tests", version = "32.2.1" }
+benchmarkMacroJunit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version = "1.4.1" }
+androidxTestUiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version = "2.3.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-lint = { id = "com.android.lint", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 

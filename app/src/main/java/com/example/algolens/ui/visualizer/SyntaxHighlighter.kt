@@ -1,4 +1,4 @@
-package com.example.algolens.ui.visualizer
+﻿package com.example.algolens.ui.visualizer
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -13,6 +13,7 @@ import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.CyanGlow
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.SecondaryPurple
+import com.example.algolens.ui.theme.TextMuted
 
 /**
  * Syntax highlighting parser for code trace snippets.
@@ -43,7 +44,7 @@ object SyntaxHighlighter {
                 // Comments
                 if ((code.startsWith("//", i)) || (language == TraceLanguage.PYTHON && code[i] == '#')) {
                     val commentEnd = code.indexOf('\n', i).let { if (it == -1) n else it }
-                    pushStyle(SpanStyle(color = Color(0xFF64748B), fontStyle = FontStyle.Italic))
+                    pushStyle(SpanStyle(color = TextMuted, fontStyle = FontStyle.Italic))
                     append(code.substring(i, commentEnd))
                     pop()
                     i = commentEnd

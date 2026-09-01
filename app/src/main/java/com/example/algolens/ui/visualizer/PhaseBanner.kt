@@ -1,4 +1,4 @@
-package com.example.algolens.ui.visualizer
+﻿package com.example.algolens.ui.visualizer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,6 +35,7 @@ import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.YellowSubtle
+import com.example.algolens.ui.theme.ChipBackground
 
 /**
  * Floating glassmorphic Phase Banner shared by every visualizer family.
@@ -131,7 +132,7 @@ fun PhaseBanner(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFF0F172A))
+                    .background(ChipBackground)
                     .border(1.dp, BorderSubtle, RoundedCornerShape(4.dp))
                     .padding(horizontal = 5.dp, vertical = 1.5.dp)
             ) {

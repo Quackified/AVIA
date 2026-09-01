@@ -59,22 +59,4 @@ internal object CodeLineAccent {
         }
         return defaultAccent
     }
-
-    /**
-     * Resolve the accent for a set of active lines. The pill accent should
-     * reflect the highest-precedence operation across the whole active set
-     * (e.g. if lines [1, 5] are active and line 5 contains `swap`, the pill
-     * is pink even though line 1 is just an assignment).
-     */
-    fun resolveForActiveSet(rawLines: List<String>, activeLines: List<Int>): Color {
-        if (activeLines.isEmpty()) return defaultAccent
-        for (family in families) {
-            val matches = activeLines.any { lineNum ->
-                val raw = rawLines.getOrNull(lineNum - 1) ?: return@any false
-                family.keywords.any { keyword -> raw.contains(keyword, ignoreCase = true) }
-            }
-            if (matches) return family.accent
-        }
-        return defaultAccent
-    }
 }

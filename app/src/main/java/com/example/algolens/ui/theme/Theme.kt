@@ -205,12 +205,6 @@ object AlgoTokens {
         stiffness = Spring.StiffnessLow
     )
 
-    /** Spring tracking the code trace's sliding active-line pill. */
-    val lineTrackSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessLow
-    )
-
     /** Lift phase of the swap arc: pop straight up off the slot. */
     val liftSpring = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,

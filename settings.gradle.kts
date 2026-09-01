@@ -24,3 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "AlgoLens"
 include(":app")
+include(":lint")
+include(":benchmark")

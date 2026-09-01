@@ -31,9 +31,15 @@ android {
     buildFeatures {
         compose = true
     }
+
+    lint {
+        // Grandfather pre-existing red-line violations; new ones fail the build.
+        baseline = file("lint-baseline.xml")
+    }
 }
 
 dependencies {
+    lintChecks(project(":lint"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

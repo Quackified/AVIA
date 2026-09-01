@@ -1,4 +1,4 @@
-package com.example.algolens.ui.components
+﻿package com.example.algolens.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -45,6 +45,7 @@ import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.OptionUnselected
 
 @Composable
 fun SectionLabel(
@@ -82,7 +83,7 @@ fun CustomSwitch(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val trackColor by animateColorAsState(
-        targetValue = if (checked) PrimaryCyan else Color(0xFF1A2540),
+        targetValue = if (checked) PrimaryCyan else OptionUnselected,
         label = "trackColor"
     )
     val thumbOffset by animateDpAsState(

@@ -64,6 +64,7 @@ import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.OptionUnselected
 
 data class PracticeOption(
     val id: Int,
@@ -99,7 +100,7 @@ fun PracticeScreen(
             .background(CanvasBackground)
             .statusBarsPadding()
     ) {
-        // ── 1. Header & Progress ──
+        // \u2192”€\u2192”€ 1. Header & Progress \u2192”€\u2192”€
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -168,7 +169,7 @@ fun PracticeScreen(
             )
         }
 
-        // ── 2. Scrollable Question Content ──
+        // \u2192”€\u2192”€ 2. Scrollable Question Content \u2192”€\u2192”€
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -193,7 +194,7 @@ fun PracticeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "STEP 4 · QUICKSORT PARTITION",
+                            text = "STEP 4 \u00B7· QUICKSORT PARTITION",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextMuted,
                             fontSize = 8.sp,
@@ -379,7 +380,7 @@ fun PracticeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(if (selectedOptionId != null) PrimaryCyan else Color(0xFF1A2540))
+                        .background(if (selectedOptionId != null) PrimaryCyan else OptionUnselected)
                         .clickable(enabled = selectedOptionId != null) { isSubmitted = true }
                         .padding(vertical = 11.dp),
                     contentAlignment = Alignment.Center
@@ -456,7 +457,7 @@ fun PracticeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Next Question →",
+                                text = "Next Question \u2192†’",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = DarkBackground,
                                 fontWeight = FontWeight.Bold

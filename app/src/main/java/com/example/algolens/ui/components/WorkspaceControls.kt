@@ -1,4 +1,4 @@
-package com.example.algolens.ui.components
+﻿package com.example.algolens.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +27,8 @@ import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CardBackground
 import com.example.algolens.ui.theme.TextMuted
+import com.example.algolens.ui.theme.PrimaryCyan
+import com.example.algolens.ui.theme.DarkBackground
 
 /**
  * Compact circular icon-only control. Used throughout the visualizer
@@ -125,8 +127,8 @@ fun IconPillButton(
 fun SegmentedToggle(
     options: List<Pair<String, Any>>,
     selectedKey: Any,
-    accent: Color = Color(0xFF00E5FF),
-    onContainer: Color = Color(0xFF0B0F19),
+    accent: Color = PrimaryCyan,
+    onContainer: Color = DarkBackground,
     onSelect: (Any) -> Unit
 ) {
     Row(

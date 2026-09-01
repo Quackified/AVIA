@@ -1,4 +1,4 @@
-package com.example.algolens.ui.visualizer
+﻿package com.example.algolens.ui.visualizer
 
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -30,9 +30,11 @@ import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.GraphEdgeDefault
+import com.example.algolens.ui.theme.CanvasBackground
 
 /**
- * Unified graph visualizer — talks to the [VisualizerStep] model so the
+ * Unified graph visualizer â€” talks to the [VisualizerStep] model so the
  * tree, BFS and DFS animations all share the same node / edge state
  * representation as the rest of the workspace.
  *
@@ -82,7 +84,7 @@ fun GraphVisualizer(
 
                 val isHighlighted = edge.isHighlighted
 
-                val edgeColor = if (isHighlighted) AccentGreen else Color(0xFF1E293B)
+                val edgeColor = if (isHighlighted) AccentGreen else GraphEdgeDefault
                 val strokeWidth = if (isHighlighted) 5f else 2.5f
 
                 drawLine(
@@ -98,12 +100,12 @@ fun GraphVisualizer(
                     val midY = (start.y + end.y) / 2
 
                     drawRect(
-                        color = Color(0xFF060A14),
+                        color = CanvasBackground,
                         topLeft = Offset(midX - 16f, midY - 12f),
                         size = Size(32f, 24f)
                     )
                     drawRect(
-                        color = if (isHighlighted) AccentGreen else Color(0xFF1E293B),
+                        color = if (isHighlighted) AccentGreen else GraphEdgeDefault,
                         topLeft = Offset(midX - 16f, midY - 12f),
                         size = Size(32f, 24f),
                         style = Stroke(width = 1f)
@@ -122,7 +124,7 @@ fun GraphVisualizer(
                 }
             }
 
-            // 2. Draw Nodes — ElementState drives fill, stroke and label colour.
+            // 2. Draw Nodes â€” ElementState drives fill, stroke and label colour.
             for (node in nodes) {
                 val center = Offset(node.x * scaleX, node.y * scaleY)
                 val isActive = activeId == node.id || node.state == ElementState.ACTIVE

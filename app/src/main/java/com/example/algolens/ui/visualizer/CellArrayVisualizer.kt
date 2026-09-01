@@ -56,6 +56,7 @@ import com.example.algolens.ui.theme.PurpleGlow
 import com.example.algolens.ui.theme.PurpleSubtle
 import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.ChipBackground
 
 /**
  * Data structure describing an active off-screen pointer target.
@@ -79,12 +80,12 @@ data class OffscreenPointerTarget(
  * for off-screen pointers. The synchronized CodeTracePane is hosted by the
  * VisualizerScreen coordinator (bottom workspace region), not embedded here.
  *
- * Thin public shell — composes the following private modules in the same package:
- *  - [CellGrid]         — LazyRow + per-cell paint (badges, box, index label)
- *  - [CellPointerBadges] — [TopPointerBadge] / [BottomPointerBadge]
- *  - [OffscreenPointerBanner] — animated off-screen pop-up pills
- *  - [CellGlowPainter]   — three-band outer stroke glow
- *  - [ChallengeGlowTargets] — shared pulse state for Challenge Mode halos
+ * Thin public shell \u25C4€” composes the following private modules in the same package:
+ *  - [CellGrid]         \u25C4€” LazyRow + per-cell paint (badges, box, index label)
+ *  - [CellPointerBadges] \u25C4€” [TopPointerBadge] / [BottomPointerBadge]
+ *  - [OffscreenPointerBanner] \u25C4€” animated off-screen pop-up pills
+ *  - [CellGlowPainter]   \u25C4€” three-band outer stroke glow
+ *  - [ChallengeGlowTargets] \u25C4€” shared pulse state for Challenge Mode halos
  */
 @Composable
 fun CellArrayVisualizer(
@@ -103,10 +104,10 @@ fun CellArrayVisualizer(
 
     val lazyListState = rememberLazyListState()
 
-    // ─────────────────────────────────────────────────────────────────────
+    // \u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€
     // Swap Travel Animation: cells "pop up", then shift and settle into
     // their respective new slots with an elevated shadow while in flight.
-    // ─────────────────────────────────────────────────────────────────────
+    // \u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€
     val density = LocalDensity.current
 
     // Slot pitch (cell width + gap + item padding) in px. Baseline here;
@@ -182,7 +183,7 @@ fun CellArrayVisualizer(
             verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-        // ── 1. Floating Glassmorphic Phase Banner ──
+        // \u25C4”€\u25C4”€ 1. Floating Glassmorphic Phase Banner \u25C4”€\u25C4”€
         PhaseBanner(
             step = step,
             algorithmName = algorithmName,
@@ -191,7 +192,7 @@ fun CellArrayVisualizer(
                 .padding(horizontal = AlgoTokens.space1)
         )
 
-        // ── 2. Array Cells & Visual Gimmicks Canvas ──
+        // \u25C4”€\u25C4”€ 2. Array Cells & Visual Gimmicks Canvas \u25C4”€\u25C4”€
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -206,7 +207,7 @@ fun CellArrayVisualizer(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
             ) {
-                // ── A. Insertion Sort: Elevated Key Inspection Header ──
+                // \u25C4”€\u25C4”€ A. Insertion Sort: Elevated Key Inspection Header \u25C4”€\u25C4”€
                 if (isInsertionSort && step.floatingElement != null) {
                     val (keyVal, origIdx) = step.floatingElement
                     Row(
@@ -277,7 +278,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── B. Bubble Sort: Swapping / Connecting Arc Tag ──
+                // \u25C4”€\u25C4”€ B. Bubble Sort: Swapping / Connecting Arc Tag \u25C4”€\u25C4”€
                 if (isBubbleSort && step.leftPointer != null && step.rightPointer != null) {
                     val isSwapping = step.phaseLabel == "SWAPPING"
                     Row(
@@ -287,8 +288,8 @@ fun CellArrayVisualizer(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Neutral glass readout — the state is signalled by the pink
-                        // ⚡ accent only, never by flooding the whole bar red
+                        // Neutral glass readout:the state is signalled by the pink accent,
+                        // accent only, never by flooding the whole bar red,
                         // (cells already carry the mutation colour).
                         Box(
                             modifier = Modifier
@@ -301,12 +302,12 @@ fun CellArrayVisualizer(
                                 text = buildAnnotatedString {
                                     if (isSwapping) {
                                         withStyle(SpanStyle(color = AlgoTokens.accentPink)) {
-                                            append("⚡ ")
+                                            append("\u26A1 ")
                                         }
-                                        append("BUBBLE UP SWAP: arr[${step.leftPointer}] ↔ arr[${step.rightPointer}]")
+                                        append("BUBBLE UP SWAP: arr[${step.leftPointer}] \u2194 arr[${step.rightPointer}]")
                                     } else {
                                         withStyle(SpanStyle(color = AlgoTokens.accentCyan)) {
-                                            append("🔍 ")
+                                            append("\uD83D\uDD0D ")
                                         }
                                         append("ADJACENT COMPARE: arr[${step.leftPointer}] vs arr[${step.rightPointer}]")
                                     }
@@ -320,7 +321,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── C. Selection Sort: Region Split Curtain Indicator ──
+                // \u25C4”€\u25C4”€ C. Selection Sort: Region Split Curtain Indicator \u25C4”€\u25C4”€
                 if (isSelectionSort && step.sortedBoundary != null && step.sortedBoundary > 0 && step.sortedBoundary < step.array.size) {
                     Row(
                         modifier = Modifier
@@ -330,14 +331,14 @@ fun CellArrayVisualizer(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "◄ SORTED REGION (0..${step.sortedBoundary - 1})",
+                            text = "\u25C4 SORTED REGION (0..${step.sortedBoundary - 1})",
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentGreen,
                             fontWeight = FontWeight.Bold,
                             fontSize = 7.5.sp
                         )
                         Text(
-                            text = "UNSORTED CANDIDATES (${step.sortedBoundary}..${step.array.size - 1}) ►",
+                            text = "UNSORTED CANDIDATES (${step.sortedBoundary}..${step.array.size - 1}) \u25BA",
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentYellow,
                             fontWeight = FontWeight.Bold,
@@ -346,7 +347,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── D. Merge Sort: Recursion Level & Sub-Blocks Info ──
+                // \u25C4”€\u25C4”€ D. Merge Sort: Recursion Level & Sub-Blocks Info \u25C4”€\u25C4”€
                 if (isMergeSort && step.mergeBlocks.isNotEmpty()) {
                     Row(
                         modifier = Modifier
@@ -383,7 +384,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── Main Cells LazyRow with Smooth Animations ──
+                // \u25C4”€\u25C4”€ Main Cells LazyRow with Smooth Animations \u25C4”€\u25C4”€
                 CellGrid(
                     step = step,
                     selectedCellIndices = selectedCellIndices,
@@ -400,20 +401,20 @@ fun CellArrayVisualizer(
                     lazyListState = lazyListState
                 )
 
-                // ── Animated Off-Screen Pointer Pop-Up Cell Indicators ──
+                // \u25C4”€\u25C4”€ Animated Off-Screen Pointer Pop-Up Cell Indicators \u25C4”€\u25C4”€
                 OffscreenPointerBanner(
                     step = step,
                     lazyListState = lazyListState
                 )
 
-                // ── Comparison / Step Expression Callout ──
+                // \u25C4”€\u25C4”€ Comparison / Step Expression Callout \u25C4”€\u25C4”€
                 val expr = step.comparisonExpr ?: step.description
                 if (expr.isNotBlank()) {
                     Spacer(modifier = Modifier.height(AlgoTokens.space1))
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                            .background(Color(0xFF0F172A))
+                            .background(ChipBackground)
                             .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXxs))
                             .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2)
                     ) {
