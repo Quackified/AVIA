@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.algolens.model.AlgorithmId
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentRed
@@ -95,6 +96,340 @@ data class ChallengeFeedback(
     val message: String,
     val pointsAwarded: Int
 )
+
+
+
+/** What kind of prediction question to ask. */
+enum class PredictionKind {
+    SWAP_DECISION, SELECT_COMPARE_PAIR, SELECT_PIVOT,
+    FOUND_DECISION, WILL_ENQUEUE, WILL_DEQUEUE, WILL_PUSH, WILL_POP,
+    SELECT_VISIT_NODE,
+}
+
+/** A single prediction question the user must answer. */
+data class PredictionQuestion(
+    val kind: PredictionKind,
+    val promptText: String,
+    val contextLine: String,
+    val eligibleIndices: Set<Int>,
+    val eligibleNodeIds: Set<String>,
+    val yesLabel: String,
+    val noLabel: String,
+    val answer: PredictionAnswer,
+    val pointsAvailable: Int = 100,
+)
+
+/** Typed answer to a [PredictionQuestion]. */
+sealed class PredictionAnswer {
+    data class YesNo(val isYes: Boolean) : PredictionAnswer()
+    data class Indices(val indices: Set<Int>) : PredictionAnswer()
+    data class NodeId(val id: String) : PredictionAnswer()
+}
+
+/** Typed predicate tokens emitted by the step repository. */
+internal enum class StepToken {
+    SWAP, COMPARE, SHIFT, ELEVATE, PLACE,
+    PIVOT, FOUND, MISS, COMPLETE,
+    PUSH, POP, ENQUEUE, DEQUEUE, VISIT, TRAVERSE, UNKNOWN,
+}
+
+internal fun parseStepToken(comparisonExpr: String?): StepToken {
+    if (comparisonExpr.isNullOrBlank()) return StepToken.UNKNOWN
+    val head = comparisonExpr.substringBefore(':').trim().uppercase()
+    return when (head) {
+        "SWAP" -> StepToken.SWAP
+        "COMPARE" -> StepToken.COMPARE
+        "SHIFT" -> StepToken.SHIFT
+        "ELEVATED KEY" -> StepToken.ELEVATE
+        "PLACED" -> StepToken.PLACE
+        "PIVOT", "INITIAL PIVOT", "INITIAL MIN", "INITIAL MAX" -> StepToken.PIVOT
+        "FOUND" -> StepToken.FOUND
+        "MISS", "NOT FOUND" -> StepToken.MISS
+        "SORT COMPLETE", "SEARCH COMPLETE", "TRAVERSAL COMPLETE" -> StepToken.COMPLETE
+        "PUSH" -> StepToken.PUSH
+        "POP" -> StepToken.POP
+        "ENQUEUE" -> StepToken.ENQUEUE
+        "DEQUEUE" -> StepToken.DEQUEUE
+        "VISIT", "VISITED" -> StepToken.VISIT
+        "TRAVERSE", "TRAVERSED" -> StepToken.TRAVERSE
+        else -> StepToken.UNKNOWN
+    }
+}
+
+/** Score the user's prediction against the answer baked into the question. */
+fun predictionAnswerFor(
+    question: PredictionQuestion,
+    userSaidYes: Boolean? = null,
+    userSelectedIndices: Set<Int> = emptySet(),
+    userSelectedNodeId: String? = null,
+): Boolean = when (val expected = question.answer) {
+    is PredictionAnswer.YesNo -> when (question.kind) {
+        PredictionKind.SWAP_DECISION,
+        PredictionKind.FOUND_DECISION,
+        PredictionKind.WILL_ENQUEUE,
+        PredictionKind.WILL_DEQUEUE,
+        PredictionKind.WILL_PUSH,
+        PredictionKind.WILL_POP -> userSaidYes == expected.isYes
+        else -> false
+    }
+    is PredictionAnswer.Indices -> when (question.kind) {
+        PredictionKind.SELECT_COMPARE_PAIR,
+        PredictionKind.SELECT_PIVOT -> userSelectedIndices == expected.indices
+        else -> false
+    }
+    is PredictionAnswer.NodeId -> when (question.kind) {
+        PredictionKind.SELECT_VISIT_NODE -> userSelectedNodeId == expected.id
+        else -> false
+    }
+}
+
+/**
+ * Public dispatch for the prediction engine. Picks the right per-family
+ * builder based on [algorithm]. Returns null for terminal steps and
+ * for any step where the engine can't read a meaningful next-action.
+ */
+fun buildPredictionQuestion(
+    algorithm: AlgorithmId,
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep?,
+): PredictionQuestion? {
+    if (nextStep == null) return null
+    if (parseStepToken(nextStep.comparisonExpr) == StepToken.COMPLETE) return null
+    return when (algorithm) {
+        AlgorithmId.BUBBLE_SORT -> swapOrComparePairQuestion(currentStep, nextStep)
+        AlgorithmId.SELECTION_SORT -> swapOrComparePairQuestion(currentStep, nextStep)
+        AlgorithmId.INSERTION_SORT -> insertionSortQuestion(currentStep, nextStep)
+        AlgorithmId.MERGE_SORT -> mergeSortQuestion(currentStep, nextStep)
+        AlgorithmId.QUICK_SORT -> quickSortQuestion(currentStep, nextStep)
+        AlgorithmId.LINEAR_SEARCH -> foundOrCompareQuestion(currentStep, nextStep)
+        AlgorithmId.BINARY_SEARCH -> foundOrCompareQuestion(currentStep, nextStep)
+        AlgorithmId.STACK -> bufferPushPopQuestion(currentStep, nextStep, isStack = true)
+        AlgorithmId.QUEUE -> bufferPushPopQuestion(currentStep, nextStep, isStack = false)
+        AlgorithmId.BINARY_SEARCH_TREE -> graphVisitQuestion(currentStep, nextStep)
+        AlgorithmId.HEAP -> heapQuestion(currentStep, nextStep)
+        AlgorithmId.BFS -> graphVisitQuestion(currentStep, nextStep)
+        AlgorithmId.DFS -> graphVisitQuestion(currentStep, nextStep)
+    }
+}
+
+/** The two array indices highlighted by COMPARING/SWAPPING. */
+internal fun highlightedCellPair(step: VisualizerStep): Pair<Int, Int>? {
+    if (step.array.size < 2) return null
+    val highlighted = step.elementStates
+        .filter { it.value == ElementState.COMPARING || it.value == ElementState.SWAPPING }
+        .keys
+        .filter { it in step.array.indices }
+        .sorted()
+    if (highlighted.size >= 2) {
+        return highlighted.first() to highlighted.last()
+    }
+    val fromPointers = (step.bottomPointers.values + step.topPointers.values)
+        .filter { it in step.array.indices }
+        .distinct()
+        .sorted()
+    return if (fromPointers.size >= 2) {
+        fromPointers.first() to fromPointers.last()
+    } else null
+}
+
+
+private fun swapOrComparePairQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+): PredictionQuestion? = when (parseStepToken(nextStep.comparisonExpr)) {
+    StepToken.SWAP -> swapQuestion(currentStep, nextStep)
+    StepToken.COMPARE -> comparePairQuestion(currentStep, nextStep)
+    else -> null
+}
+
+private fun swapQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+): PredictionQuestion? {
+    val pair = highlightedCellPair(currentStep) ?: return null
+    return PredictionQuestion(
+        kind = PredictionKind.SWAP_DECISION,
+        promptText = "Will these two cells swap next?",
+        contextLine = "Highlighted: arr[${pair.first}] & arr[${pair.second}]",
+        eligibleIndices = setOf(pair.first, pair.second),
+        eligibleNodeIds = emptySet(),
+        yesLabel = "YES (SWAP)",
+        noLabel = "NO (KEEP)",
+        answer = PredictionAnswer.YesNo(isYes = true),
+    )
+}
+
+private fun comparePairQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+): PredictionQuestion? {
+    val pair = highlightedCellPair(nextStep) ?: return null
+    return PredictionQuestion(
+        kind = PredictionKind.SELECT_COMPARE_PAIR,
+        promptText = "Which two cells get compared next?",
+        contextLine = "Phase: ${nextStep.phaseLabel}",
+        eligibleIndices = setOf(pair.first, pair.second),
+        eligibleNodeIds = emptySet(),
+        yesLabel = "TAP CELLS",
+        noLabel = "",
+        answer = PredictionAnswer.Indices(indices = setOf(pair.first, pair.second)),
+    )
+}
+
+private fun quickSortQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+): PredictionQuestion? {
+    val pivotIdx = nextStep.pivotIndex
+        ?: nextStep.topPointers.entries
+            .firstOrNull { it.key.equals("pivot", ignoreCase = true) }?.value
+        ?: return null
+    if (pivotIdx !in currentStep.array.indices) return null
+    return PredictionQuestion(
+        kind = PredictionKind.SELECT_PIVOT,
+        promptText = "Which cell will be the pivot next?",
+        contextLine = "Active range: ${currentStep.activeRange ?: "full array"}",
+        eligibleIndices = setOf(pivotIdx),
+        eligibleNodeIds = emptySet(),
+        yesLabel = "TAP PIVOT",
+        noLabel = "",
+        answer = PredictionAnswer.Indices(indices = setOf(pivotIdx)),
+    )
+}
+
+
+private fun yesNoQuestion(
+    currentStep: VisualizerStep,
+    promptText: String,
+    contextLine: String,
+    isYes: Boolean,
+    kind: PredictionKind,
+): PredictionQuestion = PredictionQuestion(
+    kind = kind,
+    promptText = promptText,
+    contextLine = contextLine,
+    eligibleIndices = currentStep.array.indices.toSet(),
+    eligibleNodeIds = emptySet(),
+    yesLabel = "YES",
+    noLabel = "NO",
+    answer = PredictionAnswer.YesNo(isYes = isYes),
+)
+
+private fun foundOrCompareQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+): PredictionQuestion? = when (parseStepToken(nextStep.comparisonExpr)) {
+    StepToken.FOUND -> yesNoQuestion(
+        currentStep = currentStep,
+        promptText = "Will the search find the target next?",
+        contextLine = "Phase: ${nextStep.phaseLabel}",
+        isYes = true,
+        kind = PredictionKind.FOUND_DECISION,
+    )
+    StepToken.MISS -> yesNoQuestion(
+        currentStep = currentStep,
+        promptText = "Will the search conclude 'not found' next?",
+        contextLine = "Phase: ${currentStep.phaseLabel}",
+        isYes = true,
+        kind = PredictionKind.FOUND_DECISION,
+    )
+    StepToken.COMPARE -> comparePairQuestion(currentStep, nextStep)
+    else -> null
+}
+
+private fun insertionSortQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+): PredictionQuestion? = when (parseStepToken(nextStep.comparisonExpr)) {
+    StepToken.SHIFT, StepToken.COMPARE -> comparePairQuestion(currentStep, nextStep)
+    StepToken.PLACE -> yesNoQuestion(
+        currentStep = currentStep,
+        promptText = "Will the elevated key be placed next?",
+        contextLine = "Phase: KEY ELEVATED",
+        isYes = true,
+        kind = PredictionKind.WILL_DEQUEUE,
+    )
+    StepToken.ELEVATE -> yesNoQuestion(
+        currentStep = currentStep,
+        promptText = "Will a new key be elevated next?",
+        contextLine = "Phase: ${currentStep.phaseLabel}",
+        isYes = true,
+        kind = PredictionKind.WILL_PUSH,
+    )
+    else -> null
+}
+
+private fun mergeSortQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+): PredictionQuestion? = when (parseStepToken(nextStep.comparisonExpr)) {
+    StepToken.COMPARE -> comparePairQuestion(currentStep, nextStep)
+    StepToken.PLACE -> yesNoQuestion(
+        currentStep = currentStep,
+        promptText = "Will these two cells merge next?",
+        contextLine = "Depth ${currentStep.recursionDepth}",
+        isYes = true,
+        kind = PredictionKind.WILL_DEQUEUE,
+    )
+    else -> null
+}
+
+
+private fun bufferPushPopQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+    isStack: Boolean,
+): PredictionQuestion? {
+    val currentSize = currentStep.buffer.size
+    val nextSize = nextStep.buffer.size
+    val nextToken = parseStepToken(nextStep.comparisonExpr)
+    val (kind, promptText, isYes) = when {
+        nextSize > currentSize && nextToken == StepToken.PUSH ->
+            Triple(PredictionKind.WILL_PUSH, "Will a value be pushed next?", true)
+        nextSize > currentSize && nextToken == StepToken.ENQUEUE ->
+            Triple(PredictionKind.WILL_ENQUEUE, "Will a value be enqueued next?", true)
+        nextSize < currentSize && nextToken == StepToken.POP && isStack ->
+            Triple(PredictionKind.WILL_POP, "Will the top be popped next?", true)
+        nextSize < currentSize && nextToken == StepToken.DEQUEUE && !isStack ->
+            Triple(PredictionKind.WILL_DEQUEUE, "Will the front be dequeued next?", true)
+        else -> return null
+    }
+    return yesNoQuestion(
+        currentStep = currentStep,
+        promptText = promptText,
+        contextLine = "Size: $currentSize to $nextSize",
+        isYes = isYes,
+        kind = kind,
+    )
+}
+
+private fun heapQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+): PredictionQuestion? = when (parseStepToken(nextStep.comparisonExpr)) {
+    StepToken.ELEVATE, StepToken.COMPARE -> comparePairQuestion(currentStep, nextStep)
+    else -> null
+}
+
+private fun graphVisitQuestion(
+    currentStep: VisualizerStep,
+    nextStep: VisualizerStep,
+): PredictionQuestion? {
+    val nextActive = nextStep.activeNodeId ?: return null
+    val eligibleIds = nextStep.nodes.map { it.id }.toSet()
+    if (nextActive !in eligibleIds) return null
+    return PredictionQuestion(
+        kind = PredictionKind.SELECT_VISIT_NODE,
+        promptText = "Which node will be visited next?",
+        contextLine = "Phase: ${nextStep.phaseLabel}",
+        eligibleIndices = emptySet(),
+        eligibleNodeIds = eligibleIds,
+        yesLabel = "TAP NODE",
+        noLabel = "",
+        answer = PredictionAnswer.NodeId(id = nextActive),
+    )
+}
+
 
 /**
  * Computes the set of array indices that are valid answers for the current
@@ -165,12 +500,14 @@ fun challengeEligibleIndices(
 }
 
 /**
- * Compact Challenge Mode prompt rendered as a floating glass overlay on top
- * of the visualizer canvas (replaces the old detached top banner). Playback
- * controls are locked by the host screen until the question is answered.
+ * Compact Challenge Mode prompt rendered as a slim horizontal strip
+ * between the canvas and the code trace (not on top of the canvas).
+ * Driven by the typed prediction engine ([buildPredictionQuestion],
+ * [predictionAnswerFor]).
  */
 @Composable
 fun CanvasChallengePrompt(
+    algorithm: AlgorithmId,
     step: VisualizerStep,
     nextStep: VisualizerStep?,
     state: ChallengeState,
@@ -178,13 +515,38 @@ fun CanvasChallengePrompt(
     onContinueNext: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isSwapLikely = nextStep?.comparisonExpr?.contains("SWAP", ignoreCase = true) == true ||
-        nextStep?.elementStates?.values?.any { it == ElementState.SWAPPING } == true
-
+    val question = remember(algorithm, step.stepIndex, nextStep?.stepIndex) {
+        buildPredictionQuestion(algorithm, step, nextStep)
+    }
     val borderColor = when {
         state.feedback?.isCorrect == true -> AccentGreen
         state.feedback?.isCorrect == false -> AccentRed
         else -> SecondaryPurple.copy(alpha = 0.5f)
+    }
+    if (question == null && state.feedback == null) return
+
+    fun onAnswered(userSaidYes: Boolean? = null, userSelectedIndices: Set<Int> = emptySet()) {
+        val q = question ?: return
+        val isCorrect = predictionAnswerFor(
+            question = q,
+            userSaidYes = userSaidYes,
+            userSelectedIndices = userSelectedIndices,
+        )
+        val pts = if (isCorrect) q.pointsAvailable + (state.streak * 20) else 0
+        onStateChange(
+            state.copy(
+                score = state.score + pts,
+                streak = if (isCorrect) state.streak + 1 else 0,
+                totalQuestions = state.totalQuestions + 1,
+                correctAnswers = state.correctAnswers + (if (isCorrect) 1 else 0),
+                selectedIndices = userSelectedIndices,
+                feedback = ChallengeFeedback(
+                    isCorrect = isCorrect,
+                    message = if (isCorrect) "Spot on! ${q.contextLine}" else "Incorrect. ${q.contextLine}",
+                    pointsAwarded = pts,
+                ),
+            )
+        )
     }
 
     Box(
@@ -196,495 +558,327 @@ fun CanvasChallengePrompt(
             .padding(horizontal = 10.dp, vertical = 7.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(PinkSubtle)
-                            .border(1.dp, AccentPink.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalFireDepartment,
-                                contentDescription = null,
-                                tint = AccentPink,
-                                modifier = Modifier.size(10.dp)
-                            )
-                            Text(
-                                text = "${state.streak}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AccentPink,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 8.sp
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(YellowSubtle)
-                            .border(1.dp, AccentYellow.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.EmojiEvents,
-                                contentDescription = null,
-                                tint = AccentYellow,
-                                modifier = Modifier.size(10.dp)
-                            )
-                            Text(
-                                text = "${state.score} PTS",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AccentYellow,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 8.sp
-                            )
-                        }
-                    }
-                }
-
-                Text(
-                    text = "🎯 PREDICT NEXT STEP",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PrimaryCyan,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 8.sp,
-                    letterSpacing = 0.8.sp
+            PromptHeader(state)
+            val fb = state.feedback
+            if (fb == null && question != null) {
+                PredictionPromptBody(
+                    question = question,
+                    step = step,
+                    onAnswerYes = { onAnswered(userSaidYes = true) },
+                    onAnswerNo = { onAnswered(userSaidYes = false) },
+                    onAnswerIndices = { onAnswered(userSelectedIndices = it) },
+                )
+            } else if (fb != null) {
+                FeedbackRow(
+                    feedback = fb,
+                    onContinue = {
+                        onStateChange(state.copy(feedback = null))
+                        onContinueNext()
+                    },
                 )
             }
-
-                if (state.feedback == null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Will these highlighted cells swap? " +
-                                "(${step.comparisonExpr ?: step.description})",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 9.sp,
-                            lineHeight = 12.sp,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 2
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(7.dp))
-                                .background(GreenSubtle)
-                                .border(1.dp, AccentGreen.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
-                                .clickable {
-                                    val isCorrect = isSwapLikely
-                                    val pts = if (isCorrect) 100 + (state.streak * 20) else 0
-                                    onStateChange(
-                                        state.copy(
-                                            score = state.score + pts,
-                                            streak = if (isCorrect) state.streak + 1 else 0,
-                                            totalQuestions = state.totalQuestions + 1,
-                                            correctAnswers = state.correctAnswers + (if (isCorrect) 1 else 0),
-                                            feedback = ChallengeFeedback(
-                                                isCorrect = isCorrect,
-                                                message = if (isCorrect) {
-                                                    "Spot on! The elements satisfy the swap condition. 🎯"
-                                                } else {
-                                                    "Incorrect: elements were already in order."
-                                                },
-                                                pointsAwarded = pts
-                                            )
-                                        )
-                                    )
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "YES (SWAP)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AccentGreen,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(7.dp))
-                                .background(PinkSubtle)
-                                .border(1.dp, AccentPink.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
-                                .clickable {
-                                    val isCorrect = !isSwapLikely
-                                    val pts = if (isCorrect) 100 + (state.streak * 20) else 0
-                                    onStateChange(
-                                        state.copy(
-                                            score = state.score + pts,
-                                            streak = if (isCorrect) state.streak + 1 else 0,
-                                            totalQuestions = state.totalQuestions + 1,
-                                            correctAnswers = state.correctAnswers + (if (isCorrect) 1 else 0),
-                                            feedback = ChallengeFeedback(
-                                                isCorrect = isCorrect,
-                                                message = if (isCorrect) {
-                                                    "Correct! No swap was necessary. 🌟"
-                                                } else {
-                                                    "Oops! A swap occurs next."
-                                                },
-                                                pointsAwarded = pts
-                                            )
-                                        )
-                                    )
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "NO (KEEP)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AccentPink,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp
-                            )
-                        }
-                    }
-                } else {
-                    val fb = state.feedback
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = (if (fb.isCorrect) "🎉 CORRECT (+${fb.pointsAwarded} PTS) " else "❌ INCORRECT ") + fb.message,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (fb.isCorrect) AccentGreen else AccentRed,
-                            fontSize = 9.sp,
-                            lineHeight = 12.sp,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 2
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(7.dp))
-                                .background(if (fb.isCorrect) PrimaryCyan else SecondaryPurple)
-                                .clickable {
-                                    onStateChange(state.copy(feedback = null))
-                                    onContinueNext()
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "NEXT ➔",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = DarkBackground,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 8.5.sp
-                            )
-                        }
-                    }
-                }
         }
     }
 }
 
+
+/** Header row: streak / score badges + mode label. */
+@Composable
+private fun PromptHeader(state: ChallengeState) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(PinkSubtle)
+                    .border(1.dp, AccentPink.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = AccentPink, modifier = Modifier.size(10.dp))
+                    Text("${state.streak}", style = MaterialTheme.typography.labelSmall, color = AccentPink, fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(YellowSubtle)
+                    .border(1.dp, AccentYellow.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = AccentYellow, modifier = Modifier.size(10.dp))
+                    Text("${state.score} PTS", style = MaterialTheme.typography.labelSmall, color = AccentYellow, fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                }
+            }
+        }
+        Text(
+            text = "PREDICT NEXT STEP",
+            style = MaterialTheme.typography.labelSmall,
+            color = PrimaryCyan,
+            fontWeight = FontWeight.Bold,
+            fontSize = 8.sp,
+            letterSpacing = 0.8.sp
+        )
+    }
+}
+
 /**
- * Challenge Mode interactive question card & score bar displayed above the visualizer.
+ * Body of [CanvasChallengePrompt] -- renders the typed prompt text and
+ * the right kind of answer surface.
  */
 @Composable
-fun ChallengeCard(
+private fun PredictionPromptBody(
+    question: PredictionQuestion,
     step: VisualizerStep,
-    nextStep: VisualizerStep?,
-    state: ChallengeState,
-    onStateChange: (ChallengeState) -> Unit,
-    onContinueNext: () -> Unit,
-    modifier: Modifier = Modifier
+    onAnswerYes: () -> Unit,
+    onAnswerNo: () -> Unit,
+    onAnswerIndices: (Set<Int>) -> Unit,
 ) {
-    // Generate prediction question from current step vs next step
-    val isSwapLikely = nextStep?.comparisonExpr?.contains("SWAP", ignoreCase = true) == true ||
-            nextStep?.elementStates?.values?.any { it == ElementState.SWAPPING } == true
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(CardBackgroundElevated)
-            .border(
-                1.dp,
-                when {
-                    state.feedback?.isCorrect == true -> AccentGreen
-                    state.feedback?.isCorrect == false -> AccentRed
-                    else -> SecondaryPurple.copy(alpha = 0.5f)
-                },
-                RoundedCornerShape(12.dp)
-            )
-            .padding(10.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Header with Streak & Score Badges
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = question.promptText,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 9.5.sp, lineHeight = 13.sp, maxLines = 2,
+            )
+            Text(
+                text = question.contextLine,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary,
+                fontSize = 8.sp, lineHeight = 11.sp, maxLines = 1,
+            )
+        }
+        when (question.kind) {
+            PredictionKind.SWAP_DECISION,
+            PredictionKind.FOUND_DECISION,
+            PredictionKind.WILL_PUSH,
+            PredictionKind.WILL_POP,
+            PredictionKind.WILL_ENQUEUE,
+            PredictionKind.WILL_DEQUEUE -> YesNoButtonRow(
+                yesLabel = question.yesLabel,
+                noLabel = question.noLabel,
+                onYes = onAnswerYes, onNo = onAnswerNo,
+            )
+            PredictionKind.SELECT_COMPARE_PAIR,
+            PredictionKind.SELECT_PIVOT -> TapIndicesChip(
+                question = question, step = step, onSubmit = onAnswerIndices,
+            )
+            PredictionKind.SELECT_VISIT_NODE -> Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(PurpleSubtle)
+                    .border(1.dp, SecondaryPurple.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(PinkSubtle)
-                            .border(1.dp, AccentPink.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalFireDepartment,
-                                contentDescription = null,
-                                tint = AccentPink,
-                                modifier = Modifier.size(10.dp)
-                            )
-                            Text(
-                                text = "STREAK ${state.streak}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AccentPink,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 8.sp
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(YellowSubtle)
-                            .border(1.dp, AccentYellow.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.EmojiEvents,
-                                contentDescription = null,
-                                tint = AccentYellow,
-                                modifier = Modifier.size(10.dp)
-                            )
-                            Text(
-                                text = "${state.score} PTS",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AccentYellow,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 8.sp
-                            )
-                        }
-                    }
-                }
-
                 Text(
-                    text = "🎯 PREDICT NEXT STEP",
+                    text = "TAP A NODE",
                     style = MaterialTheme.typography.labelSmall,
-                    color = PrimaryCyan,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 8.sp,
-                    letterSpacing = 0.8.sp
+                    color = PurpleGlow,
+                    fontWeight = FontWeight.Bold, fontSize = 9.sp,
                 )
             }
+        }
+    }
+}
 
-            // Question Prompt
-            if (state.feedback == null) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "Question: Based on the current comparison, will these elements swap?",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp
+
+/** Two side-by-side pill buttons used by every Yes/No question kind. */
+@Composable
+private fun YesNoButtonRow(
+    yesLabel: String,
+    noLabel: String,
+    onYes: () -> Unit,
+    onNo: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(7.dp))
+            .background(GreenSubtle)
+            .border(1.dp, AccentGreen.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
+            .clickable(onClick = onYes)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(yesLabel, style = MaterialTheme.typography.labelSmall, color = AccentGreen, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(7.dp))
+            .background(PinkSubtle)
+            .border(1.dp, AccentPink.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
+            .clickable(onClick = onNo)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(noLabel, style = MaterialTheme.typography.labelSmall, color = AccentPink, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+    }
+}
+
+/**
+ * Tap-to-pick pill chips -- one chip per eligible index. Each chip shows
+ * the cell VALUE (so the user reasons about the algorithm, not about
+ * positions). Tapping toggles selection; a SUBMIT button scores the
+ * answer when the user has picked the expected number of cells.
+ *
+ * This is the fix for "It doesn't tap": previously the first chip tap
+ * was scored immediately, which was always wrong for compare-pair (needs
+ * two cells). Now the user can pick both before submitting.
+ */
+@Composable
+private fun TapIndicesChip(
+    question: PredictionQuestion,
+    step: VisualizerStep,
+    onSubmit: (Set<Int>) -> Unit,
+) {
+    val targetSize = (question.answer as? PredictionAnswer.Indices)?.indices?.size ?: 1
+    var selected by remember(question, step.stepIndex) { mutableStateOf(setOf<Int>()) }
+    val canSubmit = selected.size == targetSize
+
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        question.eligibleIndices.toSortedSet().forEach { idx ->
+            val value = step.array.getOrNull(idx)
+            val isSelected = idx in selected
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(if (isSelected) PrimaryCyan.copy(alpha = 0.18f) else CyanSubtle)
+                    .border(
+                        1.dp,
+                        if (isSelected) PrimaryCyan else PrimaryCyan.copy(alpha = 0.4f),
+                        RoundedCornerShape(6.dp)
                     )
-                    Text(
-                        text = "Inspect the comparison expression: ${step.comparisonExpr ?: step.description}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AccentYellow,
-                        fontSize = 8.5.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    // Binary Choice Buttons: Yes (Swap) or No (Keep)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Yes (Swap)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(GreenSubtle)
-                                .border(1.dp, AccentGreen.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                                .clickable {
-                                    val isCorrect = isSwapLikely
-                                    val pts = if (isCorrect) 100 + (state.streak * 20) else 0
-                                    val newStreak = if (isCorrect) state.streak + 1 else 0
-                                    onStateChange(
-                                        state.copy(
-                                            score = state.score + pts,
-                                            streak = newStreak,
-                                            totalQuestions = state.totalQuestions + 1,
-                                            correctAnswers = state.correctAnswers + (if (isCorrect) 1 else 0),
-                                            feedback = ChallengeFeedback(
-                                                isCorrect = isCorrect,
-                                                message = if (isCorrect) "Spot on! The elements satisfy swap condition. 🎯" else "Incorrect: Elements were already in order or didn't need swapping.",
-                                                pointsAwarded = pts
-                                            )
-                                        )
-                                    )
-                                }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "YES (SWAP)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AccentGreen,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.5.sp
-                            )
-                        }
-
-                        // No (Keep)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(PinkSubtle)
-                                .border(1.dp, AccentPink.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                                .clickable {
-                                    val isCorrect = !isSwapLikely
-                                    val pts = if (isCorrect) 100 + (state.streak * 20) else 0
-                                    val newStreak = if (isCorrect) state.streak + 1 else 0
-                                    onStateChange(
-                                        state.copy(
-                                            score = state.score + pts,
-                                            streak = newStreak,
-                                            totalQuestions = state.totalQuestions + 1,
-                                            correctAnswers = state.correctAnswers + (if (isCorrect) 1 else 0),
-                                            feedback = ChallengeFeedback(
-                                                isCorrect = isCorrect,
-                                                message = if (isCorrect) "Correct! No swap was necessary at this step. 🌟" else "Oops! The condition was met so a swap occurs next.",
-                                                pointsAwarded = pts
-                                            )
-                                        )
-                                    )
-                                }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "NO (KEEP)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AccentPink,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.5.sp
-                            )
-                        }
+                    .clickable {
+                        selected = if (isSelected) selected - idx else selected + idx
                     }
-                }
-            } else {
-                // Feedback Result Banner
-                val fb = state.feedback
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (fb.isCorrect) "🎉 CORRECT PREDICTION (+${fb.pointsAwarded} PTS)" else "❌ INCORRECT GUESS",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (fb.isCorrect) AccentGreen else AccentRed,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 9.5.sp
-                        )
-
-                        // Continue button
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (fb.isCorrect) PrimaryCyan else SecondaryPurple)
-                                .clickable {
-                                    onStateChange(state.copy(feedback = null))
-                                    onContinueNext()
-                                }
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Next Step ➔",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = DarkBackground,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 8.5.sp
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = fb.message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary,
-                        fontSize = 9.sp,
-                        lineHeight = 12.sp
-                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                    Text(value?.toString() ?: "?", style = MaterialTheme.typography.labelSmall, color = PrimaryCyan, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    Text("[$idx]", style = MaterialTheme.typography.labelSmall, color = TextSecondary, fontWeight = FontWeight.Normal, fontSize = 7.sp)
                 }
             }
+        }
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(7.dp))
+                .background(if (canSubmit) PrimaryCyan else CardBackground)
+                .border(
+                    1.dp,
+                    if (canSubmit) PrimaryCyan else PrimaryCyan.copy(alpha = 0.4f),
+                    RoundedCornerShape(7.dp)
+                )
+                .clickable(enabled = canSubmit) {
+                    onSubmit(selected)
+                }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = if (canSubmit) "SUBMIT" else "PICK $targetSize",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (canSubmit) DarkBackground else TextSecondary,
+                fontWeight = FontWeight.Bold, fontSize = 9.sp,
+            )
+        }
+    }
+}
+
+
+/** Bottom row of [CanvasChallengePrompt] after the user answers. */
+@Composable
+private fun FeedbackRow(
+    feedback: ChallengeFeedback,
+    onContinue: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = (if (feedback.isCorrect) "CORRECT (+${feedback.pointsAwarded} PTS) " else "INCORRECT ") + feedback.message,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (feedback.isCorrect) AccentGreen else AccentRed,
+            fontSize = 9.sp, lineHeight = 12.sp,
+            modifier = Modifier.weight(1f), maxLines = 2,
+        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(7.dp))
+                .background(if (feedback.isCorrect) PrimaryCyan else SecondaryPurple)
+                .clickable(onClick = onContinue)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("NEXT", style = MaterialTheme.typography.labelSmall, color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 8.5.sp)
         }
     }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
 @Composable
-fun ChallengeCardPreview() {
+private fun CanvasChallengePromptPreview() {
     AlgoLensTheme {
         Box(modifier = Modifier.padding(16.dp)) {
-            ChallengeCard(
+            CanvasChallengePrompt(
+                algorithm = AlgorithmId.QUICK_SORT,
                 step = VisualizerStep(
                     description = "Comparing arr[1]=8 and arr[2]=9",
-                    comparisonExpr = "COMPARE: 8 > 9?"
+                    comparisonExpr = "COMPARE: 8 > 9?",
+                    array = listOf(3, 8, 9, 2, 6),
+                    elementStates = mapOf(1 to ElementState.COMPARING, 2 to ElementState.COMPARING)
                 ),
                 nextStep = VisualizerStep(
-                    description = "No swap needed"
+                    description = "Pivot partition step",
+                    comparisonExpr = "PIVOT: arr[4]",
+                    pivotIndex = 4,
+                    array = listOf(3, 8, 9, 2, 6),
+                    elementStates = mapOf(4 to ElementState.PIVOT)
                 ),
-                state = ChallengeState(
-                    isActive = true,
-                    score = 240,
-                    streak = 2
+                state = ChallengeState(isActive = true, score = 240, streak = 2),
+                onStateChange = {}, onContinueNext = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0B0F19)
+@Composable
+private fun CanvasChallengePromptFoundPreview() {
+    AlgoLensTheme {
+        Box(modifier = Modifier.padding(16.dp)) {
+            CanvasChallengePrompt(
+                algorithm = AlgorithmId.LINEAR_SEARCH,
+                step = VisualizerStep(
+                    description = "Inspecting index 5",
+                    comparisonExpr = "COMPARE: arr[5]=7 vs target=7",
+                    array = listOf(3, 8, 9, 2, 6, 7, 5)
                 ),
-                onStateChange = {},
-                onContinueNext = {}
+                nextStep = VisualizerStep(
+                    description = "Found 7 at index 5",
+                    comparisonExpr = "FOUND: arr[5]=7"
+                ),
+                state = ChallengeState(isActive = true, score = 80, streak = 1),
+                onStateChange = {}, onContinueNext = {}
             )
         }
     }

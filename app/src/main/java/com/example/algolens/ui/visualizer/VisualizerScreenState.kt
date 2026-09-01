@@ -97,6 +97,10 @@ class VisualizerScreenState(
     //    Quick Sort too — they can re-toggle in the sheet. ──
     var lastAppliedSortOrder: SortOrder by mutableStateOf(SortOrder.ASC)
 
+    // ── Search target (Linear / Binary Search). Chosen in the
+    //    customize-input sheet; null means the generator default. ──
+    var searchTarget: Int? by mutableStateOf(null)
+
     // ── Buffer customize state (Stack / Queue). When the user
     //    applies an operation list in the customize sheet, this
     //    holds it so the step generator re-runs on the new list. ──
@@ -208,6 +212,7 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
         algorithm,
         state.arrayData,
         state.lastAppliedSortOrder,
+        state.searchTarget,
         state.bufferOps,
         state.queueOps,
         state.graphConfig,
@@ -222,6 +227,7 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             algorithm,
             inputArray = state.arrayData,
             sortOrder = state.lastAppliedSortOrder,
+            searchTarget = state.searchTarget,
             bufferOps = state.bufferOps,
             queueOps = state.queueOps,
             bstValues = bstValues,

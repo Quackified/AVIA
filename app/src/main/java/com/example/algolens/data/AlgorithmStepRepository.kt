@@ -49,6 +49,7 @@ object AlgorithmStepRepository {
         algorithm: Algorithm,
         inputArray: List<Int> = DEFAULT_INPUT,
         sortOrder: SortOrder = SortOrder.ASC,
+        searchTarget: Int? = null,
         bufferOps: List<BufferOp> = defaultStackOps(),
         queueOps: List<QueueOp> = defaultQueueOps(),
         bstValues: List<Int> = listOf(50, 30, 70, 20, 40, 60, 80),
@@ -66,10 +67,10 @@ object AlgorithmStepRepository {
             AlgorithmId.INSERTION_SORT -> generateInsertionSort(inputArray, sortOrder)
             AlgorithmId.MERGE_SORT -> generateMergeSort(inputArray, sortOrder)
             AlgorithmId.QUICK_SORT -> generateQuickSort(inputArray, sortOrder)
-            AlgorithmId.LINEAR_SEARCH -> generateLinearSearch(inputArray, target = 6, sortOrder)
+            AlgorithmId.LINEAR_SEARCH -> generateLinearSearch(inputArray, target = searchTarget ?: 6, sortOrder)
             AlgorithmId.BINARY_SEARCH -> generateBinarySearch(
                 sortedInput = if (sortOrder == SortOrder.ASC) inputArray.sorted() else inputArray.sortedDescending(),
-                target = 6,
+                target = searchTarget ?: 6,
                 sortOrder = sortOrder
             )
             AlgorithmId.STACK -> generateStackSteps(bufferOps)
@@ -1756,4 +1757,6 @@ object AlgorithmStepRepository {
 
         return steps
     }
+
+    // ---------------------------------------------------------------------
 }

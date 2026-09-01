@@ -7,12 +7,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,8 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.SecondaryPurple
@@ -83,10 +84,13 @@ fun TopPointerBadge(
 }
 
 /**
- * Bottom-of-cell pointer pill (e.g. i, j, mid, low, high, k).
+ * Bottom-of-cell pointer pill (e.g. i, j, mid, low, high, k, found).
  *
- * A 18Ã—18dp square with a single letter and a labelâ†’colour mapping for the
- * canonical sort pointer names.
+ * Single-letter labels render as an 18x18dp square. Multi-character labels
+ * (notably "found" for Linear/Binary Search match steps) render as a
+ * variable-width pill so the text never clips. The previous fixed-square
+ * layout truncated "found" to e.g. "fou..." once a cell went below the
+ * largest preset.
  */
 @Composable
 fun BottomPointerBadge(
@@ -104,27 +108,52 @@ fun BottomPointerBadge(
         ) {
             if (entry != null) {
                 val label = entry.key
+                val isLong = label.length > 1
                 val (badgeBg, badgeText) = when (label.lowercase()) {
                     "i", "low", "l", "j", "mid" -> AlgoTokens.accentCyan to DarkBackground
                     "high", "r" -> AlgoTokens.accentPurple to Color.White
                     "k" -> AlgoTokens.accentPink to Color.White
+                    "found" -> AccentGreen to DarkBackground
                     else -> AlgoTokens.accentCyan to DarkBackground
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(width = 18.dp, height = 18.dp)
-                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                        .background(badgeBg),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = badgeText,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.sp
-                    )
+                if (isLong) {
+                    Box(
+                        modifier = Modifier
+                            .widthIn(min = 18.dp)
+                            .height(18.dp)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                            .background(badgeBg)
+                            .padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = badgeText,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 7.5.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Clip
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 18.dp, height = 18.dp)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                            .background(badgeBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = badgeText,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 9.sp
+                        )
+                    }
                 }
             }
         }

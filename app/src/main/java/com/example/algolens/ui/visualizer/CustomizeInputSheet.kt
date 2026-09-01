@@ -112,7 +112,9 @@ val PRESET_OPTIONS = listOf(
 fun CustomizeInputSheet(
     initialArray: List<Int>,
     initialSortOrder: SortOrder = SortOrder.ASC,
-    onApply: (List<Int>, SortOrder) -> Unit,
+    initialSearchTarget: Int? = null,
+    showSearchTarget: Boolean = false,
+    onApply: (List<Int>, SortOrder, Int?) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -121,6 +123,7 @@ fun CustomizeInputSheet(
     var arrayLength by remember { mutableFloatStateOf(initialArray.size.toFloat().coerceIn(5f, 15f)) }
     var selectedPreset by remember { mutableStateOf<String?>(null) }
     var sortOrder by remember { mutableStateOf(initialSortOrder) }
+    var searchTargetStr by remember { mutableStateOf(initialSearchTarget?.toString() ?: "") }
 
     // Preset data generator
     fun generatePreset(preset: String, length: Int): List<Int> {
@@ -489,8 +492,69 @@ fun CustomizeInputSheet(
                 )
             }
 
-            // ── 5. Apply Button ──
-            val isValid = validationResult is InputValidationResult.Valid
+            // ── 5. Search Target (Linear / Binary Search only) ──
+            if (showSearchTarget) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "SEARCH FOR (VALUE):",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextMuted,
+                            fontSize = 8.sp,
+                            letterSpacing = 0.8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (searchTargetStr.isNotBlank()) {
+                            val parsedTarget = searchTargetStr.trim().toIntOrNull()
+                            Text(
+                                text = if (parsedTarget != null) "target set" else "invalid",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (parsedTarget != null) AccentGreen else AccentRed,
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(CanvasBackground)
+                            .border(
+                                width = 1.dp,
+                                color = if (searchTargetStr.isBlank() || searchTargetStr.trim().toIntOrNull() != null)
+                                    BorderCyan
+                                else
+                                    AccentRed.copy(alpha = 0.8f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                    ) {
+                        BasicTextField(
+                            value = searchTargetStr,
+                            onValueChange = { searchTargetStr = it },
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                color = if (searchTargetStr.isBlank() || searchTargetStr.trim().toIntOrNull() != null)
+                                    PrimaryCyan
+                                else
+                                    TextPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            cursorBrush = SolidColor(PrimaryCyan),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
+            // ── 6. Apply Button ──
+            val isValid = validationResult is InputValidationResult.Valid &&
+                !(showSearchTarget && searchTargetStr.isNotBlank() && searchTargetStr.trim().toIntOrNull() == null)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -499,7 +563,11 @@ fun CustomizeInputSheet(
                     .clickable(enabled = isValid) {
                         if (validationResult is InputValidationResult.Valid) {
                             val parsed = (validationResult as InputValidationResult.Valid).parsed
-                            onApply(parsed, sortOrder)
+                            val parsedTarget = if (showSearchTarget && searchTargetStr.isNotBlank())
+                                searchTargetStr.trim().toIntOrNull()
+                            else
+                                null
+                            onApply(parsed, sortOrder, parsedTarget)
                             onDismiss()
                         }
                     }
@@ -525,7 +593,7 @@ fun CustomizeInputSheetPreview() {
     AlgoLensTheme {
         CustomizeInputSheet(
             initialArray = listOf(64, 34, 25, 12, 22, 11, 90),
-            onApply = { _, _ -> },
+            onApply = { _, _, _ -> },
             onDismiss = {}
         )
     }

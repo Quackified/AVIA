@@ -125,29 +125,33 @@ fun VisualizerScreen(
                     } else {
                         EmptyCanvas(algorithm)
                     }
-
-                    // Challenge prompt overlay  sits on top of the canvas.
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = state.challengeInFlight,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        enter = fadeIn(tween(220)) + expandVertically(),
-                        exit = fadeOut(tween(180)) + shrinkVertically()
-                    ) {
-                        CanvasChallengePrompt(
-                            step = state.currentStep,
-                            nextStep = state.steps.getOrNull(state.currentStepIdx + 1),
-                            state = state.challengeState,
-                            onStateChange = { state.updateChallenge { it } },
-                            onContinueNext = { state.stepForward() }
-                        )
-                    }
                 }
 
                 // Boundary divider (pulses on step changes).
                 AmbientGlowDivider(pulseProvider = { syncPulse.value })
+
+                // Challenge prompt  lives BETWEEN the canvas and the code
+                // trace, not on top of the canvas. Algorithm details stay
+                // fully visible; the prompt stays in the natural "between"
+                // reading position. Sized by content (not weight), so the
+                // canvas + code trace still keep their 65/35 proportions.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = state.challengeInFlight,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    enter = fadeIn(tween(220)) + expandVertically(),
+                    exit = fadeOut(tween(180)) + shrinkVertically()
+                ) {
+                    CanvasChallengePrompt(
+                        algorithm = algorithm.id,
+                        step = state.currentStep,
+                        nextStep = state.steps.getOrNull(state.currentStepIdx + 1),
+                        state = state.challengeState,
+                        onStateChange = { state.updateChallenge { it } },
+                        onContinueNext = { state.stepForward() }
+                    )
+                }
 
                 // Code trace (35% weight).
                 Box(
@@ -176,9 +180,12 @@ fun VisualizerScreen(
                 VisualizerFamily.LINEAR_1D -> CustomizeInputSheet(
                     initialArray = state.arrayData,
                     initialSortOrder = state.lastAppliedSortOrder,
-                    onApply = { values, order ->
+                    initialSearchTarget = if (spec.id == com.example.algolens.model.AlgorithmId.LINEAR_SEARCH || spec.id == com.example.algolens.model.AlgorithmId.BINARY_SEARCH) state.searchTarget else null,
+                    showSearchTarget = spec.id == com.example.algolens.model.AlgorithmId.LINEAR_SEARCH || spec.id == com.example.algolens.model.AlgorithmId.BINARY_SEARCH,
+                    onApply = { values, order, target ->
                         state.arrayData = values
                         state.lastAppliedSortOrder = order
+                        state.searchTarget = target
                         state.currentStepIdx = 0
                         state.isPlaying = false
                         state.showInputSheet = false
