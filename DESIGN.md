@@ -321,7 +321,7 @@ The visual rejections in this section are the ones the user has confirmed the sy
 
 - **Do** read the active accent role before picking a color. If the use case does not match a role, change the role, not the color.
 - **Do** pair every subtle accent fill with a border from the same accent at 30% alpha. The fill and the border agree.
-- **Do** animate using one of the three named springs (`panelSpring`, `cellTravelSpring`, `evalSpring`, `pointerSpring`, `lineTrackSpring`, `liftSpring` / `settleSpring`). The fastest perceptible animation is 100ms (slider drag); the slowest is 600ms (`panelSpring`). Never linear.
+- **Do** animate using one of the three named springs (`panelSpring`, `cellTravelSpring`, `evalSpring`, `pointerSpring`, `lineTrackSpring`, `liftSpring` / `settleSpring`). The fastest perceptible animation is 100ms (slider drag); the slowest is 600ms (`panelSpring`). Never linear. The one exception is the cold-start boot progress bar (`BootOverlay`), which uses a linear `tween` because it is a status indicator, not decoration.
 - **Do** honor the 4dp grid. `space1` through `space8` are the only spacing tokens; if a design needs 10dp, the components are wrong, not the grid.
 - **Do** derive every component from `AlgoTokens`. If you find yourself writing a raw `Color(0xFF…)` outside `ui/theme/Color.kt`, stop and add a token.
 - **Do** attach per-algorithm gimmicks as `VisualizerOverlay` (Phase 4) on the `AlgorithmSpec`. The renderer is never forked.

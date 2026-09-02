@@ -218,6 +218,46 @@ Other rules:
   + color, use the spring on size and `animateColorAsState` for
   color.
 
+### 8.1 Cold-start boot sequence
+
+The OS-level splash (`Theme.AlgoLens.Splash`, extending
+`Theme.SplashScreen` from `androidx.core:core-splashscreen`) shows
+a dark `bg_dark` background + a 1.5dp `traversal-cyan` **Bolt** icon —
+the same glyph the dashboard uses for its header logo
+(`Icons.Default.Bolt`). It is held in place by
+`SplashScreen.setKeepOnScreenCondition` until the in-Compose
+`BootOverlay` has rendered its first frame and a `LaunchedEffect`
+countdown (~300ms) has elapsed. The overlay crossfades out via
+`panelFadeSpring` into `AlgoLensApp` — the dashboard mounts into
+the same dark workspace the splash revealed.
+
+- **Boot mark:** a 1.5dp Material **Bolt** glyph + a small 1dp
+  accent dot just outside its upper-right tip, all in
+  `traversal-cyan`. The same glyph that appears next to "AlgoLens"
+  on the dashboard, scaled ×1.35 from a 24×24 viewport into the
+  108×108 splash viewport — final bbox occupies ~25% of the
+  viewport so the cold-start icon reads as a small, well-proportioned
+  logo with generous negative space around it. Same stroke style as
+  `ic_zap.xml` (rounded caps and joins). Reused by `ic_boot_mark.xml`
+  (splash) and `BootOverlay`'s `BootMarkCanvas` (in-Compose, sized
+  via `AlgoTokens.bootMarkSize = 32.dp`).
+- **Hold duration:** 300ms (`BootController.DEFAULT_HOLD_MS`).
+  Short on purpose — long enough for the bolt to register, short
+  enough that launch doesn't read as laggy. This is the one place
+  a `tween` with linear easing is permitted (the progress bar fill,
+  which is a status indicator, not decoration).
+- **State backing.** `BootController.ready` is backed by
+  `mutableStateOf(false)` so any Composable that reads it registers
+  a snapshot dependency and recomposes when `markReady()` flips
+  the flag. Using a plain `var Boolean` would freeze the overlay
+  on the "loading workspace" frame because Compose never observes
+  the transition — that bug is locked in by
+  `BootControllerTest.ready_isBackedByMutableState`.
+- **No new motion spec.** The boot fade-out reuses
+  `panelFadeSpring` (Float-typed twin of `panelSpring`,
+  600ms ceiling) via
+  `AnimatedContent(fadeIn + fadeOut(animationSpec = panelFadeSpring))`.
+
 ---
 
 ## 9. Surfaces and elevation

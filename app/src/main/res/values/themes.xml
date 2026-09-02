@@ -1,11 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme for Jetpack Compose Activity -->
+    <!--
+        Base application theme used AFTER the splash dismisses (i.e. once the
+        Compose hierarchy is rendering). Inherits from android:Theme.Material
+        so the app-side window styling matches the rest of the dark IDE look.
+    -->
     <style name="Theme.AlgoLens" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@color/bg_dark</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <item name="android:windowBackground">@color/bg_dark</item>
         <item name="android:colorBackground">@color/bg_dark</item>
         <item name="android:navigationBarColor">@color/bg_dark</item>
+    </style>
+
+    <!--
+        Launcher activity theme: shown ONLY during the cold-start window. The
+        core-splashscreen library draws the geometric boot mark + dark
+        background, then swaps in Theme.AlgoLens as soon as setContent runs.
+
+        Parent is Theme.SplashScreen (androidx.core:core-splashscreen) which
+        polyfills the API 31+ SplashScreen contract down to minSdk 24.
+    -->
+    <style name="Theme.AlgoLens.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/bg_dark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_boot_mark</item>
+        <item name="postSplashScreenTheme">@style/Theme.AlgoLens</item>
     </style>
 </resources>

@@ -10,6 +10,7 @@ kotlin = "2.2.10"
 composeBom = "2026.02.01"
 appcompat = "1.7.0"
 material = "1.12.0"
+coreSplashscreen = "1.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -30,6 +31,7 @@ androidx-compose-material-icons-extended = { group = "androidx.compose.material"
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 lint-api = { group = "com.android.tools.lint", name = "lint-api", version = "32.2.1" }
 lint-checks = { group = "com.android.tools.lint", name = "lint-checks", version = "32.2.1" }

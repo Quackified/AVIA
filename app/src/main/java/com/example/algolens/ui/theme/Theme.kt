@@ -157,6 +157,9 @@ object AlgoTokens {
     val inlineIconMd: Dp = 14.dp
     val inlineIconLg: Dp = 18.dp
 
+    /** Cold-start boot mark canvas (used by `BootOverlay` to mirror the OS splash drawable). */
+    val bootMarkSize: Dp = 32.dp
+
     // ── Corner Radii ──
     /** Tightest radius for chips / small badges (between 4dp xs and 8dp sm). */
     val radiusXxs: Dp = 6.dp
@@ -183,6 +186,16 @@ object AlgoTokens {
     // ── Motion ──
     /** Uniform spring for all expanding / collapsing panels (never snappy). */
     val panelSpring = spring<IntSize>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow
+    )
+
+    /**
+     * Float-typed twin of [panelSpring], used wherever a panel-shaped motion
+     * needs to drive a `Float` (e.g. fade alpha, progress tween) rather than
+     * an `IntSize`. Same damping + stiffness profile — same 600ms ceiling.
+     */
+    val panelFadeSpring = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessLow
     )

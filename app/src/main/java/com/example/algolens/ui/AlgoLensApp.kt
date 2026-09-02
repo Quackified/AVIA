@@ -18,6 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.algolens.model.Algorithm
+import com.example.algolens.ui.boot.BootController
+import com.example.algolens.ui.boot.BootControllerEffect
+import com.example.algolens.ui.boot.BootOverlay
 import com.example.algolens.ui.components.BottomNavBar
 import com.example.algolens.ui.components.NavTab
 import com.example.algolens.ui.dashboard.DashboardScreen
@@ -29,8 +32,12 @@ import com.example.algolens.ui.visualizer.VisualizerScreen
 
 @Composable
 fun AlgoLensApp(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bootController: BootController = remember { BootController() },
 ) {
+    // Drive the boot countdown from the moment the root composition mounts.
+    BootControllerEffect(bootController)
+
     var activeTab by remember { mutableStateOf(NavTab.HOME) }
     var selectedAlgorithm by remember { mutableStateOf<Algorithm?>(null) }
 
@@ -44,10 +51,51 @@ fun AlgoLensApp(
             .fillMaxSize()
             .background(CanvasBackground)
     ) {
+        // Crossfade between the boot overlay and the real app shell. The
+        // overlay fades out using AlgoTokens.panelSpring (600ms ceiling) once
+        // BootController.ready flips, so the dashboard mounts into the same
+        // dark workspace the OS splash revealed.
+        AnimatedContent(
+            targetState = bootController.ready,
+            transitionSpec = {
+                (fadeIn(animationSpec = com.example.algolens.ui.theme.AlgoTokens.panelFadeSpring) togetherWith
+                    fadeOut(animationSpec = com.example.algolens.ui.theme.AlgoTokens.panelFadeSpring))
+            },
+            label = "BootToApp",
+        ) { isReady ->
+            if (!isReady) {
+                BootOverlay(controller = bootController)
+            } else {
+                AppShell(
+                    activeTab = activeTab,
+                    onTabSelected = { activeTab = it },
+                    selectedAlgorithm = selectedAlgorithm,
+                    onAlgorithmSelected = { selectedAlgorithm = it },
+                    onAlgorithmCleared = { selectedAlgorithm = null },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Pure presentational shell extracted from [AlgoLensApp] so the boot-overlay
+ * branch doesn't have to repeat the dashboard / visualizer wiring.
+ */
+@Composable
+private fun AppShell(
+    activeTab: NavTab,
+    onTabSelected: (NavTab) -> Unit,
+    selectedAlgorithm: Algorithm?,
+    onAlgorithmSelected: (Algorithm) -> Unit,
+    onAlgorithmCleared: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxSize().background(CanvasBackground)) {
         if (selectedAlgorithm != null) {
             VisualizerScreen(
-                algorithm = selectedAlgorithm!!,
-                onBack = { selectedAlgorithm = null }
+                algorithm = selectedAlgorithm,
+                onBack = onAlgorithmCleared,
             )
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -59,22 +107,22 @@ fun AlgoLensApp(
                     when (activeTab) {
                         NavTab.HOME -> {
                             DashboardScreen(
-                                onAlgorithmClick = { selectedAlgorithm = it }
+                                onAlgorithmClick = onAlgorithmSelected,
                             )
                         }
                         NavTab.EXPLORE -> {
                             PracticeScreen(
-                                onBack = { activeTab = NavTab.HOME }
+                                onBack = { onTabSelected(NavTab.HOME) },
                             )
                         }
                         NavTab.PROFILE -> {
                             ProfileScreen(
-                                onAlgorithmClick = { selectedAlgorithm = it }
+                                onAlgorithmClick = onAlgorithmSelected,
                             )
                         }
                         NavTab.SETTINGS -> {
                             SettingsScreen(
-                                onBack = { activeTab = NavTab.HOME }
+                                onBack = { onTabSelected(NavTab.HOME) },
                             )
                         }
                     }
@@ -83,7 +131,7 @@ fun AlgoLensApp(
                 // Bottom Navigation Bar
                 BottomNavBar(
                     activeTab = activeTab,
-                    onTabSelected = { activeTab = it }
+                    onTabSelected = onTabSelected,
                 )
             }
         }

@@ -359,6 +359,48 @@ follow-ups for any rule that fires.**
 > **Status: DEFERRED — low priority.** Produces follow-up issues rather than
 > fixes; not blocking. Run if/when the repo is opened for a new feature PR.
 
+**Task 4.3.4 — Add a cold-start boot animation.** ✅
+
+- New `Theme.AlgoLens.Splash` style in `res/values/themes.xml` extends
+  `Theme.SplashScreen` (from `androidx.core:core-splashscreen` 1.0.1,
+  added to `libs.versions.toml` + `app/build.gradle.kts`). The launcher
+  activity in `AndroidManifest.xml` now references it, so the cold-start
+  window shows a dark `bg_dark` background + a 1.5dp `traversal-cyan`
+  Material **Bolt** icon (`res/drawable/ic_boot_mark.xml`) — the same
+  glyph the dashboard uses for its header logo (`Icons.Default.Bolt`),
+  occupying ~25% of the 108×108 splash viewport (small logo footprint,
+  generous negative space). A small accent dot just outside the bolt's
+  upper-right tip gives the cold-start frame a second visual beat.
+- `MainActivity.onCreate` calls `installSplashScreen()` *before*
+  `super.onCreate()` and uses `setKeepOnScreenCondition { !bootController.ready }`
+  to hold the OS splash until the in-Compose overlay has rendered its
+  first frame. `postSplashScreenTheme = Theme.AlgoLens` swaps the
+  window chrome the moment `setContent` runs.
+- New `ui/boot/BootController.kt` is a `@Stable` Compose state holder.
+  `ready` is backed by `mutableStateOf(false)` so any Composable that
+  reads it (`BootOverlay`, `AlgoLensApp`'s `AnimatedContent`)
+  automatically registers a snapshot dependency and recomposes when
+  `markReady()` flips the flag. **Earlier revisions used a plain
+  `var Boolean` and the cold-start overlay froze on "loading
+  workspace" because Compose never observed the transition** — this
+  bug is now locked in by `BootControllerTest.ready_isBackedByMutableState`.
+  `BootControllerEffect` (Composable) drives the flip from a
+  `LaunchedEffect { delay(holdDurationMs); controller.markReady() }`.
+  Default hold = **300ms**.
+- New `ui/boot/BootOverlay.kt` is the in-Compose "workspace booting"
+  beat: 1dp `PrimaryCyan` progress bar along the top edge, JetBrains
+  Mono `ALGOLENS` wordmark, and a Compose-drawn bolt path matching
+  the splash drawable pixel-for-pixel. Crossfades out via
+  `AlgoTokens.panelFadeSpring` once `ready` flips.
+- `AlgoLensApp` now wraps its content in an `AnimatedContent` whose
+  target state is `bootController.ready`, so the dashboard mounts
+  into the same dark workspace the splash revealed.
+- No logo asset, no marketing imagery. The boot mark is the same
+  glyph the dashboard uses for its brand — consistent with the
+  "devtool, no marketing" directive in `PRODUCT.md`.
+- New `BootControllerTest` (6 cases) under `app/src/test/`. Test
+  count: 29 → 35. All six pass on `testDebugUnitTest`.
+
 **Task 4.3.2 — Compose `Macrobenchmark` for the visualizer.**
 
 - Add a `benchmark` module per the `profilers/android-profiler` skill.
@@ -497,6 +539,10 @@ Before you open a PR, verify the following:
 - [ ] No new file under `visualizer/` exceeds 400 lines.
 - [ ] No new file references a removed type (`SortStep`,
       `model.GraphNode`, `model.GraphEdge`, `StepType`).
+- [ ] If you touched the cold-start path: launcher activity theme is
+      `Theme.AlgoLens.Splash`; `MainActivity.onCreate` calls
+      `installSplashScreen()` before `super.onCreate()`; the in-Compose
+      boot overlay uses `AlgoTokens.panelSpring` (no new motion spec).
 - [ ] If you added an algorithm: the
       `all13Algorithms_generateNonEmptySteps` test still passes (it
       loops over `SampleData.algorithms`).
