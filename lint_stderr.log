@@ -1,0 +1,26 @@
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:lintDebug'.
+> Lint found errors in the project; aborting build.
+  
+  Fix the issues identified by lint, or add the issues to the lint baseline via `gradlew updateLintBaseline`.
+  For more details, see https://developer.android.com/studio/write/lint#snapshot
+  
+  Lint found 5 errors, 13 warnings (and 442 errors, 117 warnings, 2 hints filtered by baseline lint-baseline.xml). First failure:
+  
+  C:\Users\Quacky\Documents\Coding\Android Studio\Projects\AlgoLens\app\src\main\java\com\example\algolens\ui\visualizer\CustomizeInputSheet.kt:533: Error: RoundedCornerShape(.dp) literal: use an AlgoTokens.radius token (radiusXxs/xs/sm/md/lg/xl) instead. [AlgolensRoundedCornerShapeLiteral from com.example.algolens]
+                                  shape = RoundedCornerShape(8.dp)
+                                          ~~~~~~~~~~~~~~~~~~~~~~~~
+  
+  The full lint text report is located at:
+    C:\Users\Quacky\Documents\Coding\Android Studio\Projects\AlgoLens\app\build\intermediates\lint_intermediate_text_report\debug\lintReportDebug\lint-results-debug.txt
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3m 1s
