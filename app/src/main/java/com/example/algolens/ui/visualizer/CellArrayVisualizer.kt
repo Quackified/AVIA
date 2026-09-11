@@ -211,20 +211,23 @@ fun CellArrayVisualizer(
         val nodeCount = step.array.size.coerceAtLeast(1)
         val availableWidth = maxWidth - 36.dp // canvas well padding + gutters
         // Adaptive cell sizing: cells grow to fill the available
-        // width so the row always spans the canvas (with the
-        // existing centring autoscroll, this makes a 9-cell
-        // array at S scale fill the screen edge-to-edge
-        // instead of leaving 120dp of blank space on the right).
-        // The 44dp cap still applies to very small arrays (3-5
-        // cells) so cells do not get comically large; the 14dp
-        // floor protects readability for very large arrays at
-        // extreme scales. `cellScale` is applied to the font
-        // size below, not the cell width -- S/M/L is more
-        // intuitive as "small/large digits" than "small/large
-        // cells with empty space around them".
-        val cellWidth = (availableWidth / nodeCount).coerceIn(14.dp, 44.dp)
+        // width so the row always spans the canvas. The header's S/M/L
+        // toggle (cellScale = 0.7..1.25) scales the cell width so
+        // users actually see the cells shrink/grow, not just the
+        // digits inside them. The 14dp floor and 44dp cap still
+        // protect readability at the extremes:
+        //  - 14dp floor: a 20-element array at S scale would otherwise
+        //    collapse cells below the minimum touch-target width.
+        //  - 44dp cap: a 3-element array at L scale would otherwise
+        //    balloon cells past the cap the rest of the UI assumes.
+        val cellWidth = ((availableWidth / nodeCount) * cellScale)
+            .coerceIn(14.dp, 44.dp)
         val cellHeight = cellWidth * 1.12f
-        val cellTextSize = (cellWidth.value * 0.36f * cellScale).coerceIn(7f, 16f).sp
+        // Font size scales with the cell width (it was the cellScale
+        // multiplier before — that math now lives in the cellWidth
+        // calc above). 0.36 × cellWidth gives a digit size that
+        // reads cleanly across the S/M/L range.
+        val cellTextSize = (cellWidth.value * 0.36f).coerceIn(7f, 16f).sp
         val slotGap = AlgoTokens.space3
 
         // Mirror the computed sizing into the state that the

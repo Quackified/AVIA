@@ -565,9 +565,12 @@ private fun HeaderModeRow(state: VisualizerScreenState) {
         // Cell size preset: S (0.7x), M (1x), L (1.25x) of the
         // responsive default. Keeps 7-8+ element arrays from
         // clipping on small screens.
-        // The preset only affects the CELLS renderer (cellWidth/cellHeight
-        // math in CellArrayVisualizer); the BARS renderer uses weight-based
-        // bars, so the toggle would be a no-op there.
+        // The preset scales the CELLS renderer's `cellWidth` math in
+        // `CellArrayVisualizer` so the cells themselves visibly
+        // shrink/grow. The BARS renderer uses weight-based bars, so
+        // the toggle is a no-op there — the same preset is reused for
+        // the BARS renderer's gap spacing so the visual weight tracks
+        // across both modes.
         if (state.arrayViewMode != ArrayViewMode.BARS) {
             SegmentedToggle(
                 options = listOf(
