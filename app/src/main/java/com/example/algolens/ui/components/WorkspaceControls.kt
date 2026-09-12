@@ -139,7 +139,7 @@ fun SegmentedToggle(
             .padding(AlgoTokens.space1),
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
     ) {
-        options.forEach { (label, key) ->
+        for ((label, key) in options) {
             val isSelected = key == selectedKey
             Box(
                 modifier = Modifier

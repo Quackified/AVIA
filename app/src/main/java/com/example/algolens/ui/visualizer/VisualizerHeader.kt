@@ -167,10 +167,24 @@ private fun HeaderTitle(
     val algoNameUpper = remember(algorithm.id) {
         algorithm.name.uppercase()
     }
-    val stepCounterStyle = MaterialTheme.typography.bodySmall.copy(
-        color = TextMuted,
-        fontSize = 8.5.sp,
-    )
+    // Read-then-remember: theme bases are read in @Composable scope, then
+    // the .copy(...) merge is cached so playback recompositions reuse a
+    // stable TextStyle instead of allocating one per step.
+    val titleBase = MaterialTheme.typography.titleMedium
+    val counterBase = MaterialTheme.typography.bodySmall
+    val headerTitleStyle = remember(titleBase) {
+        titleBase.copy(
+            color = TextPrimary,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+        )
+    }
+    val stepCounterStyle = remember(counterBase) {
+        counterBase.copy(
+            color = TextMuted,
+            fontSize = 8.5.sp,
+        )
+    }
 
     Row(
         modifier = modifier,
@@ -210,11 +224,7 @@ private fun HeaderTitle(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = algoNameUpper,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                ),
+                style = headerTitleStyle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -603,6 +613,18 @@ private fun ColumnScope.MemoryCallStackReadout(
 
 @Composable
 private fun VarBadge(label: String, value: String) {
+    // Read-then-remember: color/weight/size are static badge chrome, so bake
+    // them into one stable TextStyle. Per-step value changes then only
+    // remeasure the string — Text's internal style.merge() sees a stable
+    // style instead of rebuilding overrides every recomposition.
+    val base = MaterialTheme.typography.bodySmall
+    val badgeStyle = remember(base) {
+        base.copy(
+            color = PrimaryCyan,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 9.sp
+        )
+    }
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
@@ -611,16 +633,30 @@ private fun VarBadge(label: String, value: String) {
     ) {
         Text(
             text = "$label = $value",
-            style = MaterialTheme.typography.bodySmall,
-            color = PrimaryCyan,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 9.sp
+            style = badgeStyle
         )
     }
 }
 
 @Composable
 private fun StackInfoBadge(label: String, value: String) {
+    // Read-then-remember: same static-chrome bake as VarBadge — the live
+    // value string stays dynamic, the TextStyle refs stay stable.
+    val badgeBase = MaterialTheme.typography.labelSmall
+    val labelStyle = remember(badgeBase) {
+        badgeBase.copy(
+            color = TextMuted,
+            fontWeight = FontWeight.Bold,
+            fontSize = 7.sp
+        )
+    }
+    val valueStyle = remember(badgeBase) {
+        badgeBase.copy(
+            color = PurpleGlow,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 7.5.sp
+        )
+    }
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
@@ -632,17 +668,11 @@ private fun StackInfoBadge(label: String, value: String) {
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = TextMuted,
-            fontWeight = FontWeight.Bold,
-            fontSize = 7.sp
+            style = labelStyle
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.labelSmall,
-            color = PurpleGlow,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 7.5.sp
+            style = valueStyle
         )
     }
 }

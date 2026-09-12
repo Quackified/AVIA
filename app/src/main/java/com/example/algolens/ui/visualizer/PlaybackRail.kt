@@ -20,15 +20,16 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.sp
 import com.example.algolens.ui.components.RailIconButton
 import com.example.algolens.ui.theme.AccentPink
@@ -91,6 +92,17 @@ fun PlaybackRail(
     // Modifier.size() and the button-size wrapper are not rebuilt each step.
     val playButtonSize = remember { AlgoTokens.iconButtonLg }
     val playIconSize = remember { AlgoTokens.inlineIconLg }
+
+    // Read-then-remember: speed-chip text is fully static chrome (labelSmall
+    // + cyan/bold/8.5sp); only the speed *string* changes per tap.
+    val speedStyleBase = MaterialTheme.typography.labelSmall
+    val speedChipStyle = remember(speedStyleBase) {
+        speedStyleBase.copy(
+            color = PrimaryCyan,
+            fontWeight = FontWeight.Bold,
+            fontSize = 8.5.sp
+        )
+    }
 
     Row(
         modifier = modifier
@@ -178,10 +190,7 @@ fun PlaybackRail(
         ) {
             Text(
                 text = state.speedLabel,
-                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                color = PrimaryCyan,
-                fontWeight = FontWeight.Bold,
-                fontSize = 8.5.sp
+                style = speedChipStyle
             )
         }
 

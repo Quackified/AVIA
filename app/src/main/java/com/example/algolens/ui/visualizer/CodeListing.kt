@@ -108,7 +108,7 @@ fun CodeListing(
                     .padding(AlgoTokens.space1),
                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
             ) {
-                TraceLanguage.entries.forEach { lang ->
+                for (lang in TraceLanguage.entries) {
                     val isSelected = selectedLanguage == lang
                     val animatedBg by animateColorAsState(
                         targetValue = if (isSelected) SecondaryPurple else Color.Transparent,
@@ -184,7 +184,7 @@ fun CodeListing(
                                     .padding(start = 30.dp, top = AlgoTokens.space1),
                                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                             ) {
-                                lineVars.forEach { (label, value) ->
+                                for ((label, value) in lineVars) {
                                     InlineVarChip(
                                         label = label,
                                         value = value,

@@ -230,6 +230,19 @@ fun CellArrayVisualizer(
         val cellTextSize = (cellWidth.value * 0.36f).coerceIn(7f, 16f).sp
         val slotGap = AlgoTokens.space3
 
+        // Read-then-remember: cache the static text merges once per
+        // composition so the per-step callout reuses a stable TextStyle.
+        // The *string and color* stay dynamic — only the typography merge
+        // (weight/size/spacing) is baked here.
+        val exprStyleBase = MaterialTheme.typography.labelSmall
+        val exprStyle = remember(exprStyleBase) {
+            exprStyleBase.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                fontSize = 8.5.sp
+            )
+        }
+
         // Mirror the computed sizing into the state that the
         // adaptive-scroll LaunchedEffect above reads. We pass by
         // value (not assignment) so the effect re-fires whenever
@@ -492,17 +505,14 @@ fun CellArrayVisualizer(
                     ) {
                         Text(
                             text = expr.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
+                            style = exprStyle,
                             // Evaluation readouts stay yellow (threshold semantics);
                             // only explicit mutation (SWAP:) lines take the pink accent.
                             color = when {
                                 step.comparisonExpr == null -> AlgoTokens.accentCyan
                                 expr.startsWith("SWAP", ignoreCase = true) -> AlgoTokens.accentPink
                                 else -> AccentYellow
-                            },
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp,
-                            fontSize = 8.5.sp
+                            }
                         )
                     }
                 }
