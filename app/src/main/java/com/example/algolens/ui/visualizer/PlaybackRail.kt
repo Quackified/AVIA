@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.sp
 import com.example.algolens.ui.components.RailIconButton
 import com.example.algolens.ui.theme.AccentPink
@@ -63,6 +64,33 @@ fun PlaybackRail(
     modifier: Modifier = Modifier
 ) {
     val challengeLocked = state.challengeInFlight
+    // ── Static icon + size caches ─────────────────────────────────────────────
+    // Every icon except the play/pause glyph is fully static for the lifetime
+    // of this algorithm run. Caching them with `remember` (no keys) means the
+    // same object reference is reused across all recompositions, so the
+    // surrounding Modifier.size(...) / tint / container wrappers are not rebuilt
+    // each step. `remember` without keys is stable across recomposition as long
+    // as the composable's position in the tree is unchanged — which holds for
+    // the rail that stays mounted during playback.
+    val refreshIcon = remember { Icons.Default.Refresh }
+    val refreshButtonSize = remember { AlgoTokens.iconButtonSm }
+    val refreshIconSize = remember { AlgoTokens.inlineIconMd - 1.dp }
+
+    val skipBackIcon = remember { Icons.Default.SkipPrevious }
+    val skipForwardIcon = remember { Icons.Default.SkipNext }
+    val skipButtonSize = remember { AlgoTokens.iconButtonMd }
+    val skipIconSize = remember { AlgoTokens.inlineIconMd }
+
+    val emojiEventsIcon = remember { Icons.Default.EmojiEvents }
+    val autoAwesomeIcon = remember { Icons.Default.AutoAwesome }
+    val chipButtonSize = remember { AlgoTokens.iconButtonMd }
+    val chipIconSize = remember { AlgoTokens.inlineIconMd }
+
+    // Play/Pause glyph is dynamic (driven by state.isPlaying) — keep inline.
+    // But its container SIZE and ICON SIZE are static; cache them so the
+    // Modifier.size() and the button-size wrapper are not rebuilt each step.
+    val playButtonSize = remember { AlgoTokens.iconButtonLg }
+    val playIconSize = remember { AlgoTokens.inlineIconLg }
 
     Row(
         modifier = modifier
@@ -74,10 +102,10 @@ fun PlaybackRail(
         verticalAlignment = Alignment.CenterVertically
     ) {
         RailIconButton(
-            icon = Icons.Default.Refresh,
+            icon = refreshIcon,
             contentDescription = "Reset",
-            boxSize = AlgoTokens.iconButtonSm,
-            iconSize = AlgoTokens.inlineIconMd - 1.dp,
+            boxSize = refreshButtonSize,
+            iconSize = refreshIconSize,
             tint = TextMuted,
             container = CardBackground,
             borderColor = BorderSubtle,
@@ -85,10 +113,10 @@ fun PlaybackRail(
         )
 
         RailIconButton(
-            icon = Icons.Default.SkipPrevious,
+            icon = skipBackIcon,
             contentDescription = "Step Back",
-            boxSize = AlgoTokens.iconButtonMd,
-            iconSize = AlgoTokens.inlineIconMd,
+            boxSize = skipButtonSize,
+            iconSize = skipIconSize,
             tint = TextPrimary,
             container = CardBackground,
             borderColor = BorderSubtle,
@@ -99,8 +127,8 @@ fun PlaybackRail(
         RailIconButton(
             icon = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
             contentDescription = if (state.isPlaying) "Pause" else "Play",
-            boxSize = AlgoTokens.iconButtonLg,
-            iconSize = AlgoTokens.inlineIconLg,
+            boxSize = playButtonSize,
+            iconSize = playIconSize,
             tint = PrimaryCyan,
             container = CardBackground,
             borderColor = PrimaryCyan.copy(alpha = 0.4f),
@@ -109,10 +137,10 @@ fun PlaybackRail(
         )
 
         RailIconButton(
-            icon = Icons.Default.SkipNext,
+            icon = skipForwardIcon,
             contentDescription = "Step Forward",
-            boxSize = AlgoTokens.iconButtonMd,
-            iconSize = AlgoTokens.inlineIconMd,
+            boxSize = skipButtonSize,
+            iconSize = skipIconSize,
             tint = TextPrimary,
             container = CardBackground,
             borderColor = BorderSubtle,
@@ -159,10 +187,10 @@ fun PlaybackRail(
 
         // Challenge toggle
         RailIconButton(
-            icon = Icons.Default.EmojiEvents,
+            icon = emojiEventsIcon,
             contentDescription = "Challenge Mode",
-            boxSize = AlgoTokens.iconButtonMd,
-            iconSize = AlgoTokens.inlineIconMd,
+            boxSize = chipButtonSize,
+            iconSize = chipIconSize,
             tint = if (state.challengeState.isActive) AccentPink else TextMuted,
             container = if (state.challengeState.isActive) PinkSubtle else CardBackground,
             borderColor = if (state.challengeState.isActive) AccentPink else BorderSubtle,
@@ -171,10 +199,10 @@ fun PlaybackRail(
 
         // AI Tutor
         RailIconButton(
-            icon = Icons.Default.AutoAwesome,
+            icon = autoAwesomeIcon,
             contentDescription = "AI Tutor",
-            boxSize = AlgoTokens.iconButtonMd,
-            iconSize = AlgoTokens.inlineIconMd,
+            boxSize = chipButtonSize,
+            iconSize = chipIconSize,
             tint = PurpleGlow,
             container = PurpleSubtle,
             borderColor = SecondaryPurple.copy(alpha = 0.4f),

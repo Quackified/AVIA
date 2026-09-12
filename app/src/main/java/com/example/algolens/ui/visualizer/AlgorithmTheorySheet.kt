@@ -40,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.algolens.model.Algorithm
 import com.example.algolens.ui.theme.AccentGreen
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.AccentOrange
 import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentRed
@@ -461,7 +463,13 @@ fun AlgorithmTheorySheet(
     isVisible: Boolean = true,
     onDismiss: () -> Unit
 ) {
-    val theory = AlgorithmTheoryRepository.getTheory(algorithm.name)
+    // The theory data is derived purely from the algorithm definition and never
+    // changes across playback steps. Cache it once per algorithm.id so the
+    // repository lookup (which does a when-chain over algorithm names) is not
+    // re-evaluated on every recomposition.
+    val theory = remember(algorithm.id) {
+        AlgorithmTheoryRepository.getTheory(algorithm.name)
+    }
 
     BackHandler(enabled = isVisible) { onDismiss() }
 
@@ -493,21 +501,21 @@ fun AlgorithmTheorySheet(
                     .width(344.dp)
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = AlgoTokens.space4)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp))
+                        .clip(RoundedCornerShape(topStart = AlgoTokens.radiusXl, bottomStart = AlgoTokens.radiusXl))
                         .background(CardBackground.copy(alpha = 0.96f))
                         .border(
-                            1.dp,
+                            AlgoTokens.strokeThin,
                             BorderCyan.copy(alpha = 0.5f),
-                            RoundedCornerShape(topStart = 22.dp, bottomStart = 22.dp)
+                            RoundedCornerShape(topStart = AlgoTokens.radiusXl, bottomStart = AlgoTokens.radiusXl)
                         )
-                        .padding(horizontal = 20.dp, vertical = 6.dp)
+                        .padding(horizontal = AlgoTokens.space5 + AlgoTokens.space4, vertical = AlgoTokens.space3)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5 + AlgoTokens.space1)
                 ) {
             // Header
             Row(
@@ -517,21 +525,21 @@ fun AlgorithmTheorySheet(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .size(AlgoTokens.space8)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(PurpleSubtle)
-                            .border(1.dp, SecondaryPurple.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+                            .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.3f), RoundedCornerShape(AlgoTokens.radiusSm)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.MenuBook,
                             contentDescription = null,
                             tint = PurpleGlow,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(AlgoTokens.space6)
                         )
                     }
 
@@ -553,10 +561,10 @@ fun AlgorithmTheorySheet(
 
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(AlgoTokens.iconButtonMd - AlgoTokens.space1)
                         .clip(CircleShape)
                         .background(CanvasBackground)
-                        .border(1.dp, BorderSubtle, CircleShape)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, CircleShape)
                         .clickable { onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -564,7 +572,7 @@ fun AlgorithmTheorySheet(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = TextMuted,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(AlgoTokens.space6)
                     )
                 }
             }
@@ -582,12 +590,12 @@ fun AlgorithmTheorySheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                     .background(CardBackgroundElevated)
-                    .border(1.dp, BorderSubtle, RoundedCornerShape(10.dp))
-                    .padding(12.dp)
+                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusMd))
+                    .padding(AlgoTokens.space5)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)) {
                     Text(
                         text = "COMPLEXITY & PROPERTIES",
                         style = MaterialTheme.typography.labelSmall,
@@ -618,7 +626,7 @@ fun AlgorithmTheorySheet(
             }
 
             // ── How It Works ──
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                 Text(
                     text = "HOW IT WORKS (STEP-BY-STEP):",
                     style = MaterialTheme.typography.labelSmall,
@@ -628,15 +636,15 @@ fun AlgorithmTheorySheet(
                     fontWeight = FontWeight.Bold
                 )
 
-                theory.howItWorks.forEachIndexed { index, step ->
+                for ((index, step) in theory.howItWorks.withIndex()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4),
                         verticalAlignment = Alignment.Top
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(18.dp)
+                                .size(AlgoTokens.inlineIconLg)
                                 .clip(CircleShape)
                                 .background(CyanSubtle),
                             contentAlignment = Alignment.Center
@@ -662,7 +670,7 @@ fun AlgorithmTheorySheet(
             }
 
             // ── When to Use ──
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                 Text(
                     text = "WHEN TO USE (IDEAL APPLICATIONS):",
                     style = MaterialTheme.typography.labelSmall,
@@ -672,17 +680,17 @@ fun AlgorithmTheorySheet(
                     fontWeight = FontWeight.Bold
                 )
 
-                theory.whenToUse.forEach { useCase ->
+                for (useCase in theory.whenToUse) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
                         verticalAlignment = Alignment.Top
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = null,
                             tint = AccentGreen,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(AlgoTokens.inlineIconMd - AlgoTokens.space1)
                         )
                         Text(
                             text = useCase,
@@ -697,7 +705,7 @@ fun AlgorithmTheorySheet(
             }
 
             // ── Common Pitfalls ──
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                 Text(
                     text = "COMMON PITFALLS & EDGE CASES:",
                     style = MaterialTheme.typography.labelSmall,
@@ -707,17 +715,17 @@ fun AlgorithmTheorySheet(
                     fontWeight = FontWeight.Bold
                 )
 
-                theory.commonPitfalls.forEach { pitfall ->
+                for (pitfall in theory.commonPitfalls) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
                         verticalAlignment = Alignment.Top
                     ) {
                         Icon(
                             imageVector = Icons.Default.WarningAmber,
                             contentDescription = null,
                             tint = AccentPink,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(AlgoTokens.inlineIconMd - AlgoTokens.space1)
                         )
                         Text(
                             text = pitfall,
@@ -735,20 +743,20 @@ fun AlgorithmTheorySheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                     .background(CyanSubtle)
-                    .border(1.dp, BorderCyan, RoundedCornerShape(8.dp))
-                    .padding(10.dp)
+                    .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
+                    .padding(AlgoTokens.space5 - AlgoTokens.space1)
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4),
                     verticalAlignment = Alignment.Top
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = null,
                         tint = PrimaryCyan,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
                     )
                     Column {
                         Text(
@@ -769,7 +777,7 @@ fun AlgorithmTheorySheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(AlgoTokens.space5 - AlgoTokens.space1))
                 }
             }
         }
@@ -780,10 +788,10 @@ fun AlgorithmTheorySheet(
 private fun ComplexityPill(label: String, value: String, color: Color) {
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
             .background(color.copy(alpha = 0.12f))
-            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .border(AlgoTokens.strokeThin, color.copy(alpha = 0.3f), RoundedCornerShape(AlgoTokens.radiusXxs))
+            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
