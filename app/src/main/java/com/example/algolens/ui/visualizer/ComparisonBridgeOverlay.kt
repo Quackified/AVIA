@@ -4,47 +4,37 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoTokens
-import kotlin.math.roundToInt
 
 /**
  * Luminous comparison & swap bridge connecting active elements.
- * Renders a glowing bezier arc directly between two compared or swapping
- * array cells, visually establishing their relationship without clipping.
+ * Supports straight staple-bracket `|—|` and bezier arc geometry,
+ * precisely aligned to cells via [lazyListState] layout measurements.
+ * All distracting pill badges have been eliminated for minimal, high-tech clarity.
  */
 @Composable
 fun ComparisonBridgeOverlay(
     step: VisualizerStep,
     cellWidth: Dp,
     slotGap: Dp,
-    modifier: Modifier = Modifier
+    lazyListState: LazyListState,
+    modifier: Modifier = Modifier,
+    useStraightBracket: Boolean = true
 ) {
     // Determine the pair of indices in active comparison or swap
     val activePair = remember(step.elementStates, step.swappedIndices, step.leftPointer, step.rightPointer) {
@@ -54,21 +44,18 @@ fun ComparisonBridgeOverlay(
                 Pair(step.leftPointer, step.rightPointer)
             else -> {
                 val comparing = step.elementStates.filter { it.value == ElementState.COMPARING }.keys.toList()
-                if (comparing.size >= 2) Pair(comparing[0], comparing[1]) else null
+                if (comparing.size >= 2) {
+                    Pair(comparing[0], comparing[1])
+                } else if (comparing.size == 1) {
+                    val pivot = step.elementStates.filter { it.value == ElementState.PIVOT }.keys.firstOrNull()
+                    if (pivot != null && pivot != comparing[0]) Pair(comparing[0], pivot) else null
+                } else null
             }
         }
     }
 
     val isSwapping = step.swappedIndices != null || step.phaseLabel.contains("SWAP", ignoreCase = true)
     val accentColor = if (isSwapping) AlgoTokens.accentPink else AccentYellow
-    val badgeLabel = when {
-        isSwapping -> "⇄ SWAP"
-        step.comparisonExpr != null -> {
-            val expr = step.comparisonExpr.removePrefix("COMPARE:").trim()
-            if (expr.length <= 14) expr else "COMPARE"
-        }
-        else -> "COMPARE"
-    }
 
     AnimatedVisibility(
         visible = activePair != null && step.array.isNotEmpty(),
@@ -86,93 +73,103 @@ fun ComparisonBridgeOverlay(
 
         val density = LocalDensity.current
 
-        BoxWithConstraints(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(26.dp)
+                .height(AlgoTokens.space5)
         ) {
-            val availableWidth = maxWidth
-            val nodeCount = step.array.size
-            val totalRowWidth = (cellWidth * nodeCount) + (slotGap * (nodeCount - 1).coerceAtLeast(0))
-            val startOffset = if (totalRowWidth < availableWidth) {
-                (availableWidth - totalRowWidth) / 2
-            } else {
-                AlgoTokens.space1
-            }
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(AlgoTokens.space5)
+            ) {
+                val visibleItems = lazyListState.layoutInfo.visibleItemsInfo
+                val itemA = visibleItems.find { it.index == minIdx }
+                val itemB = visibleItems.find { it.index == maxIdx }
 
-            val x1Dp = startOffset + (cellWidth + slotGap) * minIdx + (cellWidth / 2)
-            val x2Dp = startOffset + (cellWidth + slotGap) * maxIdx + (cellWidth / 2)
-            val midXDp = (x1Dp + x2Dp) / 2
-
-            val x1Px = with(density) { x1Dp.toPx() }
-            val x2Px = with(density) { x2Dp.toPx() }
-            val midXPx = with(density) { midXDp.toPx() }
-
-            Canvas(modifier = Modifier.fillMaxWidth().height(26.dp)) {
-                val bottomY = size.height - 2.dp.toPx()
-                val peakY = 8.dp.toPx()
-
-                val path = Path().apply {
-                    moveTo(x1Px, bottomY)
-                    quadraticTo(midXPx, peakY, x2Px, bottomY)
+                // Calculate exact pixel centers of target cells
+                val (x1Px, x2Px) = if (itemA != null && itemB != null) {
+                    Pair(
+                        itemA.offset + (itemA.size / 2f),
+                        itemB.offset + (itemB.size / 2f)
+                    )
+                } else {
+                    // Precise fallback accounting for item horizontal padding and start offset
+                    val itemWidthPx = with(density) { (cellWidth + AlgoTokens.space1 * 2).toPx() }
+                    val slotGapPx = with(density) { slotGap.toPx() }
+                    val totalWidthPx = (itemWidthPx * step.array.size) + (slotGapPx * (step.array.size - 1).coerceAtLeast(0))
+                    val startOffsetPx = ((size.width - totalWidthPx) / 2f).coerceAtLeast(with(density) { AlgoTokens.space1.toPx() })
+                    Pair(
+                        startOffsetPx + (itemWidthPx + slotGapPx) * minIdx + (itemWidthPx / 2f),
+                        startOffsetPx + (itemWidthPx + slotGapPx) * maxIdx + (itemWidthPx / 2f)
+                    )
                 }
 
-                // Outer ambient glow
+                val bottomY = size.height - with(density) { AlgoTokens.space1.toPx() }
+                val topY = with(density) { AlgoTokens.space1.toPx() }
+
+                val path = Path().apply {
+                    if (useStraightBracket) {
+                        // Straight staple bracket |—| with sleek micro-rounded corners
+                        val maxCorner = ((x2Px - x1Px) / 2f).coerceAtLeast(0f)
+                        val cornerRadius = with(density) { AlgoTokens.radiusXxs.toPx() }.coerceAtMost(maxCorner)
+                        moveTo(x1Px, bottomY)
+                        lineTo(x1Px, topY + cornerRadius)
+                        if (cornerRadius > 0f) {
+                            quadraticTo(x1Px, topY, x1Px + cornerRadius, topY)
+                        }
+                        lineTo(x2Px - cornerRadius, topY)
+                        if (cornerRadius > 0f) {
+                            quadraticTo(x2Px, topY, x2Px, topY + cornerRadius)
+                        }
+                        lineTo(x2Px, bottomY)
+                    } else {
+                        // Classical bezier arc
+                        val midXPx = (x1Px + x2Px) / 2f
+                        moveTo(x1Px, bottomY)
+                        quadraticTo(midXPx, topY, x2Px, bottomY)
+                    }
+                }
+
+                // Ambient luminous glow
                 drawPath(
                     path = path,
-                    color = accentColor.copy(alpha = 0.25f),
-                    style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+                    color = accentColor.copy(alpha = 0.22f),
+                    style = Stroke(
+                        width = with(density) { AlgoTokens.space2.toPx() },
+                        cap = StrokeCap.Round
+                    )
                 )
 
-                // Core crisp stroke
+                // Crisp primary bridge stroke
                 drawPath(
                     path = path,
                     brush = Brush.horizontalGradient(
                         colors = listOf(
-                            accentColor.copy(alpha = 0.4f),
+                            accentColor.copy(alpha = 0.5f),
                             accentColor,
-                            accentColor.copy(alpha = 0.4f)
+                            accentColor.copy(alpha = 0.5f)
                         ),
                         startX = x1Px,
                         endX = x2Px
                     ),
-                    style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round)
+                    style = Stroke(
+                        width = with(density) { AlgoTokens.strokeThin.toPx() },
+                        cap = StrokeCap.Round
+                    )
                 )
 
-                // Anchor dots at cell connection points
+                // Precise anchor pins at cell connection points
+                val dotRadius = with(density) { AlgoTokens.space1.toPx() }
                 drawCircle(
                     color = accentColor,
-                    radius = 2.5.dp.toPx(),
-                    center = androidx.compose.ui.geometry.Offset(x1Px, bottomY)
+                    radius = dotRadius,
+                    center = Offset(x1Px, bottomY)
                 )
                 drawCircle(
                     color = accentColor,
-                    radius = 2.5.dp.toPx(),
-                    center = androidx.compose.ui.geometry.Offset(x2Px, bottomY)
-                )
-            }
-
-            // Central relationship pill badge
-            Box(
-                modifier = Modifier
-                    .offset {
-                        IntOffset(
-                            x = (midXPx - with(density) { 24.dp.toPx() }).roundToInt(),
-                            y = with(density) { 0.dp.toPx() }.roundToInt()
-                        )
-                    }
-                    .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                    .background(AlgoTokens.glassFill)
-                    .border(AlgoTokens.strokeThin, accentColor.copy(alpha = 0.6f), RoundedCornerShape(AlgoTokens.radiusXxs))
-                    .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = badgeLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accentColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 7.5.sp
+                    radius = dotRadius,
+                    center = Offset(x2Px, bottomY)
                 )
             }
         }

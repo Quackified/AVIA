@@ -45,7 +45,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.algolens.data.AppSettings
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoLensTheme
@@ -171,37 +170,17 @@ fun CellArrayVisualizer(
         if (outerCellWidth == 0.dp) return@LaunchedEffect
         val nodeCount = step.array.size
 
-        if (AppSettings.useAdaptiveCellVisualizer) {
-            val totalRowWidth = (outerCellWidth * nodeCount) + (outerCellGap * (nodeCount - 1).coerceAtLeast(0))
-            if (totalRowWidth <= outerViewportWidthDp) {
-                // Adaptive zero-clip mode: array fits completely within the canvas well.
-                // Reset scroll to 0 if displaced so the array stays statically centered.
-                if (lazyListState.firstVisibleItemIndex != 0 || lazyListState.firstVisibleItemScrollOffset != 0) {
-                    lazyListState.scrollToItem(0, 0)
-                }
-            } else {
-                val anchor = (targetIndex ?: 0).coerceIn(0, nodeCount - 1)
-                if (anchor !in visibleItemIndices) {
-                    lazyListState.animateScrollToItem(anchor)
-                }
+        val totalRowWidth = (outerCellWidth * nodeCount) + (outerCellGap * (nodeCount - 1).coerceAtLeast(0))
+        if (totalRowWidth <= outerViewportWidthDp) {
+            // Adaptive zero-clip mode: array fits completely within the canvas well.
+            // Reset scroll to 0 if displaced so the array stays statically centered.
+            if (lazyListState.firstVisibleItemIndex != 0 || lazyListState.firstVisibleItemScrollOffset != 0) {
+                lazyListState.scrollToItem(0, 0)
             }
         } else {
-            val cellArea = outerCellWidth * nodeCount
-            if (cellArea <= outerViewportWidthDp) {
-                val extraSpace = outerViewportWidthDp - cellArea
-                val targetPx = -(extraSpace.value / 2f * density.density).toInt()
-                val info = lazyListState.layoutInfo
-                val firstVisible = info.visibleItemsInfo.firstOrNull()?.index ?: 0
-                val currentOffset = info.visibleItemsInfo.firstOrNull()?.offset ?: 0
-                val alreadyCentered = firstVisible == 0 && kotlin.math.abs(currentOffset - targetPx) <= 2
-                if (!alreadyCentered) {
-                    lazyListState.animateScrollToItem(0, targetPx)
-                }
-            } else {
-                val anchor = (targetIndex ?: 0).coerceIn(0, nodeCount - 1)
-                if (anchor !in visibleItemIndices) {
-                    lazyListState.animateScrollToItem(anchor)
-                }
+            val anchor = (targetIndex ?: 0).coerceIn(0, nodeCount - 1)
+            if (anchor !in visibleItemIndices) {
+                lazyListState.animateScrollToItem(anchor)
             }
         }
     }
@@ -226,13 +205,9 @@ fun CellArrayVisualizer(
         //  - 44dp cap: a 3-element array at L scale would otherwise
         //    balloon cells past the cap the rest of the UI assumes.
         val slotGap = AlgoTokens.space3
-        val cellWidth = if (AppSettings.useAdaptiveCellVisualizer) {
-            val totalGaps = slotGap * (nodeCount - 1).coerceAtLeast(0)
-            val usableWidth = (availableWidth - totalGaps).coerceAtLeast(0.dp)
-            ((usableWidth / nodeCount) * cellScale).coerceIn(14.dp, 44.dp)
-        } else {
-            ((availableWidth / nodeCount) * cellScale).coerceIn(14.dp, 44.dp)
-        }
+        val totalGaps = slotGap * (nodeCount - 1).coerceAtLeast(0)
+        val usableWidth = (availableWidth - totalGaps).coerceAtLeast(0.dp)
+        val cellWidth = ((usableWidth / nodeCount) * cellScale).coerceIn(14.dp, 44.dp)
         val cellHeight = cellWidth * 1.12f
         // Font size scales with the cell width (it was the cellScale
         // multiplier before — that math now lives in the cellWidth
@@ -479,15 +454,15 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // ── Luminous Comparison & Swap Bridge (Zero-Clip Adaptive Mode) ──
-                if (AppSettings.useAdaptiveCellVisualizer) {
-                    ComparisonBridgeOverlay(
-                        step = step,
-                        cellWidth = cellWidth,
-                        slotGap = slotGap,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+
+                // ── Luminous Comparison & Swap Bracket Bridge ──
+                ComparisonBridgeOverlay(
+                    step = step,
+                    cellWidth = cellWidth,
+                    slotGap = slotGap,
+                    lazyListState = lazyListState,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 // ── Main Cells LazyRow with Smooth Animations ──
                 CellGrid(

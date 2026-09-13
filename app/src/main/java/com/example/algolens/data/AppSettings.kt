@@ -3,7 +3,6 @@ package com.example.algolens.data
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 /**
@@ -14,13 +13,6 @@ import androidx.compose.runtime.setValue
  */
 @Stable
 object AppSettings {
-    /**
-     * Experimental: When enabled, array visualizer dynamically sizes cells
-     * including gap subtraction so all elements fit cleanly on screen without
-     * clipping towards the right or causing camera jitter during comparisons/swaps.
-     */
-    var useAdaptiveCellVisualizer by mutableStateOf(true)
-
     /**
      * Default cell scale across visualizers.
      * 0.7f corresponds to "Small" (S), preventing horizontal clipping for

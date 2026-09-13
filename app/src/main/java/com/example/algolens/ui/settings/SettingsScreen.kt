@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DisplaySettings
-import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
@@ -377,43 +376,25 @@ fun SettingsScreen(
             }
         }
 
-        // ── 5. Experimental Features ──
+        // ── 5. Visualizer Preferences ──
         SettingsCard {
-            SectionLabel(icon = Icons.Default.Science, text = "Experimental Features")
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
-                    Text(
-                        text = "Adaptive Focused Cells (Zero-Clip)",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Fits array to screen viewport, eliminates horizontal scroll jitter and clipping during comparisons and swaps.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        fontSize = 8.5.sp
-                    )
-                }
-                CustomSwitch(
-                    checked = AppSettings.useAdaptiveCellVisualizer,
-                    onCheckedChange = { AppSettings.useAdaptiveCellVisualizer = it }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(AlgoTokens.space1))
+            SectionLabel(icon = Icons.Default.Tune, text = "Visualizer Preferences")
 
             Text(
                 text = "Default Cell Size Preset",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary,
+                style = MaterialTheme.typography.labelMedium,
+                color = TextPrimary,
                 fontWeight = FontWeight.SemiBold
             )
+            Text(
+                text = "Controls the default cell scaling when launching visualizers (can also be adjusted live in the visualizer header).",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted,
+                fontSize = 8.5.sp
+            )
+
+            Spacer(modifier = Modifier.height(AlgoTokens.space2))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
