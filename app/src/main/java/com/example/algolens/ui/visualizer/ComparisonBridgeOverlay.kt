@@ -87,11 +87,15 @@ fun ComparisonBridgeOverlay(
                 val itemA = visibleItems.find { it.index == minIdx }
                 val itemB = visibleItems.find { it.index == maxIdx }
 
-                // Calculate exact pixel centers of target cells
+                // Calculate exact pixel centers of target cells, offset by left padding
+                val leftPaddingOffset = with(density) { AlgoTokens.space1.toPx() }
+                val curtainShiftA = if (step.sortedBoundary == minIdx && minIdx > 0) with(density) { AlgoTokens.space2.toPx() } else 0f
+                val curtainShiftB = if (step.sortedBoundary == maxIdx && maxIdx > 0) with(density) { AlgoTokens.space2.toPx() } else 0f
+
                 val (x1Px, x2Px) = if (itemA != null && itemB != null) {
                     Pair(
-                        itemA.offset + (itemA.size / 2f),
-                        itemB.offset + (itemB.size / 2f)
+                        itemA.offset + (itemA.size / 2f) + leftPaddingOffset + curtainShiftA,
+                        itemB.offset + (itemB.size / 2f) + leftPaddingOffset + curtainShiftB
                     )
                 } else {
                     // Precise fallback accounting for item horizontal padding and start offset
@@ -100,8 +104,8 @@ fun ComparisonBridgeOverlay(
                     val totalWidthPx = (itemWidthPx * step.array.size) + (slotGapPx * (step.array.size - 1).coerceAtLeast(0))
                     val startOffsetPx = ((size.width - totalWidthPx) / 2f).coerceAtLeast(with(density) { AlgoTokens.space1.toPx() })
                     Pair(
-                        startOffsetPx + (itemWidthPx + slotGapPx) * minIdx + (itemWidthPx / 2f),
-                        startOffsetPx + (itemWidthPx + slotGapPx) * maxIdx + (itemWidthPx / 2f)
+                        startOffsetPx + (itemWidthPx + slotGapPx) * minIdx + (itemWidthPx / 2f) + leftPaddingOffset + curtainShiftA,
+                        startOffsetPx + (itemWidthPx + slotGapPx) * maxIdx + (itemWidthPx / 2f) + leftPaddingOffset + curtainShiftB
                     )
                 }
 
