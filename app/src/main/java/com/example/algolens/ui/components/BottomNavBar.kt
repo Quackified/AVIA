@@ -98,7 +98,7 @@ fun BottomNavBar(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
                         tint = iconColor,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
@@ -107,7 +107,7 @@ fun BottomNavBar(
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isActive) PrimaryCyan else TextDark,
                     fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 8.5.sp
+                    fontSize = 10.sp
                 )
             }
         }

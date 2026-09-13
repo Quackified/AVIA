@@ -455,16 +455,7 @@ fun CellArrayVisualizer(
                 }
 
 
-                // ── Luminous Comparison & Swap Bracket Bridge ──
-                ComparisonBridgeOverlay(
-                    step = step,
-                    cellWidth = cellWidth,
-                    slotGap = slotGap,
-                    lazyListState = lazyListState,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // ── Main Cells LazyRow with Smooth Animations ──
+                // ── Main Cells LazyRow with Bridge Overlay ──
                 CellGrid(
                     step = step,
                     selectedCellIndices = selectedCellIndices,
@@ -472,6 +463,7 @@ fun CellArrayVisualizer(
                     syncPulse = syncPulse,
                     onCellClick = onCellClick,
                     isSelectionSort = isSelectionSort,
+                    isBubbleSort = isBubbleSort,
                     dimOutOfRange = dimOutOfRange,
                     slotFlight = slotFlight,
                     challengePulseState = challengePulseState,
