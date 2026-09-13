@@ -54,6 +54,7 @@ import com.example.algolens.ui.theme.AccentOrange
 import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoLensTheme
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BorderCyan
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
@@ -158,11 +159,11 @@ fun GuidedTourOverlay(
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(AlgoTokens.radiusLg))
                 .background(CardBackground)
-                .border(1.dp, step.accentColor.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .border(AlgoTokens.strokeThin, step.accentColor.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusLg))
+                .padding(AlgoTokens.space6),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
         ) {
             // Header: Icon + Step Counter + Close Button
             Row(
@@ -172,30 +173,30 @@ fun GuidedTourOverlay(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .size(AlgoTokens.iconButtonLg)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(step.accentColor.copy(alpha = 0.15f))
-                            .border(1.dp, step.accentColor.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
+                            .border(AlgoTokens.strokeThin, step.accentColor.copy(alpha = 0.4f), RoundedCornerShape(AlgoTokens.radiusSm)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = step.icon,
                             contentDescription = null,
                             tint = step.accentColor,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(AlgoTokens.inlineIconLg)
                         )
                     }
 
                     Column {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                                 .background(step.accentColor.copy(alpha = 0.15f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
                         ) {
                             Text(
                                 text = step.badgeText,
@@ -216,10 +217,10 @@ fun GuidedTourOverlay(
 
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(AlgoTokens.iconButtonSm)
                         .clip(CircleShape)
                         .background(CanvasBackground)
-                        .border(1.dp, BorderSubtle, CircleShape)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, CircleShape)
                         .clickable { onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -227,13 +228,13 @@ fun GuidedTourOverlay(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = TextMuted,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
                     )
                 }
             }
 
             // Title & Subtitle
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)) {
                 Text(
                     text = step.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -269,12 +270,12 @@ fun GuidedTourOverlay(
                     val isCurrent = idx == currentStepIndex
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 3.dp)
+                            .padding(horizontal = AlgoTokens.space1)
                             .size(
-                                width = if (isCurrent) 18.dp else 6.dp,
-                                height = 6.dp
+                                width = if (isCurrent) AlgoTokens.inlineIconLg else AlgoTokens.space3,
+                                height = AlgoTokens.space3
                             )
-                            .clip(RoundedCornerShape(99.dp))
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXl))
                             .background(if (isCurrent) item.accentColor else Color.White.copy(alpha = 0.15f))
                     )
                 }
@@ -290,11 +291,11 @@ fun GuidedTourOverlay(
                 if (currentStepIndex > 0) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(CanvasBackground)
-                            .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                             .clickable { currentStepIndex-- }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space4),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -320,7 +321,7 @@ fun GuidedTourOverlay(
                 val isLast = currentStepIndex == totalSteps - 1
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                         .background(step.accentColor)
                         .clickable {
                             if (isLast) {
@@ -329,12 +330,12 @@ fun GuidedTourOverlay(
                                 currentStepIndex++
                             }
                         }
-                        .padding(horizontal = 18.dp, vertical = 8.dp),
+                        .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                     ) {
                         Text(
                             text = if (isLast) "Got It, Let's Go!" else "Next",
@@ -348,7 +349,7 @@ fun GuidedTourOverlay(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
                                 tint = DarkBackground,
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(AlgoTokens.inlineIconSm)
                             )
                         }
                     }

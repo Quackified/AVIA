@@ -201,7 +201,7 @@ private fun HeaderTitle(
         }
         val backButtonSize by remember {
             derivedStateOf {
-                AlgoTokens.iconButtonSm - 2.dp
+                AlgoTokens.iconButtonSm
             }
         }
         val backIconSize by remember {
@@ -303,7 +303,7 @@ private fun HeaderActions(
             derivedStateOf { Icons.AutoMirrored.Filled.HelpOutline }
         }
         val helpButtonSize by remember {
-            derivedStateOf { AlgoTokens.iconButtonSm - 4.dp }
+            derivedStateOf { AlgoTokens.iconButtonXs }
         }
         val helpIconSize by remember {
             derivedStateOf { AlgoTokens.inlineIconMd }
@@ -326,7 +326,7 @@ private fun HeaderActions(
                 derivedStateOf { Icons.Default.MoreVert }
             }
             val kebabButtonSize by remember {
-                derivedStateOf { AlgoTokens.iconButtonSm - 4.dp }
+                derivedStateOf { AlgoTokens.iconButtonXs }
             }
             val kebabIconSize by remember {
                 derivedStateOf { AlgoTokens.inlineIconMd }
@@ -383,19 +383,19 @@ private fun HeaderOverflowMenuHost(
     // them here avoids rebuilding the text / icon objects every recomposition.
     val algoTitleLabelText = remember { "Theory Sheet" }
     val algoTitleIcon = remember { Icons.AutoMirrored.Filled.MenuBook }
-    val algoTitleIconSize = remember { 20.dp }
+    val algoTitleIconSize = remember { AlgoTokens.inlineIconLg }
     val dropdownChevronIcon = remember { Icons.Default.ArrowDropDown }
 
     val inspectorLabelText = remember { "Variable Inspector" }
     val inspectorLeadingIcon = remember { Icons.Default.Code }
-    val inspectorLeadingIconSize = remember { 20.dp }
+    val inspectorLeadingIconSize = remember { AlgoTokens.inlineIconLg }
 
     val callStackLabelText = remember { "Memory Call Stack" }
     val callStackLeadingIcon = remember { Icons.Default.Terminal }
-    val callStackLeadingIconSize = remember { 20.dp }
+    val callStackLeadingIconSize = remember { AlgoTokens.inlineIconLg }
 
     val customizeIcon = remember { Icons.Default.Tune }
-    val customizeIconSize = remember { 20.dp }
+    val customizeIconSize = remember { AlgoTokens.inlineIconLg }
     val customizeLabel = remember(spec?.id) {
         if (spec == null) "Customize Array"
         else when (spec.id) {

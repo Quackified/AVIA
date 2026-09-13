@@ -67,6 +67,7 @@ import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentRed
 import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoLensTheme
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BorderCyan
 import com.example.algolens.ui.theme.BorderMedium
 import com.example.algolens.ui.theme.BorderSubtle
@@ -192,9 +193,9 @@ fun CustomizeInputSheet(
         dragHandle = {
             Box(
                 modifier = Modifier
-                    .padding(top = 10.dp, bottom = 6.dp)
-                    .size(width = 36.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(99.dp))
+                    .padding(top = AlgoTokens.space3, bottom = AlgoTokens.space2)
+                    .size(width = AlgoTokens.iconButtonLg, height = AlgoTokens.space2)
+                    .clip(RoundedCornerShape(AlgoTokens.radiusXl))
                     .background(Color.White.copy(alpha = 0.2f))
             )
         }
@@ -203,8 +204,8 @@ fun CustomizeInputSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
         ) {
             // Header
             Row(
@@ -228,10 +229,10 @@ fun CustomizeInputSheet(
                 }
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(AlgoTokens.iconButtonSm)
                         .clip(CircleShape)
                         .background(CanvasBackground)
-                        .border(1.dp, BorderSubtle, CircleShape)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, CircleShape)
                         .clickable { onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -239,13 +240,13 @@ fun CustomizeInputSheet(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = TextMuted,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
                     )
                 }
             }
 
             // ── 1. Edge Case Presets LazyRow (Material 3 FilterChips) ──
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                 Text(
                     text = "EDGE CASE PRESETS:",
                     style = MaterialTheme.typography.labelSmall,
@@ -257,8 +258,8 @@ fun CustomizeInputSheet(
 
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 2.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4),
+                    contentPadding = PaddingValues(vertical = AlgoTokens.space1)
                 ) {
                     items(PRESET_OPTIONS, key = { it.id }) { preset ->
                         val isSelected = selectedPreset == preset.id
@@ -291,7 +292,7 @@ fun CustomizeInputSheet(
                                 Icon(
                                     imageVector = preset.icon,
                                     contentDescription = null,
-                                    modifier = Modifier.size(12.dp),
+                                    modifier = Modifier.size(AlgoTokens.inlineIconSm),
                                     tint = if (isSelected) presetColor else TextMuted
                                 )
                             },
@@ -308,16 +309,16 @@ fun CustomizeInputSheet(
                                 selected = isSelected,
                                 borderColor = BorderSubtle,
                                 selectedBorderColor = presetColor,
-                                borderWidth = if (isSelected) 1.5.dp else 1.dp
+                                borderWidth = if (isSelected) AlgoTokens.strokeMedium else AlgoTokens.strokeThin
                             ),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(AlgoTokens.radiusSm)
                         )
                     }
                 }
             }
 
             // ── 2. Manual Array Input Field ──
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -346,17 +347,17 @@ fun CustomizeInputSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                         .background(CanvasBackground)
                         .border(
-                            width = 1.dp,
+                            width = AlgoTokens.strokeThin,
                             color = when (validationResult) {
                                 is InputValidationResult.Valid -> BorderCyan
                                 is InputValidationResult.Error -> AccentRed.copy(alpha = 0.8f)
                             },
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(AlgoTokens.radiusSm)
                         )
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                        .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3)
                 ) {
                     BasicTextField(
                         value = inputStr,
@@ -382,14 +383,14 @@ fun CustomizeInputSheet(
                     is InputValidationResult.Valid -> {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(top = 2.dp)
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+                            modifier = Modifier.padding(top = AlgoTokens.space1)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
                                 tint = AccentGreen,
-                                modifier = Modifier.size(11.dp)
+                                modifier = Modifier.size(AlgoTokens.inlineIconSm)
                             )
                             Text(
                                 text = "Ready: ${res.parsed.size} valid integers parsed",
@@ -402,14 +403,14 @@ fun CustomizeInputSheet(
                     is InputValidationResult.Error -> {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(top = 2.dp)
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+                            modifier = Modifier.padding(top = AlgoTokens.space1)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ErrorOutline,
                                 contentDescription = null,
                                 tint = AccentRed,
-                                modifier = Modifier.size(11.dp)
+                                modifier = Modifier.size(AlgoTokens.inlineIconSm)
                             )
                             Text(
                                 text = res.message,
@@ -423,7 +424,7 @@ fun CustomizeInputSheet(
             }
 
             // ── 3. Array Length Slider ──
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -475,7 +476,7 @@ fun CustomizeInputSheet(
             }
 
             // ── 4. Sort Order Toggle ──
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
                 Text(
                     text = "SORT ORDER:",
                     style = MaterialTheme.typography.labelSmall,
@@ -494,7 +495,7 @@ fun CustomizeInputSheet(
 
             // ── 5. Search Target (Linear / Binary Search only) ──
             if (showSearchTarget) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -522,17 +523,17 @@ fun CustomizeInputSheet(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(CanvasBackground)
                             .border(
-                                width = 1.dp,
+                                width = AlgoTokens.strokeThin,
                                 color = if (searchTargetStr.isBlank() || searchTargetStr.trim().toIntOrNull() != null)
                                     BorderCyan
                                 else
                                     AccentRed.copy(alpha = 0.8f),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(AlgoTokens.radiusSm)
                             )
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3)
                     ) {
                         BasicTextField(
                             value = searchTargetStr,
@@ -558,7 +559,7 @@ fun CustomizeInputSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                     .background(if (isValid) PrimaryCyan else PrimaryCyan.copy(alpha = 0.35f))
                     .clickable(enabled = isValid) {
                         if (validationResult is InputValidationResult.Valid) {
@@ -571,7 +572,7 @@ fun CustomizeInputSheet(
                             onDismiss()
                         }
                     }
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = AlgoTokens.space5),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -582,7 +583,7 @@ fun CustomizeInputSheet(
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(AlgoTokens.space3))
         }
     }
 }

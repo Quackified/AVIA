@@ -1,4 +1,4 @@
-﻿package com.example.algolens.ui.visualizer
+package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -124,7 +124,7 @@ fun BottomPointerBadge(
                             .height(18.dp)
                             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                             .background(badgeBg)
-                            .padding(horizontal = 4.dp),
+                            .padding(horizontal = AlgoTokens.space2),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

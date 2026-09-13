@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.algolens.ui.components.ComplexityCard
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BorderMedium
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CardBackground
@@ -67,9 +68,9 @@ fun AiTutorSheet(
         dragHandle = {
             Box(
                 modifier = Modifier
-                    .padding(top = 10.dp, bottom = 6.dp)
-                    .size(width = 36.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(99.dp))
+                    .padding(top = AlgoTokens.space3, bottom = AlgoTokens.space2)
+                    .size(width = AlgoTokens.iconButtonLg, height = AlgoTokens.space2)
+                    .clip(RoundedCornerShape(AlgoTokens.radiusXl))
                     .background(Color.White.copy(alpha = 0.15f))
             )
         }
@@ -78,8 +79,8 @@ fun AiTutorSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
         ) {
             // Header
             Row(
@@ -89,21 +90,21 @@ fun AiTutorSheet(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(9.dp))
+                            .size(AlgoTokens.iconButtonMd)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(PurpleSubtle)
-                            .border(1.dp, SecondaryPurple.copy(alpha = 0.35f), RoundedCornerShape(9.dp)),
+                            .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.35f), RoundedCornerShape(AlgoTokens.radiusSm)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
                             tint = PurpleGlow,
-                            modifier = Modifier.size(15.dp)
+                            modifier = Modifier.size(AlgoTokens.inlineIconMd)
                         )
                     }
 
@@ -115,7 +116,7 @@ fun AiTutorSheet(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Powered by Claude",
+                            text = "Offline Step Intelligence",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
                             fontSize = 9.sp
@@ -128,16 +129,16 @@ fun AiTutorSheet(
                     modifier = Modifier
                         .clip(CircleShape)
                         .background(PurpleSubtle)
-                        .border(1.dp, SecondaryPurple.copy(alpha = 0.3f), CircleShape)
-                        .padding(horizontal = 9.dp, vertical = 4.dp)
+                        .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.3f), CircleShape)
+                        .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(5.dp)
+                                .size(AlgoTokens.space2)
                                 .clip(CircleShape)
                                 .background(PurpleGlow)
                         )
@@ -152,7 +153,7 @@ fun AiTutorSheet(
                 }
             }
 
-            HorizontalDivider(color = BorderSubtle, thickness = 1.dp)
+            HorizontalDivider(color = BorderSubtle, thickness = AlgoTokens.strokeThin)
 
             // Explanation Text
             Text(
@@ -171,17 +172,17 @@ fun AiTutorSheet(
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
             ) {
                 listOf("Trace Full", "Next Concept", "Why Swap?").forEach { label ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(PurpleSubtle)
-                            .border(1.dp, SecondaryPurple.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                            .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.25f), RoundedCornerShape(AlgoTokens.radiusSm))
                             .clickable { }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = AlgoTokens.space4),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -195,7 +196,7 @@ fun AiTutorSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(AlgoTokens.space5))
         }
     }
 }
