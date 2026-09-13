@@ -1,4 +1,4 @@
-﻿package com.example.algolens.ui.visualizer
+package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -85,7 +85,7 @@ fun CellGrid(
         state = lazyListState,
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = AlgoTokens.space1),
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
         itemsIndexed(step.array, key = { index, _ -> "cell_$index" }) { index, value ->

@@ -23,11 +23,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DisplaySettings
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Icon
+import com.example.algolens.data.AppSettings
+import com.example.algolens.ui.theme.AlgoTokens
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -374,7 +377,80 @@ fun SettingsScreen(
             }
         }
 
-        // â”€â”€ 5. Data Management (Danger Zone) â”€â”€
+        // ── 5. Experimental Features ──
+        SettingsCard {
+            SectionLabel(icon = Icons.Default.Science, text = "Experimental Features")
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
+                    Text(
+                        text = "Adaptive Focused Cells (Zero-Clip)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Fits array to screen viewport, eliminates horizontal scroll jitter and clipping during comparisons and swaps.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                        fontSize = 8.5.sp
+                    )
+                }
+                CustomSwitch(
+                    checked = AppSettings.useAdaptiveCellVisualizer,
+                    onCheckedChange = { AppSettings.useAdaptiveCellVisualizer = it }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(AlgoTokens.space1))
+
+            Text(
+                text = "Default Cell Size Preset",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+            ) {
+                listOf(
+                    "Small (0.7x)" to 0.7f,
+                    "Normal (1.0x)" to 1.0f,
+                    "Large (1.25x)" to 1.25f
+                ).forEach { (label, scale) ->
+                    val isSel = AppSettings.defaultCellScale == scale
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
+                            .border(
+                                AlgoTokens.strokeThin,
+                                if (isSel) PrimaryCyan else BorderSubtle,
+                                RoundedCornerShape(AlgoTokens.radiusSm)
+                            )
+                            .clickable { AppSettings.defaultCellScale = scale }
+                            .padding(vertical = AlgoTokens.space2),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSel) DarkBackground else TextMuted,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 9.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── 6. Data Management (Danger Zone) ──
         SettingsCard {
             SectionLabel(icon = Icons.Default.Storage, text = "Data Management")
 

@@ -45,6 +45,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.algolens.data.AppSettings
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoLensTheme
@@ -169,34 +170,38 @@ fun CellArrayVisualizer(
         if (outerViewportWidthDp == 0.dp) return@LaunchedEffect
         if (outerCellWidth == 0.dp) return@LaunchedEffect
         val nodeCount = step.array.size
-        // Cell-only width: the LazyRow itself accounts for the
-        // inter-cell gap via Arrangement.spacedBy, so for the
-        // purposes of "does the row fit in the viewport?" we
-        // only need the cell area. The new sizing makes this
-        // equal to the available width, so Case 1 (centered)
-        // fires whenever cells fill the canvas.
-        val cellArea = outerCellWidth * nodeCount
-        if (cellArea <= outerViewportWidthDp) {
-            // Case 1: array fits -> center. The LazyRow uses a
-            // pixel scroll offset. With the row anchored to
-            // index 0 and offset = -(extraSpace/2), the visible
-            // items span equally on both sides -> centered.
-            val extraSpace = outerViewportWidthDp - cellArea
-            val targetPx = -(extraSpace.value / 2f * density.density).toInt()
-            val info = lazyListState.layoutInfo
-            val firstVisible = info.visibleItemsInfo.firstOrNull()?.index ?: 0
-            val currentOffset = info.visibleItemsInfo.firstOrNull()?.offset ?: 0
-            val alreadyCentered = firstVisible == 0 && kotlin.math.abs(currentOffset - targetPx) <= 2
-            if (!alreadyCentered) {
-                lazyListState.animateScrollToItem(0, targetPx)
+
+        if (AppSettings.useAdaptiveCellVisualizer) {
+            val totalRowWidth = (outerCellWidth * nodeCount) + (outerCellGap * (nodeCount - 1).coerceAtLeast(0))
+            if (totalRowWidth <= outerViewportWidthDp) {
+                // Adaptive zero-clip mode: array fits completely within the canvas well.
+                // Reset scroll to 0 if displaced so the array stays statically centered.
+                if (lazyListState.firstVisibleItemIndex != 0 || lazyListState.firstVisibleItemScrollOffset != 0) {
+                    lazyListState.scrollToItem(0, 0)
+                }
+            } else {
+                val anchor = (targetIndex ?: 0).coerceIn(0, nodeCount - 1)
+                if (anchor !in visibleItemIndices) {
+                    lazyListState.animateScrollToItem(anchor)
+                }
             }
         } else {
-            // Cases 2 & 3: array overflows. Pick the leftmost anchor:
-            // - If there is an active target, use it.
-            // - Otherwise pin index 0 to the left edge.
-            val anchor = (targetIndex ?: 0).coerceIn(0, nodeCount - 1)
-            if (anchor !in visibleItemIndices) {
-                lazyListState.animateScrollToItem(anchor)
+            val cellArea = outerCellWidth * nodeCount
+            if (cellArea <= outerViewportWidthDp) {
+                val extraSpace = outerViewportWidthDp - cellArea
+                val targetPx = -(extraSpace.value / 2f * density.density).toInt()
+                val info = lazyListState.layoutInfo
+                val firstVisible = info.visibleItemsInfo.firstOrNull()?.index ?: 0
+                val currentOffset = info.visibleItemsInfo.firstOrNull()?.offset ?: 0
+                val alreadyCentered = firstVisible == 0 && kotlin.math.abs(currentOffset - targetPx) <= 2
+                if (!alreadyCentered) {
+                    lazyListState.animateScrollToItem(0, targetPx)
+                }
+            } else {
+                val anchor = (targetIndex ?: 0).coerceIn(0, nodeCount - 1)
+                if (anchor !in visibleItemIndices) {
+                    lazyListState.animateScrollToItem(anchor)
+                }
             }
         }
     }
@@ -220,15 +225,20 @@ fun CellArrayVisualizer(
         //    collapse cells below the minimum touch-target width.
         //  - 44dp cap: a 3-element array at L scale would otherwise
         //    balloon cells past the cap the rest of the UI assumes.
-        val cellWidth = ((availableWidth / nodeCount) * cellScale)
-            .coerceIn(14.dp, 44.dp)
+        val slotGap = AlgoTokens.space3
+        val cellWidth = if (AppSettings.useAdaptiveCellVisualizer) {
+            val totalGaps = slotGap * (nodeCount - 1).coerceAtLeast(0)
+            val usableWidth = (availableWidth - totalGaps).coerceAtLeast(0.dp)
+            ((usableWidth / nodeCount) * cellScale).coerceIn(14.dp, 44.dp)
+        } else {
+            ((availableWidth / nodeCount) * cellScale).coerceIn(14.dp, 44.dp)
+        }
         val cellHeight = cellWidth * 1.12f
         // Font size scales with the cell width (it was the cellScale
         // multiplier before — that math now lives in the cellWidth
         // calc above). 0.36 × cellWidth gives a digit size that
         // reads cleanly across the S/M/L range.
         val cellTextSize = (cellWidth.value * 0.36f).coerceIn(7f, 16f).sp
-        val slotGap = AlgoTokens.space3
 
         // Read-then-remember: cache the static text merges once per
         // composition so the per-step callout reuses a stable TextStyle.
@@ -469,7 +479,17 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // \u25C4”€\u25C4”€ Main Cells LazyRow with Smooth Animations \u25C4”€\u25C4”€
+                // ── Luminous Comparison & Swap Bridge (Zero-Clip Adaptive Mode) ──
+                if (AppSettings.useAdaptiveCellVisualizer) {
+                    ComparisonBridgeOverlay(
+                        step = step,
+                        cellWidth = cellWidth,
+                        slotGap = slotGap,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // ── Main Cells LazyRow with Smooth Animations ──
                 CellGrid(
                     step = step,
                     selectedCellIndices = selectedCellIndices,

@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.algolens.data.AlgorithmRegistry
 import com.example.algolens.data.AlgorithmStepRepository
+import com.example.algolens.data.AppSettings
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.BufferOp
 import com.example.algolens.model.GraphCustomization
@@ -87,9 +88,9 @@ class VisualizerScreenState(
     var arrayViewMode: ArrayViewMode by mutableStateOf(ArrayViewMode.CELLS)
 
     // ── Cell size scale (user-adjustable, 0.6x .. 1.4x of the
-    //    responsive default). Lets users on small screens shrink
-    //    cells so 7-8+ element arrays stop clipping. ──
-    var cellScale: Float by mutableFloatStateOf(1f)
+    //    responsive default). Defaults to Small (0.7f) to eliminate
+    //    horizontal clipping on standard-sized arrays. ──
+    var cellScale: Float by mutableFloatStateOf(AppSettings.defaultCellScale)
 
     // ── Sort order (ASC | DESC), applied to the LINEAR_1D
     //    customize-input sheet. Persists across algorithm switches
