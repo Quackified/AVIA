@@ -295,18 +295,19 @@ private fun CellItem(
 
     val cellDensity = LocalDensity.current
 
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(verticalAlignment = Alignment.Top) {
         if (isAtSortedBoundary) {
-            Box(
-                modifier = Modifier
-                    .height(52.dp)
-                    .width(2.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(AccentGreen, AccentYellow)
-                        )
-                    )
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Vertical space matching TopPointerBadge (18dp) + space2 (4dp)
+                Spacer(modifier = Modifier.height(18.dp + AlgoTokens.space2))
+                Box(
+                    modifier = Modifier
+                        .height(cellHeight)
+                        .width(2.dp)
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+                        .background(AccentGreen)
+                )
+            }
             Spacer(modifier = Modifier.width(AlgoTokens.space3))
         }
 
@@ -315,28 +316,6 @@ private fun CellItem(
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
             modifier = Modifier
                 .padding(horizontal = AlgoTokens.space1)
-                .graphicsLayer {
-                    // All per-frame animated values are read HERE, in the
-                    // render phase — animation frames only re-record this
-                    // layer and never recompose the cell subtree.
-                    val ox = slotFlight.transform(index).offsetX.value
-                    val oy = slotFlight.transform(index).offsetY.value
-                    val sc = slotFlight.transform(index).scale.value
-                    val ev = evalScaleState.value
-                    translationX = ox
-                    translationY = oy
-                    scaleX = sc * ev
-                    scaleY = sc * ev
-                    alpha = cellAlphaState.value
-                    shadowElevation =
-                        if (sc > 1.01f || abs(oy) > 0.5f) {
-                            AlgoTokens.elevationTraveling.toPx()
-                        } else {
-                            0f
-                        }
-                    shape = RoundedCornerShape(AlgoTokens.radiusXxs)
-                    cameraDistance = 12f * cellDensity.density
-                }
                 .clickable(enabled = onCellClick != null) {
                     onCellClick?.invoke(index)
                 }
@@ -389,6 +368,30 @@ private fun CellItem(
             Box(
                 modifier = Modifier
                     .size(width = cellWidth, height = cellHeight)
+                    .graphicsLayer {
+                        // All per-frame animated values are read HERE, in the
+                        // render phase — animation frames only re-record this
+                        // layer and never recompose the cell subtree.
+                        // Only the cell tile travels during swap; pointers and
+                        // index labels remain stationary at their slot positions.
+                        val ox = slotFlight.transform(index).offsetX.value
+                        val oy = slotFlight.transform(index).offsetY.value
+                        val sc = slotFlight.transform(index).scale.value
+                        val ev = evalScaleState.value
+                        translationX = ox
+                        translationY = oy
+                        scaleX = sc * ev
+                        scaleY = sc * ev
+                        alpha = cellAlphaState.value
+                        shadowElevation =
+                            if (sc > 1.01f || abs(oy) > 0.5f) {
+                                AlgoTokens.elevationTraveling.toPx()
+                            } else {
+                                0f
+                            }
+                        shape = RoundedCornerShape(AlgoTokens.radiusXxs)
+                        cameraDistance = 12f * cellDensity.density
+                    }
                     .onGloballyPositioned { coords ->
                         onCellBoxPositioned(index, coords)
                     }
