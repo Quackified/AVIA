@@ -1,6 +1,8 @@
 package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -24,9 +26,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,20 +45,24 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.algolens.data.AppSettings
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.AccentPinkGlow
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 /**
@@ -139,6 +148,43 @@ fun CellGrid(
     // Ensures enough space above cells/badges so bridge never clips or touches boundaries
     val topAllotment = if (hasTopPill) 46.dp else 28.dp
 
+    // ── Completion Celebration Wave State & Haptics ──
+    val haptic = LocalHapticFeedback.current
+    var waveActiveIndex by remember { mutableIntStateOf(-1) }
+    val celebrationPulse = remember { Animatable(0f) }
+    val celebrationPulseState = remember { derivedStateOf { celebrationPulse.value } }
+
+    val isFullySorted = remember(step.elementStates, step.array.size) {
+        step.array.isNotEmpty() &&
+            step.elementStates.size == step.array.size &&
+            step.elementStates.values.all { it == ElementState.SORTED }
+    }
+
+    LaunchedEffect(isFullySorted, step.stepIndex) {
+        if (isFullySorted) {
+            waveActiveIndex = -1
+            celebrationPulse.snapTo(0f)
+            // Left-to-right cascade ripple wave across sorted cells
+            for (i in step.array.indices) {
+                waveActiveIndex = i
+                if (AppSettings.hapticsEnabled) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
+                delay(65L)
+            }
+            waveActiveIndex = -1
+            if (AppSettings.hapticsEnabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+            // Tada! Final synchronized celebration shimmer
+            celebrationPulse.snapTo(1f)
+            celebrationPulse.animateTo(0f, tween(600, easing = FastOutSlowInEasing))
+        } else {
+            waveActiveIndex = -1
+            celebrationPulse.snapTo(0f)
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -183,6 +229,8 @@ fun CellGrid(
                     slotFlight = slotFlight,
                     challengePulseState = challengePulseState,
                     syncPulse = syncPulse,
+                    isWaveActive = waveActiveIndex == index,
+                    celebrationPulseState = celebrationPulseState,
                     onCellClick = onCellClick,
                     cellWidth = cellWidth,
                     cellHeight = cellHeight,
@@ -260,6 +308,8 @@ private fun CellItem(
     slotFlight: SlotFlightMap,
     challengePulseState: State<Float>,
     syncPulse: State<Float>,
+    isWaveActive: Boolean,
+    celebrationPulseState: State<Float>,
     onCellClick: ((Int) -> Unit)?,
     cellWidth: Dp,
     cellHeight: Dp,
@@ -285,6 +335,13 @@ private fun CellItem(
         targetValue = if (isEvaluated) 1.12f else 1f,
         animationSpec = AlgoTokens.evalSpring,
         label = "evalScale_$index"
+    )
+
+    // Completion cascade wave pop scale
+    val waveScaleState = animateFloatAsState(
+        targetValue = if (isWaveActive) 1.15f else 1f,
+        animationSpec = tween(120),
+        label = "waveScale_$index"
     )
 
     // Bubble Sort / Swap Scale & Glow Gimmick
@@ -378,13 +435,16 @@ private fun CellItem(
                         val oy = slotFlight.transform(index).offsetY.value
                         val sc = slotFlight.transform(index).scale.value
                         val ev = evalScaleState.value
+                        val ws = waveScaleState.value
+                        val cp = celebrationPulseState.value
+                        val celebrationScale = 1f + cp * 0.05f
                         translationX = ox
                         translationY = oy
-                        scaleX = sc * ev
-                        scaleY = sc * ev
+                        scaleX = sc * ev * ws * celebrationScale
+                        scaleY = sc * ev * ws * celebrationScale
                         alpha = cellAlphaState.value
                         shadowElevation =
-                            if (sc > 1.01f || abs(oy) > 0.5f) {
+                            if (sc > 1.01f || abs(oy) > 0.5f || ws > 1.05f) {
                                 AlgoTokens.elevationTraveling.toPx()
                             } else {
                                 0f
@@ -405,12 +465,27 @@ private fun CellItem(
                                 cornerRadius = corner
                             )
                         }
-                        // Cross-feature mirror glow: cells flash in
-                        // sync with the highlighted code trace line
-                        if (state != ElementState.IDLE && syncPulse.value > 0.01f) {
+                        // Completion wave ripple glow
+                        if (isWaveActive) {
+                            drawCellGlow(
+                                accent = AccentGreen,
+                                intensity = 0.85f,
+                                cornerRadius = corner
+                            )
+                        }
+                        // Completion celebration synchronized shimmer
+                        if (celebrationPulseState.value > 0.01f) {
+                            drawCellGlow(
+                                accent = AccentGreen,
+                                intensity = celebrationPulseState.value * 0.5f,
+                                cornerRadius = corner
+                            )
+                        }
+                        // Cross-feature mirror glow: only on SWAPPING or FOUND semantic events with damped intensity
+                        if ((state == ElementState.SWAPPING || state == ElementState.FOUND) && syncPulse.value > 0.01f) {
                             drawCellGlow(
                                 accent = animatedBorder,
-                                intensity = syncPulse.value,
+                                intensity = syncPulse.value * 0.4f,
                                 cornerRadius = corner
                             )
                         }
@@ -418,12 +493,13 @@ private fun CellItem(
                     .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                     .background(animatedBg)
                     .border(
-                        width = if (isSelectedForChallenge || isChallengeTarget ||
+                        width = if (isSelectedForChallenge || isChallengeTarget || isWaveActive ||
                             state != ElementState.IDLE || isSwappingCell
                         ) AlgoTokens.strokeActive else AlgoTokens.strokeThin,
                         color = when {
                             isSelectedForChallenge -> AlgoTokens.accentCyan
                             isChallengeTarget -> AlgoTokens.accentYellow
+                            isWaveActive -> AccentGreen
                             else -> animatedBorder
                         },
                         shape = RoundedCornerShape(AlgoTokens.radiusXxs)

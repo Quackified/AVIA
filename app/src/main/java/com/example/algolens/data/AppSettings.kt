@@ -19,4 +19,10 @@ object AppSettings {
      * standard arrays.
      */
     var defaultCellScale by mutableFloatStateOf(0.7f)
+
+    /**
+     * Whether tactile haptic feedback is enabled for step ticks, swaps,
+     * and the completion celebration wave.
+     */
+    var hapticsEnabled by androidx.compose.runtime.mutableStateOf(true)
 }

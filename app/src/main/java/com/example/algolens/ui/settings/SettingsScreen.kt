@@ -429,6 +429,33 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(AlgoTokens.space3))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Tactile Haptic Feedback",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Vibrations on cell swaps, step ticks, and completion wave",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                        fontSize = 8.5.sp
+                    )
+                }
+                CustomSwitch(
+                    checked = AppSettings.hapticsEnabled,
+                    onCheckedChange = { AppSettings.hapticsEnabled = it }
+                )
+            }
         }
 
         // ── 6. Data Management (Danger Zone) ──

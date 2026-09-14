@@ -7,7 +7,11 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.example.algolens.data.AppSettings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -60,13 +64,27 @@ fun VisualizerScreen(
     val spec = remember(algorithm.id) { AlgorithmRegistry.specFor(algorithm.id) }
 
     // ── Sync-pulse heartbeat ──
-    // The `Animatable` is a `State<Float>`, so reads from inside
-    // the divider / cells / code-trace don't recompose this body.
+    val haptic = LocalHapticFeedback.current
     val syncPulse = remember { Animatable(0f) }
     val syncPulseState = remember { derivedStateOf { syncPulse.value } }
+
     LaunchedEffect(state.currentStepIdx) {
+        // Fast, crisp pulse decay (280ms) avoids overlapping flashes
         syncPulse.snapTo(1f)
-        syncPulse.animateTo(0f, tween(550))
+        syncPulse.animateTo(0f, tween(280, easing = FastOutSlowInEasing))
+    }
+
+    // ── Tactile Haptics ──
+    LaunchedEffect(state.currentStepIdx) {
+        if (AppSettings.hapticsEnabled && state.currentStepIdx > 0) {
+            val step = state.currentStep
+            val isSwapping = step.swappedIndices != null || step.phaseLabel.contains("SWAP", ignoreCase = true)
+            if (isSwapping) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            } else {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
+        }
     }
 
     // ── Challenge-mode "glowing target" indices ──
