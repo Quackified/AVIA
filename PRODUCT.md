@@ -8,19 +8,19 @@ android
 
 ## Users
 
-Primary user: a computer-science student working through a data structures & algorithms course. They open AlgoLens to *see* how a sort, search, tree, or graph traversal actually unfolds — not to read prose, not to memorise pseudocode, and not to be quizzed. The job is to convert an abstract algorithm description into a felt mental model of step-by-step mechanics.
+Primary user: a computer-science student working through a data structures & algorithms course. They open AVIA to *see* how a sort, search, tree, or graph traversal actually unfolds — not to read prose, not to memorise pseudocode, and not to be quizzed. The job is to convert an abstract algorithm description into a felt mental model of step-by-step mechanics.
 
 Secondary audiences (confirmed only by surface evidence, not by interview): the app's chrome — `BOOKMARKED` section, Challenge mode, offline badge, and absence of any social / share / leaderboard affordances — is consistent with deliberate practice for coding-interview preparation and with a personal-reference use case. Treat the primary user as the CS student; the other audiences are real but not the design target.
 
 ## Product Purpose
 
-AlgoLens makes 13 canonical CS algorithms feel mechanical by animating them in lockstep with their source code. Success looks like: the user opens an algorithm, presses play, watches the canvas and code-trace line move together, and walks away with a clearer picture of what the algorithm is doing at each step than they had before they opened it.
+AVIA makes 13 canonical CS algorithms feel mechanical by animating them in lockstep with their source code. Success looks like: the user opens an algorithm, presses play, watches the canvas and code-trace line move together, and walks away with a clearer picture of what the algorithm is doing at each step than they had before they opened it.
 
 The product is the visualisation itself. There is no content feed, no course, no community, no monetisation surface. Everything that does not directly serve the "watch and understand" job is out of scope.
 
 ## Positioning
 
-Phone-first, offline, no account. A single Android app that ships all 13 algorithms baked in, with an `OfflineBadge` visible in the chrome to make the constraint legible. Most algorithm visualisers are web-based, require a connection, or gate features behind login. AlgoLens's differentiator is honest engineering — the craft of the visualisation and the integrity of the workspace, not growth hooks.
+Phone-first, offline, no account. A single Android app that ships all 13 algorithms baked in, with an `OfflineBadge` visible in the chrome to make the constraint legible. Most algorithm visualisers are web-based, require a connection, or gate features behind login. AVIA's differentiator is honest engineering — the craft of the visualisation and the integrity of the workspace, not growth hooks.
 
 The visual system is deliberately developer-tool-shaped (dark, tokenised IDE metaphor, monospace type, four-language code trace) rather than classroom-friendly or gamified. This is a positioning choice: the user is treated as someone who already lives in an IDE, not someone who needs to be lured in.
 
@@ -70,7 +70,7 @@ The visual system is deliberately developer-tool-shaped (dark, tokenised IDE met
 
 ## Brand Commitments
 
-- **Name:** AlgoLens. Not "algo-visualiser" or any other variant.
+- **Name:** AVIA. The shipped product name — launcher label (`@string/app_name`), dashboard wordmark, and every piece of user-facing prose. The repository folder, Gradle module, and Kotlin package remain `AlgoLens` for continuity, and code-level prose (file names, KDoc, tests) may still say AlgoLens. In the UI it is "AVIA", never "AlgoLens" and never "algo-visualiser" or any other variant.
 - **Voice:** developer-tool. Technical labels, monospace type, no marketing prose. The chrome reads like an IDE, not a textbook.
 - **Aesthetic:** dark tech-noir IDE workspace. The five accent roles (cyan / purple / pink / green / yellow) are fixed and semantic, never decorative. Subtle fills are paired with their accent border at 30% alpha. Full surface and token definitions live in `docs/UI_GUIDELINES.md`; that document is the design authority and is treated as a binding contract.
 - **Typography:** JetBrains Mono across the app. No swap to a sans for "legibility." The monospace is the IDE metaphor.

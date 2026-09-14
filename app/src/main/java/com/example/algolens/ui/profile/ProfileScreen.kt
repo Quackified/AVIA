@@ -58,6 +58,8 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextNavy
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 @Composable
 fun ProfileScreen(
@@ -133,7 +135,7 @@ fun ProfileScreen(
                     text = "@quacky · CS Student · Year 3",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
-                    fontSize = 9.5.sp
+                    fontSize = AlgoType.labelSize
                 )
 
                 Row(
@@ -152,7 +154,7 @@ fun ProfileScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 8.5.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
 
@@ -168,7 +170,7 @@ fun ProfileScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentOrange,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 8.5.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
                 }
@@ -223,7 +225,7 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.BarChart,
+                            imageVector = AlgoGlyphs.Bars,
                             contentDescription = null,
                             tint = PrimaryCyan,
                             modifier = Modifier.size(13.dp)
@@ -240,7 +242,7 @@ fun ProfileScreen(
                         text = "30 sessions this week",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextNavy,
-                        fontSize = 8.5.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
 
@@ -289,7 +291,7 @@ fun ProfileScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (isToday) PrimaryCyan else TextDark,
                                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 8.sp
+                                fontSize = AlgoType.microSize
                             )
                         }
                     }
@@ -309,7 +311,7 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     SectionLabel(
-                        icon = Icons.Default.Bookmark,
+                        icon = AlgoGlyphs.Bookmark,
                         text = "Bookmarked"
                     )
                 }
@@ -318,7 +320,7 @@ fun ProfileScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = PrimaryCyan,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 9.sp
+                    fontSize = AlgoType.microSize
                 )
             }
 
@@ -359,20 +361,20 @@ private fun StatCard(
                 style = MaterialTheme.typography.displaySmall,
                 color = color,
                 fontWeight = FontWeight.Bold,
-                fontSize = 19.sp
+                fontSize = AlgoType.displaySize
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = TextPrimary,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 8.5.sp
+                fontSize = AlgoType.microSize
             )
             Text(
                 text = sub,
                 style = MaterialTheme.typography.bodySmall,
                 color = TextDark,
-                fontSize = 7.5.sp
+                fontSize = AlgoType.microSize
             )
         }
     }

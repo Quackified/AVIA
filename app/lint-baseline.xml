@@ -1665,17 +1665,6 @@
     <issue
         id="AlgolensRoundedCornerShapeLiteral"
         message="RoundedCornerShape(*.dp) literal: use an AlgoTokens.radius* token (radiusXxs/xs/sm/md/lg/xl) instead."
-        errorLine1="                        .clip(RoundedCornerShape(8.dp))"
-        errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/example/algolens/ui/components/BottomNavBar.kt"
-            line="93"
-            column="31"/>
-    </issue>
-
-    <issue
-        id="AlgolensRoundedCornerShapeLiteral"
-        message="RoundedCornerShape(*.dp) literal: use an AlgoTokens.radius* token (radiusXxs/xs/sm/md/lg/xl) instead."
         errorLine1="                    .clip(RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = AlgoTokens.radiusXxs, bottomEnd = AlgoTokens.radiusXxs))"
         errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
@@ -3442,61 +3431,6 @@
             file="src/main/java/com/example/algolens/ui/visualizer/BarVisualizer.kt"
             line="159"
             column="24"/>
-    </issue>
-
-    <issue
-        id="AlgolensRawDpSpacing"
-        message="Raw .dp literal inside padding(...): use an AlgoTokens.space* / size token so spacing stays on the 4dp grid."
-        errorLine1="        modifier = modifier"
-        errorLine2="                   ^">
-        <location
-            file="src/main/java/com/example/algolens/ui/components/BottomNavBar.kt"
-            line="57"
-            column="20"/>
-    </issue>
-
-    <issue
-        id="AlgolensRawDpSpacing"
-        message="Raw .dp literal inside padding(...): use an AlgoTokens.space* / size token so spacing stays on the 4dp grid."
-        errorLine1="                modifier = Modifier"
-        errorLine2="                           ^">
-        <location
-            file="src/main/java/com/example/algolens/ui/components/BottomNavBar.kt"
-            line="80"
-            column="28"/>
-    </issue>
-
-    <issue
-        id="AlgolensRawDpSpacing"
-        message="Raw .dp literal inside spacedBy(...): use an AlgoTokens.space* / size token so spacing stays on the 4dp grid."
-        errorLine1="                verticalArrangement = Arrangement.spacedBy(3.dp)"
-        errorLine2="                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/example/algolens/ui/components/BottomNavBar.kt"
-            line="88"
-            column="39"/>
-    </issue>
-
-    <issue
-        id="AlgolensRawDpSpacing"
-        message="Raw .dp literal inside size(...): use an AlgoTokens.space* / size token so spacing stays on the 4dp grid."
-        errorLine1="                    modifier = Modifier"
-        errorLine2="                               ^">
-        <location
-            file="src/main/java/com/example/algolens/ui/components/BottomNavBar.kt"
-            line="91"
-            column="32"/>
-    </issue>
-
-    <issue
-        id="AlgolensRawDpSpacing"
-        message="Raw .dp literal inside size(...): use an AlgoTokens.space* / size token so spacing stays on the 4dp grid."
-        errorLine1="                        modifier = Modifier.size(16.dp)"
-        errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/example/algolens/ui/components/BottomNavBar.kt"
-            line="101"
-            column="36"/>
     </issue>
 
     <issue

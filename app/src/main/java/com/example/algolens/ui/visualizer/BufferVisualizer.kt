@@ -65,6 +65,8 @@ import com.example.algolens.ui.theme.TextNavy
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.YellowSubtle
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Animated Buffer Memory Visualizer for Stack (LIFO) and Queue (FIFO) data structures.
@@ -103,14 +105,14 @@ fun BufferVisualizer(
                     style = MaterialTheme.typography.labelSmall,
                     color = AccentOrange,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 8.5.sp,
+                    fontSize = AlgoType.microSize,
                     letterSpacing = 0.6.sp
                 )
                 Text(
                     text = "Size: ${step.buffer.size} / ${step.bufferCapacity}",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextMuted,
-                    fontSize = 8.5.sp
+                    fontSize = AlgoType.microSize
                 )
             }
 
@@ -175,14 +177,14 @@ private fun StackCanvas(step: VisualizerStep) {
                             text = "EMPTY",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextMuted,
-                            fontSize = 9.sp,
+                            fontSize = AlgoType.microSize,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "push() to add",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextDark,
-                            fontSize = 7.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
                 } else {
@@ -223,7 +225,7 @@ private fun StackCanvas(step: VisualizerStep) {
                                         style = MaterialTheme.typography.bodySmall,
                                         color = textCol,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp
+                                        fontSize = AlgoType.bodySize
                                     )
                                     if (isTop) {
                                         Box(
@@ -236,7 +238,7 @@ private fun StackCanvas(step: VisualizerStep) {
                                                 text = "TOP",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = Color.White,
-                                                fontSize = 6.5.sp,
+                                                fontSize = AlgoType.microSize,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
@@ -286,12 +288,12 @@ private fun TopArrowIndicator(isActive: Boolean) {
             text = "TOP",
             style = MaterialTheme.typography.labelSmall,
             color = accent,
-            fontSize = 7.sp,
+            fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.6.sp
         )
         Icon(
-            imageVector = Icons.Default.ArrowDownward,
+            imageVector = AlgoGlyphs.ArrowDown,
             contentDescription = "Top of stack",
             tint = accent,
             modifier = Modifier.size(10.dp)
@@ -338,7 +340,7 @@ private fun CapacityIndicator(size: Int, capacity: Int) {
             text = "$size/$capacity",
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted,
-            fontSize = 7.sp,
+            fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Bold
         )
     }
@@ -376,14 +378,14 @@ private fun QueueCanvas(step: VisualizerStep) {
                         text = "EMPTY QUEUE",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextMuted,
-                        fontSize = 9.sp,
+                        fontSize = AlgoType.microSize,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "enqueue() to add",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextDark,
-                        fontSize = 7.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
             } else {
@@ -439,7 +441,7 @@ private fun QueueCanvas(step: VisualizerStep) {
                                         style = MaterialTheme.typography.titleSmall,
                                         color = textCol,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
+                                        fontSize = AlgoType.bodySize
                                     )
                                 }
 
@@ -448,7 +450,7 @@ private fun QueueCanvas(step: VisualizerStep) {
                                     text = "#$index",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextDark,
-                                    fontSize = 7.sp
+                                    fontSize = AlgoType.microSize
                                 )
                             }
                         }
@@ -462,7 +464,7 @@ private fun QueueCanvas(step: VisualizerStep) {
             text = "FRONT ── ${step.buffer.size} / $capacity ── REAR",
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted,
-            fontSize = 7.sp,
+            fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Bold
         )
     }
@@ -479,7 +481,7 @@ private fun QueueGate(label: String, color: Color) {
         text = label,
         style = MaterialTheme.typography.labelSmall,
         color = color,
-        fontSize = 6.5.sp,
+        fontSize = AlgoType.microSize,
         fontWeight = FontWeight.Bold
     )
 }

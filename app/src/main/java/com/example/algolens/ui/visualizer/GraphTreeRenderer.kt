@@ -1,4 +1,4 @@
-﻿package com.example.algolens.ui.visualizer
+package com.example.algolens.ui.visualizer
 
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -37,7 +37,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Pure rendering of the graph/tree canvas â€” edges, drag preview, nodes with
+ * Pure rendering of the graph/tree canvas — edges, drag preview, nodes with
  * halos. Owns the `activeHaloPulse` infinite transition that breathes the
  * active node's halo. Has no interactive state of its own; the public
  * [GraphTreeVisualizer] shell passes in the live state values to read each
@@ -73,7 +73,7 @@ fun GraphTreeRenderer(
 
         val geom = GraphCanvasGeometry.from(nodes, size)
 
-        // â”€â”€ 1. Draw Existing Edges â”€â”€
+        // ── 1. Draw Existing Edges ──
         for (edge in edges) {
             val fromNode = nodes.find { it.id == edge.from } ?: continue
             val toNode = nodes.find { it.id == edge.to } ?: continue
@@ -153,7 +153,7 @@ fun GraphTreeRenderer(
             }
         }
 
-        // â”€â”€ 2. Draw Interactive Drag Preview Line (Rubber-Band Edge) â”€â”€
+        // ── 2. Draw Interactive Drag Preview Line (Rubber-Band Edge) ──
         val dragFrom = dragStartNode
         val dragTo = currentDragPos
         if (dragFrom != null && dragTo != null) {
@@ -180,7 +180,7 @@ fun GraphTreeRenderer(
             )
         }
 
-        // â”€â”€ 3. Draw Nodes with Glowing Halos â”€â”€
+        // ── 3. Draw Nodes with Glowing Halos ──
         for (node in nodes) {
             val center = geom.toCanvasOffset(node.x, node.y)
             val isVisited = visitedNodeIds.contains(node.id) || node.state == ElementState.VISITED
@@ -205,7 +205,7 @@ fun GraphTreeRenderer(
                 else -> Triple(CardBackground, PrimaryCyan.copy(alpha = 0.5f), TextSecondary)
             }
 
-            // â”€â”€ Halo Glow Rendering Underneath Touch Targets â”€â”€
+            // ── Halo Glow Rendering Underneath Touch Targets ──
             if (isActive || isHovered || isDragSource) {
                 val haloColor = if (isHovered || isDragSource) PrimaryCyan else AccentGreen
                 // Outer ambient halo (breathes when node is the active one)
@@ -244,7 +244,7 @@ fun GraphTreeRenderer(
                 style = Stroke(width = (if (isActive || isHovered || isDragSource) 3f else 1.8f) * popScale)
             )
 
-            // Node label text â€” also scaled so the glyph grows
+            // Node label text — also scaled so the glyph grows
             // in lockstep with the node's first-visit pop.
             drawContext.canvas.nativeCanvas.apply {
                 val textPaint = Paint().apply {

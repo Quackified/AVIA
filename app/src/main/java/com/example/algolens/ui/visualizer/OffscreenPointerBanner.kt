@@ -49,6 +49,8 @@ import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.SecondaryPurple
 import kotlinx.coroutines.launch
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Row containing the animated pop-up pill indicators for off-screen pointers.
@@ -254,7 +256,7 @@ private fun OffscreenCellPopup(
     ) {
         if (!isRight) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = AlgoGlyphs.Back,
                 contentDescription = "Scroll Left to Element",
                 tint = target.badgeBg,
                 modifier = Modifier.size(11.dp)
@@ -273,7 +275,7 @@ private fun OffscreenCellPopup(
                 style = MaterialTheme.typography.labelSmall,
                 color = target.badgeTextColor,
                 fontWeight = FontWeight.Bold,
-                fontSize = 7.5.sp
+                fontSize = AlgoType.microSize
             )
         }
 
@@ -290,13 +292,13 @@ private fun OffscreenCellPopup(
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 8.5.sp
+                fontSize = AlgoType.microSize
             )
         }
 
         if (isRight) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                imageVector = AlgoGlyphs.ChevronRight,
                 contentDescription = "Scroll Right to Element",
                 tint = target.badgeBg,
                 modifier = Modifier.size(11.dp)

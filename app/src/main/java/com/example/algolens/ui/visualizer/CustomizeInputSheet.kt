@@ -89,6 +89,8 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import kotlin.random.Random
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Preset data structure for edge case configurations.
@@ -101,11 +103,11 @@ data class ArrayPreset(
 )
 
 val PRESET_OPTIONS = listOf(
-    ArrayPreset("Random", "Random", Icons.Default.Shuffle, "Randomized integers between 10-95"),
-    ArrayPreset("Already Sorted", "Already Sorted", Icons.AutoMirrored.Filled.TrendingUp, "Ascending order (Best case for Insertion/Bubble)"),
-    ArrayPreset("Reverse Sorted", "Reverse Sorted", Icons.AutoMirrored.Filled.TrendingDown, "Descending order (Worst case for many sorts)"),
-    ArrayPreset("All Equal", "All Equal", Icons.Default.FormatListNumbered, "Identical elements (Duplicates edge case)"),
-    ArrayPreset("Nearly Sorted", "Nearly Sorted", Icons.Default.RestartAlt, "Sorted except for a single swapped pair")
+    ArrayPreset("Random", "Random", AlgoGlyphs.Shuffle, "Randomized integers between 10-95"),
+    ArrayPreset("Already Sorted", "Already Sorted", AlgoGlyphs.ArrowUp, "Ascending order (Best case for Insertion/Bubble)"),
+    ArrayPreset("Reverse Sorted", "Reverse Sorted", AlgoGlyphs.ArrowDown, "Descending order (Worst case for many sorts)"),
+    ArrayPreset("All Equal", "All Equal", AlgoGlyphs.ListOrdered, "Identical elements (Duplicates edge case)"),
+    ArrayPreset("Nearly Sorted", "Nearly Sorted", AlgoGlyphs.Reset, "Sorted except for a single swapped pair")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -224,7 +226,7 @@ fun CustomizeInputSheet(
                         text = "Select an edge-case preset or type custom numbers",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
-                        fontSize = 8.5.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
                 Box(
@@ -237,7 +239,7 @@ fun CustomizeInputSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = AlgoGlyphs.Close,
                         contentDescription = "Close",
                         tint = TextMuted,
                         modifier = Modifier.size(AlgoTokens.inlineIconMd)
@@ -251,7 +253,7 @@ fun CustomizeInputSheet(
                     text = "EDGE CASE PRESETS:",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextMuted,
-                    fontSize = 8.sp,
+                    fontSize = AlgoType.microSize,
                     letterSpacing = 0.8.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -284,7 +286,7 @@ fun CustomizeInputSheet(
                                 Text(
                                     text = preset.label,
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 9.sp,
+                                    fontSize = AlgoType.microSize,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
                             },
@@ -328,7 +330,7 @@ fun CustomizeInputSheet(
                         text = "ARRAY VALUES (COMMA-SEPARATED):",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextMuted,
-                        fontSize = 8.sp,
+                        fontSize = AlgoType.microSize,
                         letterSpacing = 0.8.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -338,7 +340,7 @@ fun CustomizeInputSheet(
                             text = "$count elements",
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
-                            fontSize = 8.5.sp,
+                            fontSize = AlgoType.microSize,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -387,7 +389,7 @@ fun CustomizeInputSheet(
                             modifier = Modifier.padding(top = AlgoTokens.space1)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.CheckCircle,
+                                imageVector = AlgoGlyphs.CheckCircle,
                                 contentDescription = null,
                                 tint = AccentGreen,
                                 modifier = Modifier.size(AlgoTokens.inlineIconSm)
@@ -396,7 +398,7 @@ fun CustomizeInputSheet(
                                 text = "Ready: ${res.parsed.size} valid integers parsed",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AccentGreen,
-                                fontSize = 8.sp
+                                fontSize = AlgoType.microSize
                             )
                         }
                     }
@@ -407,7 +409,7 @@ fun CustomizeInputSheet(
                             modifier = Modifier.padding(top = AlgoTokens.space1)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ErrorOutline,
+                                imageVector = AlgoGlyphs.Alert,
                                 contentDescription = null,
                                 tint = AccentRed,
                                 modifier = Modifier.size(AlgoTokens.inlineIconSm)
@@ -416,7 +418,7 @@ fun CustomizeInputSheet(
                                 text = res.message,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AccentRed,
-                                fontSize = 8.sp
+                                fontSize = AlgoType.microSize
                             )
                         }
                     }
@@ -434,7 +436,7 @@ fun CustomizeInputSheet(
                         text = "ARRAY LENGTH SLIDER:",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextMuted,
-                        fontSize = 8.sp,
+                        fontSize = AlgoType.microSize,
                         letterSpacing = 0.8.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -443,7 +445,7 @@ fun CustomizeInputSheet(
                         style = MaterialTheme.typography.labelSmall,
                         color = SecondaryPurple,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 9.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
 
@@ -481,7 +483,7 @@ fun CustomizeInputSheet(
                     text = "SORT ORDER:",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextMuted,
-                    fontSize = 8.sp,
+                    fontSize = AlgoType.microSize,
                     letterSpacing = 0.8.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -505,7 +507,7 @@ fun CustomizeInputSheet(
                             text = "SEARCH FOR (VALUE):",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextMuted,
-                            fontSize = 8.sp,
+                            fontSize = AlgoType.microSize,
                             letterSpacing = 0.8.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -515,7 +517,7 @@ fun CustomizeInputSheet(
                                 text = if (parsedTarget != null) "target set" else "invalid",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (parsedTarget != null) AccentGreen else AccentRed,
-                                fontSize = 8.5.sp,
+                                fontSize = AlgoType.microSize,
                                 fontWeight = FontWeight.Bold
                             )
                         }

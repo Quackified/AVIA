@@ -70,6 +70,8 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.YellowSubtle
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Challenge state and scoring model.
@@ -602,8 +604,8 @@ private fun PromptHeader(state: ChallengeState) {
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = AccentPink, modifier = Modifier.size(10.dp))
-                    Text("${state.streak}", style = MaterialTheme.typography.labelSmall, color = AccentPink, fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                    Icon(AlgoGlyphs.Bolt, contentDescription = null, tint = AccentPink, modifier = Modifier.size(10.dp))
+                    Text("${state.streak}", style = MaterialTheme.typography.labelSmall, color = AccentPink, fontWeight = FontWeight.Bold, fontSize = AlgoType.microSize)
                 }
             }
             Box(
@@ -614,8 +616,8 @@ private fun PromptHeader(state: ChallengeState) {
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = AccentYellow, modifier = Modifier.size(10.dp))
-                    Text("${state.score} PTS", style = MaterialTheme.typography.labelSmall, color = AccentYellow, fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                    Icon(AlgoGlyphs.Target, contentDescription = null, tint = AccentYellow, modifier = Modifier.size(10.dp))
+                    Text("${state.score} PTS", style = MaterialTheme.typography.labelSmall, color = AccentYellow, fontWeight = FontWeight.Bold, fontSize = AlgoType.microSize)
                 }
             }
         }
@@ -624,7 +626,7 @@ private fun PromptHeader(state: ChallengeState) {
             style = MaterialTheme.typography.labelSmall,
             color = PrimaryCyan,
             fontWeight = FontWeight.Bold,
-            fontSize = 8.sp,
+            fontSize = AlgoType.microSize,
             letterSpacing = 0.8.sp
         )
     }
@@ -653,13 +655,13 @@ private fun PredictionPromptBody(
                 style = MaterialTheme.typography.bodySmall,
                 color = TextPrimary,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 9.5.sp, lineHeight = 13.sp, maxLines = 2,
+                fontSize = AlgoType.labelSize, lineHeight = 13.sp, maxLines = 2,
             )
             Text(
                 text = question.contextLine,
                 style = MaterialTheme.typography.labelSmall,
                 color = TextSecondary,
-                fontSize = 8.sp, lineHeight = 11.sp, maxLines = 1,
+                fontSize = AlgoType.microSize, lineHeight = 11.sp, maxLines = 1,
             )
         }
         when (question.kind) {
@@ -689,7 +691,7 @@ private fun PredictionPromptBody(
                     text = "TAP A NODE",
                     style = MaterialTheme.typography.labelSmall,
                     color = PurpleGlow,
-                    fontWeight = FontWeight.Bold, fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold, fontSize = AlgoType.microSize,
                 )
             }
         }
@@ -714,7 +716,7 @@ private fun YesNoButtonRow(
             .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(yesLabel, style = MaterialTheme.typography.labelSmall, color = AccentGreen, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+        Text(yesLabel, style = MaterialTheme.typography.labelSmall, color = AccentGreen, fontWeight = FontWeight.Bold, fontSize = AlgoType.microSize)
     }
     Box(
         modifier = Modifier
@@ -725,7 +727,7 @@ private fun YesNoButtonRow(
             .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(noLabel, style = MaterialTheme.typography.labelSmall, color = AccentPink, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+        Text(noLabel, style = MaterialTheme.typography.labelSmall, color = AccentPink, fontWeight = FontWeight.Bold, fontSize = AlgoType.microSize)
     }
 }
 
@@ -772,8 +774,8 @@ private fun TapIndicesChip(
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                    Text(value?.toString() ?: "?", style = MaterialTheme.typography.labelSmall, color = PrimaryCyan, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                    Text("[$idx]", style = MaterialTheme.typography.labelSmall, color = TextSecondary, fontWeight = FontWeight.Normal, fontSize = 7.sp)
+                    Text(value?.toString() ?: "?", style = MaterialTheme.typography.labelSmall, color = PrimaryCyan, fontWeight = FontWeight.Bold, fontSize = AlgoType.labelSize)
+                    Text("[$idx]", style = MaterialTheme.typography.labelSmall, color = TextSecondary, fontWeight = FontWeight.Normal, fontSize = AlgoType.microSize)
                 }
             }
         }
@@ -796,7 +798,7 @@ private fun TapIndicesChip(
                 text = if (canSubmit) "SUBMIT" else "PICK $targetSize",
                 style = MaterialTheme.typography.labelSmall,
                 color = if (canSubmit) DarkBackground else TextSecondary,
-                fontWeight = FontWeight.Bold, fontSize = 9.sp,
+                fontWeight = FontWeight.Bold, fontSize = AlgoType.microSize,
             )
         }
     }
@@ -818,7 +820,7 @@ private fun FeedbackRow(
             text = (if (feedback.isCorrect) "CORRECT (+${feedback.pointsAwarded} PTS) " else "INCORRECT ") + feedback.message,
             style = MaterialTheme.typography.bodySmall,
             color = if (feedback.isCorrect) AccentGreen else AccentRed,
-            fontSize = 9.sp, lineHeight = 12.sp,
+            fontSize = AlgoType.microSize, lineHeight = 12.sp,
             modifier = Modifier.weight(1f), maxLines = 2,
         )
         Box(
@@ -829,7 +831,7 @@ private fun FeedbackRow(
                 .padding(horizontal = 10.dp, vertical = 6.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text("NEXT", style = MaterialTheme.typography.labelSmall, color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = 8.5.sp)
+            Text("NEXT", style = MaterialTheme.typography.labelSmall, color = DarkBackground, fontWeight = FontWeight.Bold, fontSize = AlgoType.microSize)
         }
     }
 }

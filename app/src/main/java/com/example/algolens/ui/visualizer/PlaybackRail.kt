@@ -43,6 +43,9 @@ import com.example.algolens.ui.theme.PurpleSubtle
 import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
+import com.example.algolens.ui.components.pressPhysics
 
 /**
  * Bottom-edge playback control surface. The transport row contains:
@@ -73,17 +76,17 @@ fun PlaybackRail(
     // each step. `remember` without keys is stable across recomposition as long
     // as the composable's position in the tree is unchanged — which holds for
     // the rail that stays mounted during playback.
-    val refreshIcon = remember { Icons.Default.Refresh }
+    val refreshIcon = remember { AlgoGlyphs.Refresh }
     val refreshButtonSize = remember { AlgoTokens.iconButtonSm }
     val refreshIconSize = remember { AlgoTokens.inlineIconMd - 1.dp }
 
-    val skipBackIcon = remember { Icons.Default.SkipPrevious }
-    val skipForwardIcon = remember { Icons.Default.SkipNext }
+    val skipBackIcon = remember { AlgoGlyphs.StepBack }
+    val skipForwardIcon = remember { AlgoGlyphs.StepForward }
     val skipButtonSize = remember { AlgoTokens.iconButtonMd }
     val skipIconSize = remember { AlgoTokens.inlineIconMd }
 
-    val emojiEventsIcon = remember { Icons.Default.EmojiEvents }
-    val autoAwesomeIcon = remember { Icons.Default.AutoAwesome }
+    val emojiEventsIcon = remember { AlgoGlyphs.Target }
+    val autoAwesomeIcon = remember { AlgoGlyphs.Spark }
     val chipButtonSize = remember { AlgoTokens.iconButtonMd }
     val chipIconSize = remember { AlgoTokens.inlineIconMd }
 
@@ -100,7 +103,7 @@ fun PlaybackRail(
         speedStyleBase.copy(
             color = PrimaryCyan,
             fontWeight = FontWeight.Bold,
-            fontSize = 8.5.sp
+            fontSize = AlgoType.microSize
         )
     }
 
@@ -137,7 +140,7 @@ fun PlaybackRail(
         )
 
         RailIconButton(
-            icon = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+            icon = if (state.isPlaying) AlgoGlyphs.Pause else AlgoGlyphs.Play,
             contentDescription = if (state.isPlaying) "Pause" else "Play",
             boxSize = playButtonSize,
             iconSize = playIconSize,
@@ -184,6 +187,11 @@ fun PlaybackRail(
                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                 .background(CardBackground)
                 .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                .pressPhysics(
+                    shape = RoundedCornerShape(AlgoTokens.radiusSm),
+                    accent = PrimaryCyan,
+                    enabled = !challengeLocked
+                )
                 .clickable(enabled = !challengeLocked) { state.cycleSpeed() }
                 .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
             contentAlignment = Alignment.Center

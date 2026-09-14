@@ -64,6 +64,7 @@ import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.AccentPinkGlow
 import kotlinx.coroutines.delay
 import kotlin.math.abs
+import com.example.algolens.ui.theme.AlgoType
 
 /**
  * Horizontal scrolling grid of cell tiles with swap-travel animations, pointer
@@ -525,7 +526,7 @@ private fun CellItem(
                     else -> TextMuted
                 },
                 fontWeight = if (isSelectedForChallenge) FontWeight.Bold else FontWeight.Normal,
-                fontSize = 8.5.sp
+                fontSize = AlgoType.microSize
             )
 
             // ── Bottom Pointer Badge ──

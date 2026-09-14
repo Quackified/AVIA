@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,8 +28,8 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Icon
 import com.example.algolens.data.AppSettings
+import com.example.algolens.ui.components.InstrumentMeter
 import com.example.algolens.ui.theme.AlgoTokens
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -45,7 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +64,8 @@ import com.example.algolens.ui.theme.TextNavy
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.CardBackgroundHover
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 @Composable
 fun SettingsScreen(
@@ -98,7 +98,7 @@ fun SettingsScreen(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // â”€â”€ Header â”€â”€
+        // ── Header ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -120,7 +120,7 @@ fun SettingsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = AlgoGlyphs.Back,
                         contentDescription = "Back",
                         tint = TextSecondary,
                         modifier = Modifier.size(14.dp)
@@ -144,7 +144,7 @@ fun SettingsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Tune,
+                    imageVector = AlgoGlyphs.Tune,
                     contentDescription = null,
                     tint = PrimaryCyan,
                     modifier = Modifier.size(14.dp)
@@ -152,9 +152,9 @@ fun SettingsScreen(
             }
         }
 
-        // â”€â”€ 1. Language Preference â”€â”€
+        // ── 1. Language Preference ──
         SettingsCard {
-            SectionLabel(icon = Icons.Default.Code, text = "Preferred Language")
+            SectionLabel(icon = AlgoGlyphs.Code, text = "Preferred Language")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -178,7 +178,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSel) DarkBackground else TextMuted,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 9.5.sp
+                            fontSize = AlgoType.labelSize
                         )
                     }
                 }
@@ -187,14 +187,14 @@ fun SettingsScreen(
                 text = "Code snippets use $selectedLanguage syntax in step-by-step explanations.",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextDark,
-                fontSize = 8.5.sp,
+                fontSize = AlgoType.microSize,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
 
-        // â”€â”€ 2. Playback Speed â”€â”€
+        // ── 2. Playback Speed ──
         SettingsCard {
-            SectionLabel(icon = Icons.Default.Speed, text = "Animation Playback Speed")
+            SectionLabel(icon = AlgoGlyphs.Speed, text = "Animation Playback Speed")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -210,7 +210,7 @@ fun SettingsScreen(
                     text = "$speedMs / step",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
-                    fontSize = 9.sp
+                    fontSize = AlgoType.microSize
                 )
             }
 
@@ -230,14 +230,14 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 listOf("Slow", "Normal", "Fast").forEach {
-                    Text(text = it, style = MaterialTheme.typography.labelSmall, color = TextNavy, fontSize = 8.sp)
+                    Text(text = it, style = MaterialTheme.typography.labelSmall, color = TextNavy, fontSize = AlgoType.microSize)
                 }
             }
         }
 
-        // â”€â”€ 3. Offline Mode â”€â”€
+        // ── 3. Offline Mode ──
         SettingsCard {
-            SectionLabel(icon = Icons.Default.WifiOff, text = "Offline Mode")
+            SectionLabel(icon = AlgoGlyphs.Offline, text = "Offline Mode")
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -255,7 +255,7 @@ fun SettingsScreen(
                         text = "Cache algorithms for use without internet",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
-                        fontSize = 8.5.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
                 CustomSwitch(
@@ -282,26 +282,22 @@ fun SettingsScreen(
                             text = "Download progress",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
-                            fontSize = 8.5.sp
+                            fontSize = AlgoType.microSize
                         )
                         Text(
                             text = "68%",
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 8.5.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
 
-                    LinearProgressIndicator(
+                    InstrumentMeter(
                         progress = { 0.68f },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(5.dp)
-                            .clip(CircleShape),
-                        color = PrimaryCyan,
-                        trackColor = CardBackgroundHover,
-                        strokeCap = StrokeCap.Round
+                        accent = PrimaryCyan,
+                        modifier = Modifier.fillMaxWidth(),
+                        height = AlgoTokens.space4
                     )
 
                     Row(
@@ -312,22 +308,22 @@ fun SettingsScreen(
                             text = "5 of 8 algorithms cached",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextDark,
-                            fontSize = 8.sp
+                            fontSize = AlgoType.microSize
                         )
                         Text(
                             text = "12.4 MB",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextDark,
-                            fontSize = 8.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
                 }
             }
         }
 
-        // â”€â”€ 4. Display Preferences â”€â”€
+        // ── 4. Display Preferences ──
         SettingsCard {
-            SectionLabel(icon = Icons.Default.DisplaySettings, text = "Display")
+            SectionLabel(icon = AlgoGlyphs.Sliders, text = "Display")
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -345,7 +341,7 @@ fun SettingsScreen(
                         text = "Step completions & study reminders",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
-                        fontSize = 8.5.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
                 CustomSwitch(checked = pushNotifications, onCheckedChange = { pushNotifications = it })
@@ -369,7 +365,7 @@ fun SettingsScreen(
                         text = "Increase label visibility on bars",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
-                        fontSize = 8.5.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
                 CustomSwitch(checked = highContrast, onCheckedChange = { highContrast = it })
@@ -378,7 +374,7 @@ fun SettingsScreen(
 
         // ── 5. Visualizer Preferences ──
         SettingsCard {
-            SectionLabel(icon = Icons.Default.Tune, text = "Visualizer Preferences")
+            SectionLabel(icon = AlgoGlyphs.Tune, text = "Visualizer Preferences")
 
             Text(
                 text = "Default Cell Size Preset",
@@ -390,7 +386,7 @@ fun SettingsScreen(
                 text = "Controls the default cell scaling when launching visualizers (can also be adjusted live in the visualizer header).",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextMuted,
-                fontSize = 8.5.sp
+                fontSize = AlgoType.microSize
             )
 
             Spacer(modifier = Modifier.height(AlgoTokens.space2))
@@ -424,7 +420,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSel) DarkBackground else TextMuted,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 9.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
                 }
@@ -448,7 +444,7 @@ fun SettingsScreen(
                         text = "Vibrations on cell swaps, step ticks, and completion wave",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
-                        fontSize = 8.5.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
                 CustomSwitch(
@@ -460,7 +456,7 @@ fun SettingsScreen(
 
         // ── 6. Data Management (Danger Zone) ──
         SettingsCard {
-            SectionLabel(icon = Icons.Default.Storage, text = "Data Management")
+            SectionLabel(icon = AlgoGlyphs.Storage, text = "Data Management")
 
             Row(
                 modifier = Modifier
@@ -478,7 +474,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Delete,
+                        imageVector = AlgoGlyphs.Trash,
                         contentDescription = null,
                         tint = AccentRed,
                         modifier = Modifier.size(14.dp)
@@ -492,10 +488,10 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Bookmarks \u00B7· History",
+                    text = "Bookmarks · History",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
-                    fontSize = 8.5.sp
+                    fontSize = AlgoType.microSize
                 )
             }
         }
@@ -508,10 +504,10 @@ fun SettingsScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "AlgoLens v2.4.1 \u00B7· Build 204 \u00B7· MIT License",
+                text = "AVIA v2.4.1 · Build 204 · MIT License",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextNavy,
-                fontSize = 8.5.sp
+                fontSize = AlgoType.microSize
             )
         }
 

@@ -29,6 +29,7 @@ import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.AlgoType
 
 /**
  * In-Compose boot overlay: the dark workspace background, a 1dp `PrimaryCyan`
@@ -82,7 +83,7 @@ fun BootOverlay(
                 tint = PrimaryCyan,
             )
             Text(
-                text = "ALGOLENS",
+                text = "AVIA",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 4.sp,
@@ -92,7 +93,7 @@ fun BootOverlay(
             Text(
                 text = "loading workspace",
                 style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 10.sp,
+                    fontSize = AlgoType.labelSize,
                     fontWeight = FontWeight.Normal,
                 ),
                 color = TextSecondary.copy(alpha = 0.6f),

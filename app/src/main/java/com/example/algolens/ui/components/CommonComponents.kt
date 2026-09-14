@@ -1,4 +1,4 @@
-﻿package com.example.algolens.ui.components
+package com.example.algolens.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.AccentOrange
 import com.example.algolens.ui.theme.CardBackground
 import com.example.algolens.ui.theme.DarkBackground
@@ -46,7 +47,12 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.OptionUnselected
+import com.example.algolens.ui.theme.AlgoType
 
+/**
+ * Section header. Sentence case — never ALL CAPS (M1). 10sp label step with
+ * 0.08em tracking; the tracking + size come from the type scale, not here.
+ */
 @Composable
 fun SectionLabel(
     icon: ImageVector,
@@ -55,22 +61,20 @@ fun SectionLabel(
     iconColor: Color = PrimaryCyan
 ) {
     Row(
-        modifier = modifier.padding(bottom = 7.dp),
+        modifier = modifier.padding(bottom = AlgoTokens.space4),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = iconColor,
-            modifier = Modifier.size(12.dp)
+            modifier = Modifier.size(AlgoTokens.inlineIconSm)
         )
         Text(
-            text = text.uppercase(),
+            text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = TextDark,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.2.sp
+            color = TextDark
         )
     }
 }
@@ -102,6 +106,7 @@ fun CustomSwitch(
             .height(24.dp)
             .clip(CircleShape)
             .background(trackColor)
+            .pressPhysics(shape = CircleShape, accent = trackColor)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
@@ -133,7 +138,7 @@ fun OfflineBadge(
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Icon(
-            imageVector = Icons.Default.WifiOff,
+            imageVector = AlgoGlyphs.Offline,
             contentDescription = "Offline",
             tint = AccentOrange,
             modifier = Modifier.size(9.dp)
@@ -143,7 +148,7 @@ fun OfflineBadge(
             style = MaterialTheme.typography.labelSmall,
             color = AccentOrange,
             fontWeight = FontWeight.Bold,
-            fontSize = 8.5.sp
+            fontSize = AlgoType.microSize
         )
     }
 }
@@ -210,7 +215,7 @@ fun CommonComponentsPreview() {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             SectionLabel(
-                icon = androidx.compose.material.icons.Icons.Default.WifiOff,
+                icon = AlgoGlyphs.Offline,
                 text = "Connectivity"
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

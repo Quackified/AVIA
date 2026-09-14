@@ -38,6 +38,7 @@ import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextMuted
+import com.example.algolens.ui.theme.AlgoType
 
 /**
  * Unified 1D bar visualizer — talks to the [VisualizerStep] model so it
@@ -143,7 +144,7 @@ fun BarVisualizer(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isActive) animatedColor else TextMuted,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = (8.5f * cellScale).coerceIn(7f, 12f).sp,
+                        fontSize = (AlgoType.microSize.value * cellScale).coerceIn(AlgoType.microSize.value, 12f).sp,
                         maxLines = 1
                     )
                 }

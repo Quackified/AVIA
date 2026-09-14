@@ -38,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,6 +50,8 @@ import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.theme.CardBackground
 import com.example.algolens.ui.theme.CardBackgroundElevated
+import com.example.algolens.ui.theme.AlgoTokens
+import com.example.algolens.ui.components.InstrumentMeter
 import com.example.algolens.ui.theme.CyanSubtle
 import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.GreenSubtle
@@ -65,6 +66,8 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.OptionUnselected
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 data class PracticeOption(
     val id: Int,
@@ -100,7 +103,7 @@ fun PracticeScreen(
             .background(CanvasBackground)
             .statusBarsPadding()
     ) {
-        // \u2192”€\u2192”€ 1. Header & Progress \u2192”€\u2192”€
+        // ── 1. Header & Progress ──
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -121,7 +124,7 @@ fun PracticeScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = AlgoGlyphs.Back,
                         contentDescription = "Back",
                         tint = TextSecondary,
                         modifier = Modifier.size(14.dp)
@@ -146,30 +149,26 @@ fun PracticeScreen(
                     text = "Question 3 of 5",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
-                    fontSize = 8.5.sp
+                    fontSize = AlgoType.microSize
                 )
                 Text(
                     text = "60%",
                     style = MaterialTheme.typography.labelSmall,
                     color = PrimaryCyan,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 8.5.sp
+                    fontSize = AlgoType.microSize
                 )
             }
 
-            LinearProgressIndicator(
+            InstrumentMeter(
                 progress = { 0.6f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(CircleShape),
-                color = PrimaryCyan,
-                trackColor = CardBackground,
-                strokeCap = StrokeCap.Round
+                accent = PrimaryCyan,
+                modifier = Modifier.fillMaxWidth(),
+                height = AlgoTokens.space4
             )
         }
 
-        // \u2192”€\u2192”€ 2. Scrollable Question Content \u2192”€\u2192”€
+        // ── 2. Scrollable Question Content ──
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -194,10 +193,10 @@ fun PracticeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "STEP 4 \u00B7· QUICKSORT PARTITION",
+                            text = "STEP 4 · QUICKSORT PARTITION",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextMuted,
-                            fontSize = 8.sp,
+                            fontSize = AlgoType.microSize,
                             letterSpacing = 0.8.sp
                         )
                         Box(
@@ -210,7 +209,7 @@ fun PracticeScreen(
                                 text = "Frozen Canvas",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PurpleGlow,
-                                fontSize = 8.sp
+                                fontSize = AlgoType.microSize
                             )
                         }
                     }
@@ -247,11 +246,11 @@ fun PracticeScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isPivot) {
-                                        Text("PIVOT", style = MaterialTheme.typography.labelSmall, color = PurpleGlow, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                        Text("PIVOT", style = MaterialTheme.typography.labelSmall, color = PurpleGlow, fontSize = AlgoType.microSize, fontWeight = FontWeight.Bold)
                                     } else if (isLeft) {
-                                        Text("L", style = MaterialTheme.typography.labelSmall, color = AccentYellow, fontSize = 7.5.sp, fontWeight = FontWeight.Bold)
+                                        Text("L", style = MaterialTheme.typography.labelSmall, color = AccentYellow, fontSize = AlgoType.microSize, fontWeight = FontWeight.Bold)
                                     } else if (isRight) {
-                                        Text("R", style = MaterialTheme.typography.labelSmall, color = AccentYellow, fontSize = 7.5.sp, fontWeight = FontWeight.Bold)
+                                        Text("R", style = MaterialTheme.typography.labelSmall, color = AccentYellow, fontSize = AlgoType.microSize, fontWeight = FontWeight.Bold)
                                     }
                                 }
 
@@ -277,7 +276,7 @@ fun PracticeScreen(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (isPivot) PurpleGlow else if (isLeft || isRight) AccentYellow else TextMuted,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 8.5.sp
+                                    fontSize = AlgoType.microSize
                                 )
                             }
                         }
@@ -304,7 +303,7 @@ fun PracticeScreen(
                             text = "QUESTION",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextMuted,
-                            fontSize = 8.sp,
+                            fontSize = AlgoType.microSize,
                             letterSpacing = 0.8.sp
                         )
                         Box(
@@ -317,7 +316,7 @@ fun PracticeScreen(
                                 text = "Medium",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AccentOrange,
-                                fontSize = 8.5.sp,
+                                fontSize = AlgoType.microSize,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -457,7 +456,7 @@ fun PracticeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Next Question \u2192†’",
+                                text = "Next Question →",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = DarkBackground,
                                 fontWeight = FontWeight.Bold

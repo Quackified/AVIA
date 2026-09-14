@@ -17,9 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -45,6 +43,9 @@ import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
+import com.example.algolens.ui.components.AlgoHairline
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,7 +102,7 @@ fun AiTutorSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.AutoAwesome,
+                            imageVector = AlgoGlyphs.Spark,
                             contentDescription = null,
                             tint = PurpleGlow,
                             modifier = Modifier.size(AlgoTokens.inlineIconMd)
@@ -119,7 +120,7 @@ fun AiTutorSheet(
                             text = "Offline Step Intelligence",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
-                            fontSize = 9.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
                 }
@@ -147,13 +148,13 @@ fun AiTutorSheet(
                             style = MaterialTheme.typography.labelSmall,
                             color = PurpleGlow,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp
+                            fontSize = AlgoType.labelSize
                         )
                     }
                 }
             }
 
-            HorizontalDivider(color = BorderSubtle, thickness = AlgoTokens.strokeThin)
+            AlgoHairline(color = BorderSubtle)
 
             // Explanation Text
             Text(
@@ -190,7 +191,7 @@ fun AiTutorSheet(
                             style = MaterialTheme.typography.labelSmall,
                             color = PurpleGlow,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 10.sp
+                            fontSize = AlgoType.labelSize
                         )
                     }
                 }

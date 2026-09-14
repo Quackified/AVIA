@@ -27,6 +27,7 @@ import com.example.algolens.ui.dashboard.DashboardScreen
 import com.example.algolens.ui.practice.PracticeScreen
 import com.example.algolens.ui.profile.ProfileScreen
 import com.example.algolens.ui.settings.SettingsScreen
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.visualizer.VisualizerScreen
 
@@ -58,8 +59,8 @@ fun AlgoLensApp(
         AnimatedContent(
             targetState = bootController.ready,
             transitionSpec = {
-                (fadeIn(animationSpec = com.example.algolens.ui.theme.AlgoTokens.panelFadeSpring) togetherWith
-                    fadeOut(animationSpec = com.example.algolens.ui.theme.AlgoTokens.panelFadeSpring))
+                (fadeIn(animationSpec = AlgoTokens.panelFadeSpring) togetherWith
+                    fadeOut(animationSpec = AlgoTokens.panelFadeSpring))
             },
             label = "BootToApp",
         ) { isReady ->

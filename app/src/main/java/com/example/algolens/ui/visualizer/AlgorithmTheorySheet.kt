@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -77,6 +76,8 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.YellowSubtle
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Data structure holding deep theory information for algorithms.
@@ -536,7 +537,7 @@ fun AlgorithmTheorySheet(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            imageVector = AlgoGlyphs.Book,
                             contentDescription = null,
                             tint = PurpleGlow,
                             modifier = Modifier.size(AlgoTokens.space6)
@@ -554,7 +555,7 @@ fun AlgorithmTheorySheet(
                             text = "Comprehensive Theory & Complexity Matrix",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
-                            fontSize = 8.5.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
                 }
@@ -569,7 +570,7 @@ fun AlgorithmTheorySheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = AlgoGlyphs.Close,
                         contentDescription = "Close",
                         tint = TextMuted,
                         modifier = Modifier.size(AlgoTokens.space6)
@@ -582,7 +583,7 @@ fun AlgorithmTheorySheet(
                 text = theory.overview,
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
-                fontSize = 11.5.sp,
+                fontSize = AlgoType.bodySize,
                 lineHeight = 16.sp
             )
 
@@ -600,7 +601,7 @@ fun AlgorithmTheorySheet(
                         text = "COMPLEXITY & PROPERTIES",
                         style = MaterialTheme.typography.labelSmall,
                         color = PrimaryCyan,
-                        fontSize = 8.sp,
+                        fontSize = AlgoType.microSize,
                         letterSpacing = 0.8.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -631,7 +632,7 @@ fun AlgorithmTheorySheet(
                     text = "HOW IT WORKS (STEP-BY-STEP):",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextMuted,
-                    fontSize = 8.sp,
+                    fontSize = AlgoType.microSize,
                     letterSpacing = 0.8.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -654,14 +655,14 @@ fun AlgorithmTheorySheet(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PrimaryCyan,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 8.5.sp
+                                fontSize = AlgoType.microSize
                             )
                         }
                         Text(
                             text = step,
                             style = MaterialTheme.typography.bodySmall,
                             color = TextPrimary,
-                            fontSize = 10.5.sp,
+                            fontSize = AlgoType.labelSize,
                             lineHeight = 14.sp,
                             modifier = Modifier.weight(1f)
                         )
@@ -675,7 +676,7 @@ fun AlgorithmTheorySheet(
                     text = "WHEN TO USE (IDEAL APPLICATIONS):",
                     style = MaterialTheme.typography.labelSmall,
                     color = AccentGreen,
-                    fontSize = 8.sp,
+                    fontSize = AlgoType.microSize,
                     letterSpacing = 0.8.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -687,7 +688,7 @@ fun AlgorithmTheorySheet(
                         verticalAlignment = Alignment.Top
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = AlgoGlyphs.Check,
                             contentDescription = null,
                             tint = AccentGreen,
                             modifier = Modifier.size(AlgoTokens.inlineIconMd - AlgoTokens.space1)
@@ -696,7 +697,7 @@ fun AlgorithmTheorySheet(
                             text = useCase,
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary,
-                            fontSize = 10.5.sp,
+                            fontSize = AlgoType.labelSize,
                             lineHeight = 14.sp,
                             modifier = Modifier.weight(1f)
                         )
@@ -710,7 +711,7 @@ fun AlgorithmTheorySheet(
                     text = "COMMON PITFALLS & EDGE CASES:",
                     style = MaterialTheme.typography.labelSmall,
                     color = AccentPink,
-                    fontSize = 8.sp,
+                    fontSize = AlgoType.microSize,
                     letterSpacing = 0.8.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -722,7 +723,7 @@ fun AlgorithmTheorySheet(
                         verticalAlignment = Alignment.Top
                     ) {
                         Icon(
-                            imageVector = Icons.Default.WarningAmber,
+                            imageVector = AlgoGlyphs.Warning,
                             contentDescription = null,
                             tint = AccentPink,
                             modifier = Modifier.size(AlgoTokens.inlineIconMd - AlgoTokens.space1)
@@ -731,7 +732,7 @@ fun AlgorithmTheorySheet(
                             text = pitfall,
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary,
-                            fontSize = 10.5.sp,
+                            fontSize = AlgoType.labelSize,
                             lineHeight = 14.sp,
                             modifier = Modifier.weight(1f)
                         )
@@ -753,7 +754,7 @@ fun AlgorithmTheorySheet(
                     verticalAlignment = Alignment.Top
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Lightbulb,
+                        imageVector = AlgoGlyphs.Spark,
                         contentDescription = null,
                         tint = PrimaryCyan,
                         modifier = Modifier.size(AlgoTokens.inlineIconMd)
@@ -764,13 +765,13 @@ fun AlgorithmTheorySheet(
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 8.sp
+                            fontSize = AlgoType.microSize
                         )
                         Text(
                             text = theory.proTips,
                             style = MaterialTheme.typography.bodySmall,
                             color = TextPrimary,
-                            fontSize = 9.5.sp,
+                            fontSize = AlgoType.labelSize,
                             lineHeight = 13.sp
                         )
                     }
@@ -798,7 +799,7 @@ private fun ComplexityPill(label: String, value: String, color: Color) {
             text = label.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted,
-            fontSize = 7.sp,
+            fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Bold
         )
         Text(
@@ -806,7 +807,7 @@ private fun ComplexityPill(label: String, value: String, color: Color) {
             style = MaterialTheme.typography.bodySmall,
             color = color,
             fontWeight = FontWeight.Bold,
-            fontSize = 8.5.sp
+            fontSize = AlgoType.microSize
         )
     }
 }

@@ -32,8 +32,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.algolens.ui.theme.AlgoTokens
+import com.example.algolens.ui.theme.AlgoType
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.CyanSubtle
@@ -57,9 +57,9 @@ fun BottomNavBar(
         modifier = modifier
             .fillMaxWidth()
             .background(CardBackgroundElevated)
-            .border(width = 1.dp, color = BorderSubtle)
+            .border(width = AlgoTokens.strokeThin, color = BorderSubtle)
             .navigationBarsPadding()
-            .padding(horizontal = 4.dp, vertical = 6.dp),
+            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space3),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -83,14 +83,17 @@ fun BottomNavBar(
                         interactionSource = interactionSource,
                         indication = null
                     ) { onTabSelected(tab) }
-                    .padding(vertical = 2.dp),
+                    .padding(vertical = AlgoTokens.space1),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(3.dp)
+                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(width = 38.dp, height = 28.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(
+                            width = AlgoTokens.iconButtonLg + AlgoTokens.space1,
+                            height = AlgoTokens.iconButtonXs + AlgoTokens.space1
+                        )
+                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                         .background(pillBg),
                     contentAlignment = Alignment.Center
                 ) {
@@ -98,7 +101,7 @@ fun BottomNavBar(
                         imageVector = tab.icon,
                         contentDescription = tab.label,
                         tint = iconColor,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(AlgoTokens.inlineIconLg + AlgoTokens.space1)
                     )
                 }
 
@@ -107,7 +110,7 @@ fun BottomNavBar(
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isActive) PrimaryCyan else TextDark,
                     fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 10.sp
+                    fontSize = AlgoType.labelSize
                 )
             }
         }

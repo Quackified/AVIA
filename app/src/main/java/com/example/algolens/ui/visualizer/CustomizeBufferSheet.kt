@@ -67,6 +67,8 @@ import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Buffer customize sheet (Stack / Queue). Tailored to the buffer model
@@ -261,7 +263,7 @@ private fun BufferOpEditor(
                         text = hint,
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
-                        fontSize = 8.5.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
                 Box(
@@ -274,7 +276,7 @@ private fun BufferOpEditor(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = AlgoGlyphs.Close,
                         contentDescription = "Close",
                         tint = TextMuted,
                         modifier = Modifier.size(16.dp)
@@ -287,7 +289,7 @@ private fun BufferOpEditor(
                 text = "OPERATION PRESETS:",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
-                fontSize = 8.sp,
+                fontSize = AlgoType.microSize,
                 letterSpacing = 0.8.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -309,7 +311,7 @@ private fun BufferOpEditor(
                             }
                         },
                         label = {
-                            Text(label, style = MaterialTheme.typography.labelSmall, fontSize = 9.sp)
+                            Text(label, style = MaterialTheme.typography.labelSmall, fontSize = AlgoType.microSize)
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             containerColor = CanvasBackground,
@@ -331,7 +333,7 @@ private fun BufferOpEditor(
                 text = "OPERATIONS (${rows.size} / $MAX_ROWS):",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
-                fontSize = 8.sp,
+                fontSize = AlgoType.microSize,
                 letterSpacing = 0.8.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -371,7 +373,7 @@ private fun BufferOpEditor(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Add,
+                            imageVector = AlgoGlyphs.Plus,
                             contentDescription = null,
                             tint = PrimaryCyan,
                             modifier = Modifier.size(12.dp)
@@ -380,7 +382,7 @@ private fun BufferOpEditor(
                             text = "Add operation",
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
-                            fontSize = 9.sp,
+                            fontSize = AlgoType.microSize,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -402,7 +404,7 @@ private fun BufferOpEditor(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.RestartAlt,
+                        imageVector = AlgoGlyphs.Reset,
                         contentDescription = null,
                         tint = AccentYellow,
                         modifier = Modifier.size(12.dp)
@@ -411,7 +413,7 @@ private fun BufferOpEditor(
                         text = "Reset to default",
                         style = MaterialTheme.typography.labelSmall,
                         color = AccentYellow,
-                        fontSize = 9.sp,
+                        fontSize = AlgoType.microSize,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -425,7 +427,7 @@ private fun BufferOpEditor(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ErrorOutline,
+                        imageVector = AlgoGlyphs.Alert,
                         contentDescription = null,
                         tint = AccentRed,
                         modifier = Modifier.size(11.dp)
@@ -434,7 +436,7 @@ private fun BufferOpEditor(
                         text = res.message,
                         style = MaterialTheme.typography.labelSmall,
                         color = AccentRed,
-                        fontSize = 8.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
             } else if (isValid) {
@@ -443,7 +445,7 @@ private fun BufferOpEditor(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle,
+                        imageVector = AlgoGlyphs.CheckCircle,
                         contentDescription = null,
                         tint = AccentGreen,
                         modifier = Modifier.size(11.dp)
@@ -452,7 +454,7 @@ private fun BufferOpEditor(
                         text = "Ready: ${rows.size} operations",
                         style = MaterialTheme.typography.labelSmall,
                         color = AccentGreen,
-                        fontSize = 8.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
             }
@@ -521,7 +523,7 @@ private fun OpRow(
                         Text(
                             kind,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 8.sp,
+                            fontSize = AlgoType.microSize,
                             fontWeight = if (row.kind == kind) FontWeight.Bold else FontWeight.Medium
                         )
                     },
@@ -558,7 +560,7 @@ private fun OpRow(
                     textStyle = MaterialTheme.typography.bodySmall.copy(
                         color = if (row.valueText.isBlank()) TextMuted else valueAccent,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 10.sp
+                        fontSize = AlgoType.labelSize
                     ),
                     cursorBrush = SolidColor(PrimaryCyan),
                     singleLine = true,
@@ -569,7 +571,7 @@ private fun OpRow(
                     text = "—",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
-                    fontSize = 10.sp
+                    fontSize = AlgoType.labelSize
                 )
             }
         }
@@ -584,7 +586,7 @@ private fun OpRow(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Close,
+                imageVector = AlgoGlyphs.Close,
                 contentDescription = "Delete",
                 tint = AccentRed,
                 modifier = Modifier.size(12.dp)

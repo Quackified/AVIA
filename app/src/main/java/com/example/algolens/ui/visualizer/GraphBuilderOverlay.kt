@@ -38,6 +38,8 @@ import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
 import kotlin.math.sqrt
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Toolbar + tap/drag gesture detectors + instruction banner for the graph
@@ -83,7 +85,7 @@ fun GraphBuilderToolbar(
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Gesture,
+                        imageVector = AlgoGlyphs.Tap,
                         contentDescription = null,
                         tint = if (isBuilderActive) PrimaryCyan else TextMuted,
                         modifier = Modifier.size(10.dp)
@@ -92,7 +94,7 @@ fun GraphBuilderToolbar(
                         text = if (isBuilderActive) "Builder: Active" else "Interactive Mode",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isBuilderActive) PrimaryCyan else TextMuted,
-                        fontSize = 8.sp,
+                        fontSize = AlgoType.microSize,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -102,7 +104,7 @@ fun GraphBuilderToolbar(
                 text = "$dynamicNodeCount nodes • $dynamicEdgeCount edges",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextDark,
-                fontSize = 7.5.sp
+                fontSize = AlgoType.microSize
             )
         }
 
@@ -119,7 +121,7 @@ fun GraphBuilderToolbar(
                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Refresh,
+                    imageVector = AlgoGlyphs.Refresh,
                     contentDescription = "Reset",
                     tint = AccentPink,
                     modifier = Modifier.size(9.dp)
@@ -128,7 +130,7 @@ fun GraphBuilderToolbar(
                     text = "Reset Graph",
                     style = MaterialTheme.typography.labelSmall,
                     color = AccentPink,
-                    fontSize = 7.5.sp,
+                    fontSize = AlgoType.microSize,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -329,7 +331,7 @@ fun GraphBuilderBanner(
             text = "💡 Tap empty space to add node • Drag between nodes to connect",
             style = MaterialTheme.typography.labelSmall,
             color = PrimaryCyan,
-            fontSize = 7.5.sp
+            fontSize = AlgoType.microSize
         )
     }
 }

@@ -1,13 +1,13 @@
 ---
-name: AlgoLens
-description: A dark, tokenised IDE workspace for visualising 13 canonical CS algorithms in lockstep with their source code.
+name: AVIA
+description: AVIA (Algorithm Visualizer & Interactive Assistant) — a dark, tokenised IDE workspace for visualising 13 canonical CS algorithms in lockstep with their source code. Repo/module/package names remain `AlgoLens`; the user-facing product name is AVIA.
 colors:
   # ── Surfaces (sunken → floating) ──
-  workspace-surface: "#0B0F19"        # DarkBackground — the whole-screen base
-  canvas-well: "#060A14"              # CanvasBackground — the visualizer well, deeper than the base
-  glass-fill: "#0C1526"               # CardBackground — default card / panel
-  glass-elevated: "#111D30"           # CardBackgroundHover — floating rails, prompts, sheets
-  glass-sunken: "#080D1B"             # CardBackgroundElevated — pressed / inverted panels
+  workspace-surface: "#0B0F19"        # surfaceBase — every screen's base (never the well)
+  canvas-well: "#060A14"              # surfaceWell — the visualizer well only, deeper than the base
+  glass-fill: "#0C1526"               # surfaceCard — default card / panel core plate
+  glass-elevated: "#111D30"           # surfaceFloat — floating rails, sheets, bottom nav
+  glass-sunken: "#080D1B"             # surfaceSunken — outer bezel shells, pressed / inverted panels
 
   # ── Accent (functional, never decorative) ──
   traversal-cyan: "#00E5FF"           # PrimaryCyan — active read pointers, traversal head
@@ -55,16 +55,22 @@ typography:
   title:
     fontFamily: "JetBrains Mono, ui-monospace, monospace"
     fontWeight: 600
-    fontSize: "13sp / 18sp line"
+    fontSize: "16sp / 21sp line"
+    letterSpacing: "-0.01sp"
   body:
     fontFamily: "JetBrains Mono, ui-monospace, monospace"
     fontWeight: 400
-    fontSize: "11sp / 16sp line"
+    fontSize: "12sp / 17sp line"
   label:
     fontFamily: "JetBrains Mono, ui-monospace, monospace"
-    fontWeight: 700
-    fontSize: "8sp / 11sp line"
-    letterSpacing: "0.12sp"
+    fontWeight: 600
+    fontSize: "10sp / 14sp line"
+    letterSpacing: "0.08sp"
+  micro:
+    fontFamily: "JetBrains Mono, ui-monospace, monospace"
+    fontWeight: 400
+    fontSize: "9.5sp / 13sp line"
+    # canvas-internal numerals ONLY — never persistent chrome
 
 rounded:
   xs: "4dp"   # inline pill, status chip

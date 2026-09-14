@@ -6,28 +6,25 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,31 +34,37 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
 import com.example.algolens.ui.components.AlgoCard
-import com.example.algolens.ui.components.SegmentedToggle
+import com.example.algolens.ui.components.AlgoGlyphs
+import com.example.algolens.ui.components.entryCascade
+import com.example.algolens.ui.components.pressPhysics
 import com.example.algolens.ui.theme.AlgoLensTheme
-import com.example.algolens.ui.theme.BorderMedium
-import com.example.algolens.ui.theme.BorderSubtle
+import com.example.algolens.ui.theme.AccentOrange
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.CanvasBackground
-import com.example.algolens.ui.theme.CardBackground
 import com.example.algolens.ui.theme.CyanSubtle
-import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
-import com.example.algolens.ui.theme.TextNavy
 import com.example.algolens.ui.theme.TextPrimary
-import com.example.algolens.ui.theme.TextSecondary
 
+/**
+ * The instrument's front panel. Not a marketing landing page: a dense,
+ * quiet catalogue with a live count, a search well, a 2×2 family selector
+ * and the algorithm rows. Nothing here exists to persuade — it exists to
+ * get the user into a visualizer in one tap (PRODUCT.md §Principles).
+ */
 @Composable
 fun DashboardScreen(
     onAlgorithmClick: (Algorithm) -> Unit,
@@ -84,17 +87,18 @@ fun DashboardScreen(
         }
     }
 
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(CanvasBackground)
             .statusBarsPadding()
     ) {
-        // ── 1. Top Header ──
+        // ── 1. Top header: mark, wordmark, catalogue count ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -110,7 +114,7 @@ fun DashboardScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "AlgoLens",
+                        text = "AVIA",
                         style = MaterialTheme.typography.titleLarge,
                         color = PrimaryCyan,
                         fontWeight = FontWeight.Bold,
@@ -142,120 +146,231 @@ fun DashboardScreen(
             }
         }
 
-        // ── 2. Search Box ──
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(CardBackground)
-                .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
-                .padding(horizontal = 12.dp, vertical = 10.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = TextMuted,
-                    modifier = Modifier.size(16.dp)
-                )
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextPrimary),
-                    cursorBrush = SolidColor(PrimaryCyan),
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                    decorationBox = { innerTextField ->
-                        if (searchQuery.isEmpty()) {
-                            Text(
-                                text = "Search algorithms...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextMuted
-                            )
-                        }
-                        innerTextField()
-                    }
-                )
-            }
-        }
-
-        // ── 3. Category Filter Chips ──
-        // The single-select chip row is a `SegmentedToggle` keyed on
-        // the category string. Wrapped in a horizontal scroller so
-        // long category lists don't wrap.
+        // ── 2. Search well (sunken, hairline, one glyph) ──
+        val searchShape = RoundedCornerShape(AlgoTokens.radiusMd)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space5)
+                .clip(searchShape)
+                .background(AlgoTokens.surfaceSunken)
+                .border(AlgoTokens.strokeHairline, AlgoTokens.strokeBorderSubtle, searchShape)
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space4),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
         ) {
-            SegmentedToggle(
-                options = SampleData.categories.map { it to it },
-                selectedKey = selectedCategory,
-                accent = PrimaryCyan,
-                onContainer = DarkBackground,
-                onSelect = { key -> selectedCategory = key as String }
+            Icon(
+                imageVector = AlgoGlyphs.Search,
+                contentDescription = "Search",
+                tint = TextMuted,
+                modifier = Modifier.size(AlgoTokens.inlineIconMd)
+            )
+            BasicTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextPrimary),
+                cursorBrush = SolidColor(PrimaryCyan),
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                decorationBox = { innerTextField ->
+                    if (searchQuery.isEmpty()) {
+                        Text(
+                            text = "Search algorithms",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextMuted
+                        )
+                    }
+                    innerTextField()
+                }
             )
         }
 
-        // ── 4. Results Count Header ──
+        // ── 3. Family selector: 2×2 instrument tiles (not chips) ──
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = AlgoTokens.space6)
+        ) {
+            val families = listOf(
+                Triple("Sorting", AlgoGlyphs.SwapVert, PrimaryCyan),
+                Triple("Searching", AlgoGlyphs.Search, AlgoTokens.accentYellow),
+                Triple("Data Structures", AlgoGlyphs.Stack, AccentOrange),
+                Triple("Graph Traversal", AlgoGlyphs.Tree, AlgoTokens.accentGreen),
+            )
+            families.chunked(2).forEach { pair ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                ) {
+                    pair.forEach { (label, glyph, accent) ->
+                        FamilyTile(
+                            label = label,
+                            glyph = glyph,
+                            accent = accent,
+                            count = SampleData.algorithms.count {
+                                it.category.equals(label, ignoreCase = true)
+                            },
+                            selected = selectedCategory == label,
+                            onClick = {
+                                selectedCategory = if (selectedCategory == label) "All" else label
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                Box(modifier = Modifier.height(AlgoTokens.space4))
+            }
+        }
+
+        // ── 4. Results line ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${filteredAlgorithms.size} RESULT${if (filteredAlgorithms.size != 1) "S" else ""}",
+                text = "${filteredAlgorithms.size} ${if (filteredAlgorithms.size == 1) "result" else "results"}",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextDark,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
+                color = TextDark
             )
             Text(
-                text = "Sort: default",
+                text = if (selectedCategory == "All") "All families" else selectedCategory,
                 style = MaterialTheme.typography.labelSmall,
-                color = TextNavy
+                color = TextMuted
             )
         }
 
-        // ── 5. Algorithm Cards List ──
+
+        // ── 5. Algorithm rows ──
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(
+                start = AlgoTokens.space6,
+                end = AlgoTokens.space6,
+                top = AlgoTokens.space4,
+                bottom = AlgoTokens.space6
+            ),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
         ) {
             if (filteredAlgorithms.isEmpty()) {
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 48.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No algorithms found",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextDark
-                        )
-                    }
+                    EmptyState(
+                        query = searchQuery,
+                        onClear = {
+                            searchQuery = ""
+                            selectedCategory = "All"
+                        }
+                    )
                 }
             } else {
-                items(filteredAlgorithms, key = { it.id }) { algo ->
+                itemsIndexed(filteredAlgorithms, key = { _, algo -> algo.id }) { index, algo ->
                     AlgoCard(
                         algo = algo,
-                        onClick = { onAlgorithmClick(algo) }
+                        onClick = { onAlgorithmClick(algo) },
+                        index = index
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * Family tile (M6): a double-bezel instrument key. Selected = accent-tinted
+ * plate, accent glyph and a 2dp accent underline. Never a pill chip.
+ */
+@Composable
+private fun FamilyTile(
+    label: String,
+    glyph: ImageVector,
+    accent: Color,
+    count: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(AlgoTokens.bezelRadius)
+    Column(
+        modifier = modifier
+            .height(AlgoTokens.space8 * 2)
+            .clip(shape)
+            .background(if (selected) accent.copy(alpha = 0.12f) else AlgoTokens.surfaceSunken)
+            .pressPhysics(shape = shape, accent = accent)
+            .clickable { onClick() }
+            .padding(AlgoTokens.bezelGap)
+            .clip(RoundedCornerShape(AlgoTokens.bezelInnerRadius))
+            .background(if (selected) accent.copy(alpha = 0.08f) else AlgoTokens.surfaceCard)
+            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space4),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+        ) {
+            Icon(
+                imageVector = glyph,
+                contentDescription = null,
+                tint = if (selected) accent else TextMuted,
+                modifier = Modifier.size(AlgoTokens.inlineIconLg)
+            )
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (selected) accent else TextDark
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) TextPrimary else TextMuted,
+            maxLines = 2
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(AlgoTokens.strokeActive)
+                .background(if (selected) accent else Color.Transparent)
+        )
+    }
+}
+
+/**
+ * Empty state. Never a dead end — it names what failed and offers the way
+ * back.
+ */
+@Composable
+private fun EmptyState(query: String, onClear: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = AlgoTokens.space8),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+    ) {
+        Icon(
+            imageVector = AlgoGlyphs.Search,
+            contentDescription = null,
+            tint = TextDark,
+            modifier = Modifier.size(AlgoTokens.space7)
+        )
+        Text(
+            text = if (query.isEmpty()) "No algorithms in this family" else "No match for \"$query\"",
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextMuted
+        )
+        Text(
+            text = "Clear filters",
+            style = MaterialTheme.typography.labelSmall,
+            color = PrimaryCyan,
+            modifier = Modifier
+                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                .clickable(onClick = onClear)
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3)
+        )
     }
 }
 

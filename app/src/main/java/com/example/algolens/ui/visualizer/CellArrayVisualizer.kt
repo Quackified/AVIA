@@ -57,6 +57,8 @@ import com.example.algolens.ui.theme.PurpleSubtle
 import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.ChipBackground
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Data structure describing an active off-screen pointer target.
@@ -80,12 +82,12 @@ data class OffscreenPointerTarget(
  * for off-screen pointers. The synchronized CodeTracePane is hosted by the
  * VisualizerScreen coordinator (bottom workspace region), not embedded here.
  *
- * Thin public shell \u25C4€” composes the following private modules in the same package:
- *  - [CellGrid]         \u25C4€” LazyRow + per-cell paint (badges, box, index label)
- *  - [CellPointerBadges] \u25C4€” [TopPointerBadge] / [BottomPointerBadge]
- *  - [OffscreenPointerBanner] \u25C4€” animated off-screen pop-up pills
- *  - [CellGlowPainter]   \u25C4€” three-band outer stroke glow
- *  - [ChallengeGlowTargets] \u25C4€” shared pulse state for Challenge Mode halos
+ * Thin public shell — composes the following private modules in the same package:
+ *  - [CellGrid]         — LazyRow + per-cell paint (badges, box, index label)
+ *  - [CellPointerBadges] — [TopPointerBadge] / [BottomPointerBadge]
+ *  - [OffscreenPointerBanner] — animated off-screen pop-up pills
+ *  - [CellGlowPainter]   — three-band outer stroke glow
+ *  - [ChallengeGlowTargets] — shared pulse state for Challenge Mode halos
  */
 @Composable
 fun CellArrayVisualizer(
@@ -104,10 +106,10 @@ fun CellArrayVisualizer(
 
     val lazyListState = rememberLazyListState()
 
-    // \u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€
+    // ─────────────────────────────────────────────────────────────────────
     // Swap Travel Animation: cells "pop up", then shift and settle into
     // their respective new slots with an elevated shadow while in flight.
-    // \u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€\u25C4”€
+    // ─────────────────────────────────────────────────────────────────────
     val density = LocalDensity.current
 
     // Slot pitch (cell width + gap + item padding) in px. Baseline here;
@@ -224,7 +226,7 @@ fun CellArrayVisualizer(
             exprStyleBase.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp,
-                fontSize = 8.5.sp
+                fontSize = AlgoType.microSize
             )
         }
 
@@ -253,7 +255,7 @@ fun CellArrayVisualizer(
             verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-        // \u25C4”€\u25C4”€ 1. Floating Glassmorphic Phase Banner \u25C4”€\u25C4”€
+        // ── 1. Floating Glassmorphic Phase Banner ──
         PhaseBanner(
             step = step,
             algorithmName = algorithmName,
@@ -262,7 +264,7 @@ fun CellArrayVisualizer(
                 .padding(horizontal = AlgoTokens.space1)
         )
 
-        // \u25C4”€\u25C4”€ 2. Array Cells & Visual Gimmicks Canvas \u25C4”€\u25C4”€
+        // ── 2. Array Cells & Visual Gimmicks Canvas ──
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -277,7 +279,7 @@ fun CellArrayVisualizer(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
             ) {
-                // \u25C4”€\u25C4”€ A. Insertion Sort: Elevated Key Inspection Header \u25C4”€\u25C4”€
+                // ── A. Insertion Sort: Elevated Key Inspection Header ──
                 if (isInsertionSort && step.floatingElement != null) {
                     val (keyVal, origIdx) = step.floatingElement
                     Row(
@@ -305,14 +307,14 @@ fun CellArrayVisualizer(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 7.5.sp
+                                    fontSize = AlgoType.microSize
                                 )
                             }
                             Text(
                                 text = "Lifting arr[$origIdx] = $keyVal above array to find slot",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary,
-                                fontSize = 8.5.sp
+                                fontSize = AlgoType.microSize
                             )
                         }
 
@@ -335,11 +337,11 @@ fun CellArrayVisualizer(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 11.sp
+                                    fontSize = AlgoType.bodySize
                                 )
                             }
                             Icon(
-                                imageVector = Icons.Default.ArrowDownward,
+                                imageVector = AlgoGlyphs.ArrowDown,
                                 contentDescription = "Insert",
                                 tint = PurpleGlow,
                                 modifier = Modifier.size(12.dp)
@@ -348,7 +350,7 @@ fun CellArrayVisualizer(
                     }
                 }
 
-                // \u25C4”€\u25C4”€ B. Bubble Sort: Swapping / Connecting Arc Tag \u25C4”€\u25C4”€
+                // ── B. Bubble Sort: Swapping / Connecting Arc Tag ──
                 if (isBubbleSort && step.leftPointer != null && step.rightPointer != null) {
                     val isSwapping = step.phaseLabel == "SWAPPING"
                     Row(
@@ -385,13 +387,13 @@ fun CellArrayVisualizer(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PrimaryCyan,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 8.sp
+                                fontSize = AlgoType.microSize
                             )
                         }
                     }
                 }
 
-                // \u25C4”€\u25C4”€ C. Selection Sort: Region Split Curtain Indicator \u25C4”€\u25C4”€
+                // ── C. Selection Sort: Region Split Curtain Indicator ──
                 if (isSelectionSort && step.sortedBoundary != null && step.sortedBoundary > 0 && step.sortedBoundary < step.array.size) {
                     Row(
                         modifier = Modifier
@@ -405,19 +407,19 @@ fun CellArrayVisualizer(
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentGreen,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 7.5.sp
+                            fontSize = AlgoType.microSize
                         )
                         Text(
                             text = "UNSORTED CANDIDATES (${step.sortedBoundary}..${step.array.size - 1}) \u25BA",
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentYellow,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 7.5.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
                 }
 
-                // \u25C4”€\u25C4”€ D. Merge Sort: Recursion Level & Sub-Blocks Info \u25C4”€\u25C4”€
+                // ── D. Merge Sort: Recursion Level & Sub-Blocks Info ──
                 if (isMergeSort && step.mergeBlocks.isNotEmpty()) {
                     Row(
                         modifier = Modifier
@@ -441,14 +443,14 @@ fun CellArrayVisualizer(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = PurpleGlow,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 7.5.sp
+                                    fontSize = AlgoType.microSize
                                 )
                             }
                             Text(
                                 text = "Blocks: ${step.mergeBlocks.joinToString(" + ") { "[${it.first}..${it.last}]" }}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextSecondary.copy(alpha = 0.7f),
-                                fontSize = 8.sp
+                                fontSize = AlgoType.microSize
                             )
                         }
                     }
@@ -473,13 +475,13 @@ fun CellArrayVisualizer(
                     lazyListState = lazyListState
                 )
 
-                // \u25C4”€\u25C4”€ Animated Off-Screen Pointer Pop-Up Cell Indicators \u25C4”€\u25C4”€
+                // ── Animated Off-Screen Pointer Pop-Up Cell Indicators ──
                 OffscreenPointerBanner(
                     step = step,
                     lazyListState = lazyListState
                 )
 
-                // \u25C4”€\u25C4”€ Comparison / Step Expression Callout \u25C4”€\u25C4”€
+                // ── Comparison / Step Expression Callout ──
                 val expr = step.comparisonExpr ?: step.description
                 if (expr.isNotBlank()) {
                     Spacer(modifier = Modifier.height(AlgoTokens.space1))

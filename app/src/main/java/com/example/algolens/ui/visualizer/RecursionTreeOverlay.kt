@@ -25,6 +25,7 @@ import com.example.algolens.ui.theme.CardBackground
 import com.example.algolens.ui.theme.PurpleGlow
 import com.example.algolens.ui.theme.PurpleSubtle
 import com.example.algolens.ui.theme.TextMuted
+import com.example.algolens.ui.theme.AlgoType
 
 /**
  * Merge Sort recursion-tree overlay.
@@ -107,7 +108,7 @@ object RecursionTreeOverlay : VisualizerOverlay {
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 fontWeight = FontWeight.Bold,
-                fontSize = 7.5.sp,
+                fontSize = AlgoType.microSize,
             )
         }
     }
@@ -125,7 +126,7 @@ object RecursionTreeOverlay : VisualizerOverlay {
                 style = MaterialTheme.typography.labelSmall,
                 color = PurpleGlow,
                 fontWeight = FontWeight.Bold,
-                fontSize = 7.5.sp,
+                fontSize = AlgoType.microSize,
             )
         }
     }
@@ -158,14 +159,14 @@ object RecursionTreeOverlay : VisualizerOverlay {
                 style = MaterialTheme.typography.labelSmall,
                 color = labelColor,
                 fontWeight = FontWeight.Bold,
-                fontSize = 7.5.sp,
+                fontSize = AlgoType.microSize,
                 modifier = Modifier.width(14.dp),
             )
             Text(
                 text = blocks.joinToString(separator = " ") { "[${it.first}..${it.last}]" },
                 style = MaterialTheme.typography.labelSmall,
                 color = labelColor,
-                fontSize = 7.5.sp,
+                fontSize = AlgoType.microSize,
             )
         }
     }

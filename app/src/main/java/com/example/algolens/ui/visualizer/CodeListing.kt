@@ -47,6 +47,8 @@ import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Code listing body: header (terminal icon + title) on top, segmented
@@ -85,7 +87,7 @@ fun CodeListing(
                 horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Terminal,
+                    imageVector = AlgoGlyphs.Terminal,
                     contentDescription = null,
                     tint = PurpleGlow,
                     modifier = Modifier.size(14.dp)
@@ -95,7 +97,7 @@ fun CodeListing(
                     style = MaterialTheme.typography.labelSmall,
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 9.sp
+                    fontSize = AlgoType.microSize
                 )
             }
 
@@ -128,7 +130,7 @@ fun CodeListing(
                             text = lang.label,
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSelected) Color.White else TextMuted,
-                            fontSize = 8.sp,
+                            fontSize = AlgoType.microSize,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
                     }
@@ -200,15 +202,15 @@ fun CodeListing(
                                 .padding(horizontal = AlgoTokens.space4, vertical = 2.5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // (Left-rail removed â€”the line-number colourandthe per-line [InlineVarChip]
-                            //   already convey "this line is activeand its semantic family".)
+                            // (Left-rail removed — the line-number colour and the per-line [InlineVarChip]
+                            //   already convey "this line is active and its semantic family".)
 
                             Text(
                                 text = lineNum.toString().padStart(2, ' '),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (isActive) lineAccent else TextDark,
                                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 9.sp,
+                                fontSize = AlgoType.microSize,
                                 fontFamily = FontFamily.Monospace,
                                 modifier = Modifier.width(22.dp)
                             )
@@ -217,7 +219,7 @@ fun CodeListing(
                                 text = lineAnnotated,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextPrimary,
-                                fontSize = 9.sp,
+                                fontSize = AlgoType.microSize,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
                             )
@@ -254,7 +256,7 @@ private fun InlineVarChip(
             style = MaterialTheme.typography.labelSmall,
             color = accent,
             fontWeight = FontWeight.Bold,
-            fontSize = 7.5.sp,
+            fontSize = AlgoType.microSize,
             fontFamily = FontFamily.Monospace
         )
         Text(
@@ -262,7 +264,7 @@ private fun InlineVarChip(
             style = MaterialTheme.typography.labelSmall,
             color = TextSecondary,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 7.5.sp,
+            fontSize = AlgoType.microSize,
             fontFamily = FontFamily.Monospace
         )
     }

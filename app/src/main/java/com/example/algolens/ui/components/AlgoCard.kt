@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountTree
@@ -47,6 +50,7 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextNavy
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.YellowSubtle
+import com.example.algolens.ui.theme.AlgoType
 
 /**
  * Immutable, per-algorithm card chrome so a `LazyColumn` rebuild never
@@ -56,128 +60,149 @@ import com.example.algolens.ui.theme.YellowSubtle
  */
 @Immutable
 private data class AlgoCardChrome(
-    val icon: ImageVector,
-    val tint: Color,
+    val glyph: ImageVector,
+    val accent: Color,
     val diffColor: Color,
-    val diffBg: Color,
+    val diffSubtle: Color,
 )
 
+/**
+ * Algorithm row (M6). A plate in a tray, not a Material list item:
+ *
+ *  - **Double bezel** — outer shell + inset core plate, hairline strokes only.
+ *    No elevation, no fill, no icon chip.
+ *  - **Family rail** — a 2dp accent strip on the leading edge carries the
+ *    family colour; the glyph is a stroke-1.5 [AlgoGlyphs] mark at 16dp.
+ *  - **Name** title step (12sp), complexity + difficulty in label step (10sp).
+ *  - **One affordance** — a chevron. The row is the tap target; press physics
+ *    is the only feedback (4% scale + accent bloom).
+ */
 @Composable
 fun AlgoCard(
     algo: Algorithm,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    index: Int = 0
 ) {
     // All card chrome is a pure function of `algo.id`. Cache it so a LazyColumn
     // rebuild (every card recomposes as it scrolls into the viewport) never
     // re-runs color parsing or string lookups on the render thread.
     val chrome = remember(algo.id) {
-        val (diffColor, diffBg) = when (algo.difficulty.lowercase()) {
+        val (diffColor, diffSubtle) = when (algo.difficulty.lowercase()) {
             "easy" -> Pair(AccentGreen, GreenSubtle)
             "medium" -> Pair(AccentYellow, YellowSubtle)
             else -> Pair(AccentRed, RedSubtle)
         }
         AlgoCardChrome(
-            icon = when (algo.category.lowercase()) {
-                "sorting" -> Icons.Default.SwapVert
-                "searching" -> Icons.Default.Search
-                "data structures" -> Icons.Default.Layers
-                "graph traversal" -> Icons.Default.AccountTree
-                else -> Icons.Default.GridView
+            glyph = when (algo.category.lowercase()) {
+                "sorting" -> AlgoGlyphs.SwapVert
+                "searching" -> AlgoGlyphs.Search
+                "data structures" -> AlgoGlyphs.Stack
+                "graph traversal" -> AlgoGlyphs.Tree
+                else -> AlgoGlyphs.Grid
             },
-            tint = try {
+            accent = try {
                 Color(algo.colorHex.toColorInt())
             } catch (_: Exception) {
                 PrimaryCyan
             },
             diffColor = diffColor,
-            diffBg = diffBg,
+            diffSubtle = diffSubtle,
         )
     }
 
+    val shape = RoundedCornerShape(AlgoTokens.bezelRadius)
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
-            .background(CardBackground)
-            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusMd))
+            .entryCascade(index = index)
+            .clip(shape)
+            .background(AlgoTokens.surfaceSunken)
+            .pressPhysics(shape = shape, accent = chrome.accent)
             .clickable { onClick() }
-            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space5 - AlgoTokens.space1),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
+            .padding(AlgoTokens.bezelGap),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon Box
-        Box(
+        // ── Core plate ──
+        Row(
             modifier = Modifier
-                .size(AlgoTokens.iconButtonLg)
-                .clip(RoundedCornerShape(AlgoTokens.radiusSm + AlgoTokens.space1))
-                .background(chrome.tint.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(AlgoTokens.bezelInnerRadius))
+                .background(AlgoTokens.surfaceCard)
+                .padding(
+                    start = AlgoTokens.space2,
+                    end = AlgoTokens.space5,
+                    top = AlgoTokens.space4,
+                    bottom = AlgoTokens.space4
+                ),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = chrome.icon,
-                contentDescription = algo.category,
-                tint = chrome.tint,
-                modifier = Modifier.size(AlgoTokens.space6)
+            // Family rail — the card's only saturated element.
+            Box(
+                modifier = Modifier
+                    .width(AlgoTokens.space1)
+                    .height(AlgoTokens.space6 + AlgoTokens.space3)
+                    .clip(RoundedCornerShape(AlgoTokens.space1))
+                    .background(chrome.accent.copy(alpha = 0.85f))
             )
-        }
 
-        // Details
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Icon(
+                imageVector = chrome.glyph,
+                contentDescription = algo.category,
+                tint = chrome.accent.copy(alpha = 0.75f),
+                modifier = Modifier
+                    .padding(start = AlgoTokens.space5)
+                    .size(AlgoTokens.inlineIconLg)
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = AlgoTokens.space5)
             ) {
                 Text(
                     text = algo.name,
                     style = MaterialTheme.typography.titleSmall,
                     color = TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1
                 )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = null,
-                    tint = TextDark,
-                    modifier = Modifier.size(AlgoTokens.space5 - AlgoTokens.space1)
-                )
-            }
-
-            Row(
-                modifier = Modifier.padding(top = AlgoTokens.space1),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-            ) {
-                Text(
-                    text = algo.timeComplexity,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextMuted,
-                    fontSize = 10.sp
-                )
-                Text(
-                    text = "·",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextNavy
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                        .background(chrome.diffBg)
-                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                Row(
+                    modifier = Modifier.padding(top = AlgoTokens.space1),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                 ) {
+                    Text(
+                        text = algo.timeComplexity,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted
+                    )
+                    Text(
+                        text = "·",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextNavy
+                    )
+                    // Difficulty = 6dp dot + label. Never a filled badge.
+                    Box(
+                        modifier = Modifier
+                            .size(AlgoTokens.space3)
+                            .clip(CircleShape)
+                            .background(chrome.diffSubtle)
+                            .border(AlgoTokens.strokeThin, chrome.diffColor.copy(alpha = 0.7f), CircleShape)
+                    )
                     Text(
                         text = algo.difficulty,
                         style = MaterialTheme.typography.labelSmall,
-                        color = chrome.diffColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.sp
+                        color = chrome.diffColor
                     )
                 }
             }
+
+            Icon(
+                imageVector = AlgoGlyphs.ChevronRight,
+                contentDescription = null,
+                tint = TextDark,
+                modifier = Modifier.size(AlgoTokens.inlineIconMd)
+            )
         }
     }
 }

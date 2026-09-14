@@ -145,8 +145,12 @@ fun VisualizerScreen(
                     }
                 }
 
-                // Boundary divider (pulses on step changes).
-                AmbientGlowDivider(pulseProvider = { syncPulse.value })
+                // Boundary divider (M5: breathes only while playing; a step
+                // change still spikes the pulse).
+                AmbientGlowDivider(
+                    pulseProvider = { syncPulse.value },
+                    isPlaying = state.isPlaying
+                )
 
                 // Challenge prompt  lives BETWEEN the canvas and the code
                 // trace, not on top of the canvas. Algorithm details stay

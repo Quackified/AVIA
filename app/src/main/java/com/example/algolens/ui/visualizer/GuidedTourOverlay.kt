@@ -73,6 +73,8 @@ import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Step model for the Guided Walkthrough Tour.
@@ -91,7 +93,7 @@ val TOUR_STEPS = listOf(
         title = "Visualizer Canvas & Pointers",
         subtitle = "Real-time State & Element Indicators",
         description = "Observe dynamic array boxes, bars, or 2D graph nodes update step-by-step. Top pointer badges display pivots/targets, and bottom badges track scanning indices (i, j, mid).",
-        icon = Icons.Default.BarChart,
+        icon = AlgoGlyphs.Bars,
         badgeText = "CANVAS & POINTERS",
         accentColor = PrimaryCyan
     ),
@@ -99,7 +101,7 @@ val TOUR_STEPS = listOf(
         title = "Multi-Language Code Trace",
         subtitle = "Synchronized Code Inspection",
         description = "Toggle between Kotlin, Java, Python, and C++ using the segmented tabs. Active code lines highlight in lockstep with memory mutations and comparisons.",
-        icon = Icons.Default.Code,
+        icon = AlgoGlyphs.Code,
         badgeText = "MULTI-LANGUAGE TRACE",
         accentColor = SecondaryPurple
     ),
@@ -107,7 +109,7 @@ val TOUR_STEPS = listOf(
         title = "Live Variable State Inspector",
         subtitle = "Low-Level Variable Tracking",
         description = "Monitor live registers, loop counters (i, j), search bounds (low, mid, high), and memory call stack frames updated in real-time on every step.",
-        icon = Icons.Default.Tune,
+        icon = AlgoGlyphs.Tune,
         badgeText = "VARIABLE STATE",
         accentColor = AccentYellow
     ),
@@ -115,7 +117,7 @@ val TOUR_STEPS = listOf(
         title = "Playback Controls & Scrubber",
         subtitle = "Step-by-Step & Speed Control",
         description = "Drag the timeline scrubber to jump anywhere in history. Use Step Back/Forward, Auto-Play, and toggle playback speed (0.5x, 1.0x, 2.0x).",
-        icon = Icons.Default.PlayCircleOutline,
+        icon = AlgoGlyphs.PlayCircle,
         badgeText = "TIMELINE SCRUBBER",
         accentColor = AccentGreen
     ),
@@ -123,7 +125,7 @@ val TOUR_STEPS = listOf(
         title = "Predict Next Step Challenge",
         subtitle = "Interactive Knowledge Testing",
         description = "Enable Challenge Mode to test your algorithm intuition! Guess which elements will be compared or swapped next to earn streak points.",
-        icon = Icons.Default.EmojiEvents,
+        icon = AlgoGlyphs.Target,
         badgeText = "CHALLENGE MODE",
         accentColor = AccentPink
     ),
@@ -131,7 +133,7 @@ val TOUR_STEPS = listOf(
         title = "Theory Deep Dive & AI Tutor",
         subtitle = "Complexity & Common Pitfalls",
         description = "Access the comprehensive Algorithm Theory sheet for Big-O proofs and common edge cases, or consult the offline AI Tutor for step-by-step explanations.",
-        icon = Icons.AutoMirrored.Filled.MenuBook,
+        icon = AlgoGlyphs.Book,
         badgeText = "THEORY & AI TUTOR",
         accentColor = CyanGlow
     )
@@ -202,7 +204,7 @@ fun GuidedTourOverlay(
                                 text = step.badgeText,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = step.accentColor,
-                                fontSize = 7.5.sp,
+                                fontSize = AlgoType.microSize,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -210,7 +212,7 @@ fun GuidedTourOverlay(
                             text = "Step ${currentStepIndex + 1} of $totalSteps",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
-                            fontSize = 8.5.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
                 }
@@ -225,7 +227,7 @@ fun GuidedTourOverlay(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = AlgoGlyphs.Close,
                         contentDescription = "Close",
                         tint = TextMuted,
                         modifier = Modifier.size(AlgoTokens.inlineIconMd)
@@ -240,13 +242,13 @@ fun GuidedTourOverlay(
                     style = MaterialTheme.typography.titleMedium,
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = AlgoType.titleSize
                 )
                 Text(
                     text = step.subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = step.accentColor,
-                    fontSize = 10.sp,
+                    fontSize = AlgoType.labelSize,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -256,7 +258,7 @@ fun GuidedTourOverlay(
                 text = step.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
-                fontSize = 11.5.sp,
+                fontSize = AlgoType.bodySize,
                 lineHeight = 16.sp
             )
 
@@ -303,7 +305,7 @@ fun GuidedTourOverlay(
                             style = MaterialTheme.typography.labelSmall,
                             color = TextSecondary,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp
+                            fontSize = AlgoType.labelSize
                         )
                     }
                 } else {
@@ -311,7 +313,7 @@ fun GuidedTourOverlay(
                         text = "Skip Tour",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextMuted,
-                        fontSize = 10.sp,
+                        fontSize = AlgoType.labelSize,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.clickable { onDismiss() }
                     )
@@ -342,11 +344,11 @@ fun GuidedTourOverlay(
                             style = MaterialTheme.typography.labelSmall,
                             color = DarkBackground,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.5.sp
+                            fontSize = AlgoType.labelSize
                         )
                         if (isLast) {
                             Icon(
-                                imageVector = Icons.Default.Check,
+                                imageVector = AlgoGlyphs.Check,
                                 contentDescription = null,
                                 tint = DarkBackground,
                                 modifier = Modifier.size(AlgoTokens.inlineIconSm)

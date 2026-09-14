@@ -16,7 +16,7 @@ import com.example.algolens.ui.visualizer.VisualizerStep
 /**
  * Repository containing step generators for every algorithm registered in
  * [AlgorithmRegistry]. The previous `when (name)`-style dispatcher has been
- * replaced by a single typed lookup against [AlgorithmId] \u2014 adding a new
+ * replaced by a single typed lookup against [AlgorithmId] — adding a new
  * algorithm now only requires an entry in [AlgorithmRegistry], never a
  * change to this class.
  *

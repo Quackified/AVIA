@@ -1,4 +1,4 @@
-﻿package com.example.algolens.ui.visualizer
+package com.example.algolens.ui.visualizer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +36,7 @@ import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.YellowSubtle
 import com.example.algolens.ui.theme.ChipBackground
+import com.example.algolens.ui.theme.AlgoType
 
 /**
  * Floating glassmorphic Phase Banner shared by every visualizer family.
@@ -98,7 +99,7 @@ fun PhaseBanner(
                     style = MaterialTheme.typography.labelSmall,
                     color = phaseColor,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 8.sp,
+                    fontSize = AlgoType.microSize,
                     letterSpacing = 0.6.sp
                 )
             }
@@ -108,7 +109,7 @@ fun PhaseBanner(
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
                 maxLines = 1,
-                fontSize = 8.5.sp
+                fontSize = AlgoType.microSize
             )
         }
 
@@ -141,7 +142,7 @@ fun PhaseBanner(
                     style = MaterialTheme.typography.labelSmall,
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 7.5.sp
+                    fontSize = AlgoType.microSize
                 )
             }
         }

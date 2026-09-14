@@ -232,6 +232,71 @@ object AlgoTokens {
 
     /** Standard opacity of inactive/disabled workspace controls. */
     val disabledAlpha: Float = 0.38f
+
+    // ────────────────────────────────────────────────────────────────────────
+    //  M2 — Elevation ladder (restored) + the one permitted texture
+    // ────────────────────────────────────────────────────────────────────────
+    /** Every screen's base layer. Never the well. */
+    val surfaceBase: Color = DarkBackground
+    /** Cards, list rows, prompt panels. */
+    val surfaceCard: Color = CardBackground
+    /** Floating rails, sheets, overlays, bottom nav. */
+    val surfaceFloat: Color = CardBackgroundHover
+    /** Pressed / inverted panels. */
+    val surfaceSunken: Color = CardBackgroundElevated
+    /** The visualizer canvas well — the ONLY place this surface may sit. */
+    val surfaceWell: Color = CanvasBackground
+
+    /** Static scanline texture: 3% opacity, 2dp period, drawn once. */
+    val scanlineAlpha: Float = 0.03f
+    val scanlinePeriod: Dp = 2.dp
+
+    // ────────────────────────────────────────────────────────────────────────
+    //  M4 — Double-bezel instrument frame + ruler ticks + meter
+    // ────────────────────────────────────────────────────────────────────────
+    /** Inset of the inner hairline from the outer shell edge. */
+    val bezelInset: Dp = 1.dp
+    /** Default bezel radius (the outer shell). */
+    val bezelRadius: Dp = radiusMd
+    /** Minor ruler tick length (4dp rhythm). */
+    val tickMinor: Dp = 4.dp
+    /** Major ruler tick length (every 20dp). */
+    val tickMajor: Dp = 20.dp
+    /** Ruler-tick / meter track alpha. */
+    val tickAlpha: Float = 0.4f
+    /** Single-meter-track height. */
+    val meterHeight: Dp = 2.dp
+    /** Tick pitch on a progress meter. */
+    val meterTickCount: Int = 24
+
+    // ────────────────────────────────────────────────────────────────────────
+    //  M5 — Pressed physics + entry choreography
+    // ────────────────────────────────────────────────────────────────────────
+    /** Resting→pressed scale for every tappable. */
+    val pressScale: Float = 0.96f
+    /** Accent border bloom at rest. */
+    val pressBloomFrom: Float = 0.3f
+    /** Accent border bloom while pressed. */
+    val pressBloomTo: Float = 0.6f
+    /** Vertical offset of the first item in a list cascade. */
+    val entryRiseDistance: Dp = 12.dp
+    /** Per-item stagger of the one-shot entry cascade. */
+    val entryStaggerMs: Int = 40
+    /** Duration of a single item's rise+fade. */
+    val entryDurationMs: Int = 220
+    /** Press response spring — medium stiffness, no bounce. */
+    val pressSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+
+    /**
+     * The full instrument frame used by [com.example.algolens.ui.components
+     * .DoubleBezelShell]: outer 1dp shell radius, inner hairline radius and
+     * the gap between them.
+     */
+    val bezelInnerRadius: Dp = radiusMd - bezelInset
+    val bezelGap: Dp = 2.dp
 }
 
 /**

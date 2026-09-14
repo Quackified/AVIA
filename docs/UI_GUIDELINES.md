@@ -1,4 +1,10 @@
-# AlgoLens — UI Design System & Guidelines
+# AVIA — UI Design System & Guidelines
+
+> **Naming.** The shipped product is **AVIA** (launcher label, wordmark,
+> screen prose). Repository, Gradle module, Kotlin package, and therefore
+> all class/file identifiers (`AlgoLensTypography`, `Theme.AlgoLens`,
+> `AlgoLensApp`, `AlgoGlyphs`, `AlgoTokens`) remain `AlgoLens` for
+> continuity. When in doubt: user sees "AVIA", code says "Algo".
 
 > **The contract every screen, region, and component agrees to.**
 > If something visual lives in the app, it speaks this language.
@@ -233,7 +239,7 @@ the same dark workspace the splash revealed.
 
 - **Boot mark:** a 1.5dp Material **Bolt** glyph + a small 1dp
   accent dot just outside its upper-right tip, all in
-  `traversal-cyan`. The same glyph that appears next to "AlgoLens"
+  `traversal-cyan`. The same glyph that appears next to "AVIA"
   on the dashboard, scaled ×1.35 from a 24×24 viewport into the
   108×108 splash viewport — final bbox occupies ~25% of the
   viewport so the cold-start icon reads as a small, well-proportioned
@@ -430,4 +436,89 @@ just stacks it on top of the canvas.
 3. If a guideline is actively wrong, change the guideline and the
    code together — never ship a one-off that breaks the rule
    silently.
-PLACEHOLDER
+
+---
+
+## 17. Instrument system (v3 — "Calibrated Instrument")
+
+The seven additions below are the system's instrumentation layer. They
+are as binding as §2–§14; they exist because the app must read as a
+machined developer tool, not as a themed Material app.
+
+### 17.1 Type scale (five steps, nothing else)
+
+| Step | Size / line | Weight | Tracking | Use |
+|---|---|---|---|---|
+| `display` | 28sp / 34sp | Bold | −0.03em | Screen titles, wordmark, hero numerals |
+| `title` | 16sp / 21sp | SemiBold | −0.01em | Region headers |
+| `body` | 12sp / 17sp | Normal | 0 | Prose, complexity values, card names |
+| `label` | 10sp / 14sp | SemiBold | 0.08em | Section labels, pills, meta |
+| `micro` | 9.5sp / 13sp | Normal | 0 | **Canvas-internal numerals only** |
+
+- The scale lives in `ui/theme/Type.kt` (`AlgoLensTypography` +
+  `AlgoType`). **A call site that writes `fontSize = …` is a bug.**
+  Use a slot, or `AlgoType.<step>Size` when a `Canvas`/`TextMeasurer`
+  needs a raw size.
+- **Persistent-text floor is 10sp.** Canvas numerals may reach 9.5sp
+  and never lower. `ui/theme/Type.kt` is the only file allowed to
+  contain an sp literal.
+- Section labels are **sentence case**. No ALL-CAPS subheaders, and no
+  letter-spacing overrides at the call site (tracking is in the step).
+
+### 17.2 Elevation ladder
+
+`surfaceBase` (every screen's bottom layer) → `surfaceWell` (the
+visualizer canvas only) → `surfaceSunken` (outer bezel shells, pressed
+panels) → `surfaceCard` (card / panel cores) → `surfaceFloat`
+(floating rails, sheets, bottom nav).
+
+A screen base is **never** the well, and a card is never the same rung
+as the surface it sits on. Depth comes from stroke + rung change, not
+from shadow: `elevationRaised` / `elevationFloating` remain reserved
+for in-flight cells.
+
+### 17.3 Scanline
+
+`AlgoWorkspaceBackground` paints one **static** scanline pass: 3% white,
+2dp period, drawn once, behind all content. It is the only texture in
+the system. Never animate it, never add a second pattern, and never
+attach it to a scrolling container.
+
+### 17.4 AlgoGlyphs (iconography)
+
+`ui/components/AlgoGlyphs.kt` is the entire app icon set: 24dp grid,
+1.5dp stroke, round caps/joins, **no fills**. Material icons are
+**banned in app UI** — the only exception is OS-contract art (launcher
+and splash drawables). Every glyph is rendered with an explicit `tint`;
+`contentDescription` stays sentence-case.
+
+### 17.5 Double-bezel surfaces
+
+Every card, tile and row is a **plate in a tray**: an outer shell
+(`surfaceSunken`, its own radius + hairline), a 2dp inset, then a core
+plate (`surfaceCard`, inner hairline) carrying the content. Use
+`DoubleBezelShell`, or reproduce the shell/core pair inline as
+`AlgoCard` does. Flat single-border cards are a §17.5 violation.
+
+### 17.6 Meters and ruler ticks
+
+- Progress is a **tick meter** (`InstrumentMeter`), never a stock
+  Material indicator. It reads its progress through a lambda so the
+  transport can advance it without recomposition.
+- Panel edges and canvas headers may carry an `InstrumentRule`:
+  4dp minor ticks, 20dp major tick every fifth mark, on a 22%-alpha
+  accent hairline.
+
+### 17.7 Motion contract
+
+- **Press physics on every tappable**: 4% scale-down plus an accent
+  border bloom 0.30 → 0.60, both on `pressSpring`
+  (`Modifier.pressPhysics`).
+- **Entry cascade**: list and grid content rises 12dp and fades in,
+  staggered 40ms per item over 220ms (`Modifier.entryCascade`).
+  Content never mounts statically; transform + opacity only.
+- **Ambient loops are functional.** The canvas/trace divider breathes
+  **only while `isPlaying`**; paused and idle hold the static baseline
+  glow.
+- Nothing outside 100–600ms. No linear easing (the sole exception
+  remains the cold-start boot progress indicator).

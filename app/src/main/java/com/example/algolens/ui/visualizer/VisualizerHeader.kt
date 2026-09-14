@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,6 +53,7 @@ import com.example.algolens.model.VisualizerFamily
 import com.example.algolens.ui.components.IconPillButton
 import com.example.algolens.ui.components.RailIconButton
 import com.example.algolens.ui.components.SegmentedToggle
+import com.example.algolens.ui.components.AlgoHairline
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CardBackground
@@ -67,6 +67,8 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.smoothPanelExpansion
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Compact workspace header. Three responsibilities:
@@ -182,7 +184,7 @@ private fun HeaderTitle(
     val stepCounterStyle = remember(counterBase) {
         counterBase.copy(
             color = TextMuted,
-            fontSize = 8.5.sp,
+            fontSize = AlgoType.microSize,
         )
     }
 
@@ -196,7 +198,7 @@ private fun HeaderTitle(
         // rebuild the size/tint objects every recomposition.
         val backIcon by remember {
             derivedStateOf {
-                Icons.AutoMirrored.Filled.ArrowBack
+                AlgoGlyphs.Back
             }
         }
         val backButtonSize by remember {
@@ -300,7 +302,7 @@ private fun HeaderActions(
         // Guided-tour icon button: fully static icon params — cache the
         // icon + sizes once so the wrapper does not rebuild them every step.
         val helpIcon by remember {
-            derivedStateOf { Icons.AutoMirrored.Filled.HelpOutline }
+            derivedStateOf { AlgoGlyphs.Help }
         }
         val helpButtonSize by remember {
             derivedStateOf { AlgoTokens.iconButtonXs }
@@ -323,7 +325,7 @@ private fun HeaderActions(
         Box {
             // Kebab icon button: icon / sizes are fully static — cache once.
             val kebabIcon by remember {
-                derivedStateOf { Icons.Default.MoreVert }
+                derivedStateOf { AlgoGlyphs.More }
             }
             val kebabButtonSize by remember {
                 derivedStateOf { AlgoTokens.iconButtonXs }
@@ -382,19 +384,19 @@ private fun HeaderOverflowMenuHost(
     // These never change across playback steps for a given algorithm — caching
     // them here avoids rebuilding the text / icon objects every recomposition.
     val algoTitleLabelText = remember { "Theory Sheet" }
-    val algoTitleIcon = remember { Icons.AutoMirrored.Filled.MenuBook }
+    val algoTitleIcon = remember { AlgoGlyphs.Book }
     val algoTitleIconSize = remember { AlgoTokens.inlineIconLg }
-    val dropdownChevronIcon = remember { Icons.Default.ArrowDropDown }
+    val dropdownChevronIcon = remember { AlgoGlyphs.ChevronDown }
 
     val inspectorLabelText = remember { "Variable Inspector" }
-    val inspectorLeadingIcon = remember { Icons.Default.Code }
+    val inspectorLeadingIcon = remember { AlgoGlyphs.Code }
     val inspectorLeadingIconSize = remember { AlgoTokens.inlineIconLg }
 
     val callStackLabelText = remember { "Memory Call Stack" }
-    val callStackLeadingIcon = remember { Icons.Default.Terminal }
+    val callStackLeadingIcon = remember { AlgoGlyphs.Terminal }
     val callStackLeadingIconSize = remember { AlgoTokens.inlineIconLg }
 
-    val customizeIcon = remember { Icons.Default.Tune }
+    val customizeIcon = remember { AlgoGlyphs.Tune }
     val customizeIconSize = remember { AlgoTokens.inlineIconLg }
     val customizeLabel = remember(spec?.id) {
         if (spec == null) "Customize Array"
@@ -416,7 +418,7 @@ private fun HeaderOverflowMenuHost(
     ) {
         // THEORY — opens the theory sheet, dismisses the popover.
         DropdownMenuItem(
-            text = { Text(algoTitleLabelText, color = TextPrimary, fontSize = 13.sp) },
+            text = { Text(algoTitleLabelText, color = TextPrimary, fontSize = AlgoType.bodySize) },
             leadingIcon = {
                 Icon(
                     algoTitleIcon,
@@ -431,19 +433,19 @@ private fun HeaderOverflowMenuHost(
             }
         )
 
-        HorizontalDivider()
+        AlgoHairline()
 
         // VARIABLE INSPECTOR — disclosure row.
         DropdownMenuItem(
             text = {
                 Column {
-                    Text(inspectorLabelText, color = TextPrimary, fontSize = 13.sp)
+                    Text(inspectorLabelText, color = TextPrimary, fontSize = AlgoType.bodySize)
                     Text(
                         text = if (currentStep.variables.isNotEmpty())
                             "${currentStep.variables.size} live variables"
                         else "pointers",
                         color = TextMuted,
-                        fontSize = 11.sp
+                        fontSize = AlgoType.bodySize
                     )
                 }
             },
@@ -472,17 +474,17 @@ private fun HeaderOverflowMenuHost(
             VariableInspectorReadout(step = currentStep)
         }
 
-        HorizontalDivider()
+        AlgoHairline()
 
         // MEMORY CALL STACK — disclosure row.
         DropdownMenuItem(
             text = {
                 Column {
-                    Text(callStackLabelText, color = TextPrimary, fontSize = 13.sp)
+                    Text(callStackLabelText, color = TextPrimary, fontSize = AlgoType.bodySize)
                     Text(
                         "depth ${currentStep.recursionDepth + 1}",
                         color = TextMuted,
-                        fontSize = 11.sp
+                        fontSize = AlgoType.bodySize
                     )
                 }
             },
@@ -522,9 +524,9 @@ private fun HeaderOverflowMenuHost(
         // decide which sheet (`CustomizeInputSheet` / `CustomizeBufferSheet`
         // / `CustomizeGraphSheet`) to render.
         if (spec?.supportsCustomInput == true) {
-            HorizontalDivider()
+            AlgoHairline()
             DropdownMenuItem(
-                text = { Text(customizeLabel, color = TextPrimary, fontSize = 13.sp) },
+                text = { Text(customizeLabel, color = TextPrimary, fontSize = AlgoType.bodySize) },
                 leadingIcon = {
                     Icon(
                         customizeIcon,
@@ -592,7 +594,7 @@ private fun ColumnScope.MemoryCallStackReadout(
             style = MaterialTheme.typography.labelSmall,
             color = PurpleGlow,
             fontWeight = FontWeight.Bold,
-            fontSize = 8.5.sp
+            fontSize = AlgoType.microSize
         )
         Row(
             modifier = Modifier
@@ -622,7 +624,7 @@ private fun VarBadge(label: String, value: String) {
         base.copy(
             color = PrimaryCyan,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 9.sp
+            fontSize = AlgoType.microSize
         )
     }
     Box(
@@ -647,14 +649,14 @@ private fun StackInfoBadge(label: String, value: String) {
         badgeBase.copy(
             color = TextMuted,
             fontWeight = FontWeight.Bold,
-            fontSize = 7.sp
+            fontSize = AlgoType.microSize
         )
     }
     val valueStyle = remember(badgeBase) {
         badgeBase.copy(
             color = PurpleGlow,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 7.5.sp
+            fontSize = AlgoType.microSize
         )
     }
     Row(

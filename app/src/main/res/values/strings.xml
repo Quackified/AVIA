@@ -1,12 +1,12 @@
 <resources>
-    <string name="app_name">AlgoLens</string>
+    <string name="app_name">AVIA</string>
     <string name="title_home">Home</string>
     <string name="title_explore">Explore</string>
     <string name="title_profile">Profile</string>
     <string name="title_settings">Settings</string>
 
     <!-- Dashboard -->
-    <string name="algo_lens_title">AlgoLens</string>
+    <string name="algo_lens_title">AVIA</string>
     <string name="algo_count_format">%d algorithms available</string>
     <string name="search_hint">Search algorithms...</string>
     <string name="results_format">%d RESULTS</string>

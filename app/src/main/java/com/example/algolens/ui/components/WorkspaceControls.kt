@@ -1,4 +1,4 @@
-﻿package com.example.algolens.ui.components
+package com.example.algolens.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +29,7 @@ import com.example.algolens.ui.theme.CardBackground
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.DarkBackground
+import com.example.algolens.ui.theme.AlgoType
 
 /**
  * Compact circular icon-only control. Used throughout the visualizer
@@ -63,6 +64,7 @@ fun RailIconButton(
             .clip(CircleShape)
             .background(container)
             .border(AlgoTokens.strokeThin, borderColor, CircleShape)
+            .pressPhysics(shape = CircleShape, accent = borderColor, enabled = enabled)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -95,6 +97,7 @@ fun IconPillButton(
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
             .background(accentContainer)
             .border(AlgoTokens.strokeThin, borderColor, RoundedCornerShape(AlgoTokens.radiusXs))
+            .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusXs), accent = accent)
             .clickable(onClick = onClick)
             .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
         verticalAlignment = Alignment.CenterVertically,
@@ -112,7 +115,7 @@ fun IconPillButton(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = accent,
-            fontSize = 7.5.sp,
+            fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Bold
         )
     }
@@ -145,6 +148,11 @@ fun SegmentedToggle(
                 modifier = Modifier
                     .clip(RoundedCornerShape(AlgoTokens.radiusXs - AlgoTokens.space1))
                     .background(if (isSelected) accent else Color.Transparent)
+                    .pressPhysics(
+                        shape = RoundedCornerShape(AlgoTokens.radiusXs - AlgoTokens.space1),
+                        accent = accent,
+                        enabled = !isSelected
+                    )
                     .clickable { onSelect(key) }
                     .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
                 contentAlignment = Alignment.Center
@@ -154,7 +162,7 @@ fun SegmentedToggle(
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isSelected) onContainer else TextMuted,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    fontSize = 8.sp
+                    fontSize = AlgoType.microSize
                 )
             }
         }

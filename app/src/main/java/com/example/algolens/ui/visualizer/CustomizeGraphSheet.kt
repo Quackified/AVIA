@@ -62,6 +62,8 @@ import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
  * Graph / tree customize sheet. Body switches on the algorithm id so
@@ -192,7 +194,7 @@ fun CustomizeGraphSheet(
                         text = hint,
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
-                        fontSize = 8.5.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
                 Box(
@@ -205,7 +207,7 @@ fun CustomizeGraphSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = AlgoGlyphs.Close,
                         contentDescription = "Close",
                         tint = TextMuted,
                         modifier = Modifier.size(16.dp)
@@ -317,7 +319,7 @@ private fun ValuesField(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
-                fontSize = 8.sp,
+                fontSize = AlgoType.microSize,
                 letterSpacing = 0.8.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -326,7 +328,7 @@ private fun ValuesField(
                     text = "${validation.parsed.size} elements",
                     style = MaterialTheme.typography.labelSmall,
                     color = PrimaryCyan,
-                    fontSize = 8.5.sp,
+                    fontSize = AlgoType.microSize,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -364,14 +366,14 @@ private fun ValuesField(
         when (val res = validation) {
             is InputValidationResult.Valid -> {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AccentGreen, modifier = Modifier.size(11.dp))
-                    Text("Ready: ${res.parsed.size} valid integers parsed", style = MaterialTheme.typography.labelSmall, color = AccentGreen, fontSize = 8.sp)
+                    Icon(AlgoGlyphs.CheckCircle, contentDescription = null, tint = AccentGreen, modifier = Modifier.size(11.dp))
+                    Text("Ready: ${res.parsed.size} valid integers parsed", style = MaterialTheme.typography.labelSmall, color = AccentGreen, fontSize = AlgoType.microSize)
                 }
             }
             is InputValidationResult.Error -> {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = AccentRed, modifier = Modifier.size(11.dp))
-                    Text(res.message, style = MaterialTheme.typography.labelSmall, color = AccentRed, fontSize = 8.sp)
+                    Icon(AlgoGlyphs.Alert, contentDescription = null, tint = AccentRed, modifier = Modifier.size(11.dp))
+                    Text(res.message, style = MaterialTheme.typography.labelSmall, color = AccentRed, fontSize = AlgoType.microSize)
                 }
             }
         }
@@ -392,7 +394,7 @@ private fun SearchKeyField(
             text = "SEARCH KEY:",
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted,
-            fontSize = 8.sp,
+            fontSize = AlgoType.microSize,
             letterSpacing = 0.8.sp,
             fontWeight = FontWeight.Bold
         )
@@ -430,8 +432,8 @@ private fun SearchKeyField(
             is InputValidationResult.Valid -> {}
             is InputValidationResult.Error -> {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = AccentRed, modifier = Modifier.size(11.dp))
-                    Text(res.message, style = MaterialTheme.typography.labelSmall, color = AccentRed, fontSize = 8.sp)
+                    Icon(AlgoGlyphs.Alert, contentDescription = null, tint = AccentRed, modifier = Modifier.size(11.dp))
+                    Text(res.message, style = MaterialTheme.typography.labelSmall, color = AccentRed, fontSize = AlgoType.microSize)
                 }
             }
         }
@@ -455,7 +457,7 @@ private fun StartNodeDropdown(
             text = "START NODE:",
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted,
-            fontSize = 8.sp,
+            fontSize = AlgoType.microSize,
             letterSpacing = 0.8.sp,
             fontWeight = FontWeight.Bold
         )
@@ -480,7 +482,7 @@ private fun StartNodeDropdown(
                     fontWeight = FontWeight.SemiBold
                 )
                 Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
+                    imageVector = AlgoGlyphs.ChevronDown,
                     contentDescription = null,
                     tint = PrimaryCyan,
                     modifier = Modifier.size(16.dp)
@@ -492,7 +494,7 @@ private fun StartNodeDropdown(
             ) {
                 nodes.forEach { id ->
                     DropdownMenuItem(
-                        text = { Text("Node $id", color = TextPrimary, fontSize = 12.sp) },
+                        text = { Text("Node $id", color = TextPrimary, fontSize = AlgoType.bodySize) },
                         onClick = {
                             onSelect(id)
                             expanded = false

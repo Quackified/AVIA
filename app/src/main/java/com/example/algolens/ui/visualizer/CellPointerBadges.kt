@@ -29,11 +29,12 @@ import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.BadgeMuted
+import com.example.algolens.ui.theme.AlgoType
 
 /**
  * Top-of-cell pointer pill (e.g. PIVOT, L, R, target, min, key).
  *
- * Owns the badge sizing, the labelâ†’colour mapping for the canonical sort
+ * Owns the badge sizing, the label→colour mapping for the canonical sort
  * pointer names, and the scale+fade enter/exit animation. Wrapped in an
  * [AnimatedVisibility] keyed on the entry's nullness so it appears/disappears
  * smoothly as pointers land on and leave a cell.
@@ -75,7 +76,7 @@ fun TopPointerBadge(
                         style = MaterialTheme.typography.labelSmall,
                         color = badgeText,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 7.5.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
             }
@@ -132,7 +133,7 @@ fun BottomPointerBadge(
                             style = MaterialTheme.typography.labelSmall,
                             color = badgeText,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 7.5.sp,
+                            fontSize = AlgoType.microSize,
                             maxLines = 1,
                             softWrap = false,
                             overflow = TextOverflow.Clip
@@ -151,7 +152,7 @@ fun BottomPointerBadge(
                             style = MaterialTheme.typography.labelSmall,
                             color = badgeText,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 9.sp
+                            fontSize = AlgoType.microSize
                         )
                     }
                 }

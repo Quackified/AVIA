@@ -30,6 +30,7 @@ import com.example.algolens.ui.visualizer.VisualizerScreenState
 import com.example.algolens.ui.visualizer.VisualizerStep
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.example.algolens.ui.theme.AlgoType
 
 /**
  * Merge target buffer row — the bottom auxiliary of the
@@ -127,7 +128,7 @@ object MergeBufferRow {
                 text = "AUX BUFFER (empty during divide phase)",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
-                fontSize = 7.sp,
+                fontSize = AlgoType.microSize,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -172,7 +173,7 @@ object MergeBufferRow {
                         text = value.toString(),
                         style = MaterialTheme.typography.bodySmall,
                         color = textColor,
-                        fontSize = 9.sp,
+                        fontSize = AlgoType.microSize,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -182,7 +183,7 @@ object MergeBufferRow {
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isI) PrimaryCyan else if (isJ) AccentYellow else AccentGreen,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 8.sp
+                    fontSize = AlgoType.microSize
                 )
             }
         }

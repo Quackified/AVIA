@@ -25,9 +25,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.algolens.ui.theme.AlgoTokens
-import com.example.algolens.ui.theme.CanvasBackground
-import com.example.algolens.ui.theme.DarkBackground
-import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.SecondaryPurple
 
 /**
@@ -47,7 +44,7 @@ fun AlgoWorkspaceBackground(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DarkBackground)
+                .background(AlgoTokens.surfaceBase)
         )
 
         // Ambient glow field (soft cyan top-left, soft purple bottom-right)
@@ -88,6 +85,21 @@ fun AlgoWorkspaceBackground(
                     endY = canvasHeight
                 )
             )
+
+            // ── M2: static scanline texture — 3% white, 2dp period, drawn
+            //    once, behind all content. The only texture in the system. ──
+            val scanlinePeriodPx = AlgoTokens.scanlinePeriod.toPx()
+            val scanlineColor = Color.White.copy(alpha = AlgoTokens.scanlineAlpha)
+            var scanY = 0f
+            while (scanY < canvasHeight) {
+                drawLine(
+                    color = scanlineColor,
+                    start = Offset(0f, scanY),
+                    end = Offset(canvasWidth, scanY),
+                    strokeWidth = 1f
+                )
+                scanY += scanlinePeriodPx
+            }
         }
 
         content()
@@ -122,12 +134,16 @@ fun GlassSurface(
 
 /**
  * Seamless visual divider between the Algorithm Canvas and the Code Trace
- * pane. A thin ambient glow line in #00E5FF at 20% alpha that pulses gently
- * when a state transition occurs ([pulse] spikes 0→1 on each step change).
+ * pane. A thin ambient glow line in #00E5FF at 20% alpha.
+ *
+ * M5 — ambient motion is functional, never decorative: the breathing loop is
+ * gated on [isPlaying]. Paused and idle hold the static baseline glow;
+ * a step change still spikes the pulse through [pulseProvider].
  */
 @Composable
 fun AmbientGlowDivider(
     pulseProvider: () -> Float,
+    isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
     // Both animated inputs are read inside the Canvas draw lambda, so the
@@ -145,7 +161,9 @@ fun AmbientGlowDivider(
             .fillMaxWidth()
             .height(2.dp)
     ) {
-        val intensity = (AlgoTokens.dividerGlowAlpha * breathingState.value) +
+        // Idle / paused = static baseline. Playing = the loop breathes it.
+        val breath = if (isPlaying) breathingState.value else 1f
+        val intensity = (AlgoTokens.dividerGlowAlpha * breath) +
             (pulseProvider().coerceIn(0f, 1f) * (1f - AlgoTokens.dividerGlowAlpha))
         val y = size.height / 2f
 

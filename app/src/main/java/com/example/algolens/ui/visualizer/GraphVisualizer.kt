@@ -34,7 +34,7 @@ import com.example.algolens.ui.theme.GraphEdgeDefault
 import com.example.algolens.ui.theme.CanvasBackground
 
 /**
- * Unified graph visualizer â€” talks to the [VisualizerStep] model so the
+ * Unified graph visualizer — talks to the [VisualizerStep] model so the
  * tree, BFS and DFS animations all share the same node / edge state
  * representation as the rest of the workspace.
  *
@@ -124,7 +124,7 @@ fun GraphVisualizer(
                 }
             }
 
-            // 2. Draw Nodes â€” ElementState drives fill, stroke and label colour.
+            // 2. Draw Nodes — ElementState drives fill, stroke and label colour.
             for (node in nodes) {
                 val center = Offset(node.x * scaleX, node.y * scaleY)
                 val isActive = activeId == node.id || node.state == ElementState.ACTIVE
