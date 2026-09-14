@@ -83,7 +83,7 @@ re-run, not recollection.
 | **M4** | Double-bezel frame + ruler ticks + meter | **PARTIAL** | Primitives live in `Instrument.kt`. Live call sites: `InstrumentMeter` → PracticeScreen ×2, SettingsScreen ×2. `AlgoHairline` → VisualizerHeader ×4, AiTutorSheet ×2. **`DoubleBezelShell` = 0 call sites. `InstrumentRule` = 0 call sites** (its only one was the dashboard top bar, deleted at the user's request — see §C). §17.5 still holds because `AlgoCard` reproduces the shell/core pair inline, which the guideline explicitly allows. |
 | **M5** | Press physics + entry choreography | **DONE** — with one nav exception | `pressPhysics` → AlgoCard, CommonComponents, WorkspaceControls ×3, DashboardScreen ×2, PlaybackRail ×2. `entryCascade` → DashboardScreen, AlgoCard. Ambient loop is functional-only: `AmbientGlowDivider` breathes solely while `state.isPlaying` (`VisualizerScreen.kt:150`). **Exception: `BottomNavBar` no longer uses `pressPhysics` or `minTouchTarget`** — the version in use (§A) animates colour only. That leaves `AlgoTokens.minTouchTarget` (`Theme.kt:148`) defined but referenced nowhere (0 refs). The user's call, not a defect; flagged in §C. |
 | **M6** | Surfaces shipped as instruments | **PARTIAL** | Shipped: `AlgoCard` plate-in-tray + family rail, dashboard family tiles (double-bezel keys), sunken search well, glyph-pill category cells. **Open: the app shell is still a plain `Box`** (`AlgoLensApp.AppShell`), `VisualizerScreen` region headers carry no `InstrumentRule`, and the nav rail is **not** an instrument surface anymore — the version in use (§A) is a flat `CardBackgroundElevated` bar with a hairline border. |
-| **M7** | — | **UNKNOWN** | No artifact anywhere references an M7: not the working tree, not `docs/`, not the `%TEMP%` diff dumps, not any of the 324 `.md` blobs or any `.kt` blob reachable from `git rev-list --all`. Either it was only ever named in chat, or it never existed. **Ask before doing anything under this number — do not invent scope.** |
+| **M7** | Honesty pass | **POLICY — suppled by the user 2026-09-15** | Definition, as given: *no hardcoded fake values (progress floats, stat numbers, activity arrays) — a component either reads real state (`AppSettings` / repository) or is cut; no stock Material cards, list items, or shadows; no AI-purple gradients; no 3-equal-cards marketing rows; no gamification; no light mode; no iOS idioms; predictive back is honored.* The user characterises it as a **test check** — a standing review lens, not a build task. Of its clauses the visual bans (2–6) are already enforced by `docs/UI_GUIDELINES.md` and the lint rules; **clause 1 (fake values) has never been audited** and is logged as open in §C. The earlier "UNKNOWN" row is resolved — M7 existed only in chat, which is why no artifact referenced it. |
 
 ## C. Open items
 
@@ -117,28 +117,16 @@ re-run, not recollection.
 - [ ] Optional, one-line toggle: if the 3% scanline grain again reads as noise
       on a real device (it did once), drop `GlassPanel.kt:89–102` and
       `scanlineAlpha`/`scanlinePeriod`. The darker base is independent of it.
-- [!] **Audit finding — 26 scratch files are tracked in git (31.03 MB). Logged,
-      NOT removed: they are tracked, so deleting them changes the committed
-      baseline, which is not mine to do unasked.** They arrived through Cline's
-      own checkpoint commits — `9650161` ("Info: Backup (Before Profiling
-      Optimization)") and `5a525f9` ("Info: Optimization (3/4)") — because a
-      checkpoint snapshots the whole working tree, scratch included:
-
-      - `cpu-perfetto-20260911T175953.trace` — **31 MB on its own** (`.git` is
-        92.75 MB, so this is a third of the repository).
-      - 15 build/debug logs: `build_compile.log`, `gradle_{stdout,stderr}.log`,
-        `lint_{stdout,stderr}.log`, `v2_{stdout,stderr}.log`,
-        `v2lint_{stdout,stderr}.log`, `tp_{h,q,srv}.{log,err}`.
-      - 10 scratch scripts/data: `_dl_tp.py`, `_probe.{ps1,py}`, `_tp.ps1`,
-        `_tp_help.ps1`, `_tp_launch.ps1`, `build_gradle.py`, `run_build.py`,
-        `q1.sql`, `gradle_pid.txt`.
-
-      `.gitignore` is the stock Android list plus a few agent dirs — it has **no**
-      `*.log` / `*.err` / `*.trace` rule, so the next scratch file gets tracked
-      too. Recommended, one pass and worth doing: add those three patterns plus
-      `_*.ps1` / `_*.py`, then `git rm --cached` the list above and commit. Nothing
-      in the build references them (`_tp_help.ps1:5` is the only cross-reference,
-      itself scratch). **Confirm before running it.**
+- [x] **Audit finding resolved — the 26 tracked scratch files (31.03 MB) are
+      untracked.** Fixed in two parts, per the user's instruction: `.gitignore`
+      now carries `*.log` / `*.err` / `*.trace` / `*.tmp`, plus explicit entries
+      for `gradle_pid.txt`, `q1.sql`, `build_gradle.py`, `run_build.py` and the
+      `_*.ps1` / `_*.py` probe scripts; and the files were removed from the index
+      with `git rm --cached` — **they still exist on disk**, they are just no
+      longer version-controlled. The Perfetto trace alone was 31 MB of a
+      92.75 MB `.git`; note the objects still exist in history (commits
+      `9650161`, `5a525f9`), so the pack only shrinks after a rewrite — not
+      worth doing for a local-only branch.
 
 ## D. Verification gates — re-run all of them after every change
 
@@ -228,8 +216,11 @@ noir background. All green.
 - **Backgrounds:** every screen base is `CanvasBackground` (`#060A14`) — app
   shell, dashboard, Profile / Settings / Practice. Cards climb the elevation
   ladder from there; the well stays `surfaceWell`.
-- **Git baseline:** `655311e` is the last real commit and all session work is
-  uncommitted — that is exactly what keeps reverts this precise. Do not commit
+- **Git baseline:** `655311e` was the last hand-made commit; the whole v3 pass
+  was then committed in one go by the user as `c336faa` ("Info: Massive UI
+  Changes"), scratch files included. The scratch files are now untracked
+  (§C) and scratch patterns are ignored, so the working tree is clean and
+  precise again. Do not commit
   mid-pass.
 
 ## G. The stale baseline — why the IDE showed red and Gradle did not

@@ -17,3 +17,17 @@ local.properties
 .claude
 .impeccable
 figma-reference
+
+# ── Session scratch (never version-controlled) ──────────────────────────────
+# Build/debug/profiling output that Cline checkpoints once snapshotted into
+# history. See docs/TASKS.md §C.
+*.log
+*.err
+*.trace
+*.tmp
+gradle_pid.txt
+q1.sql
+build_gradle.py
+run_build.py
+_*.ps1
+_*.py

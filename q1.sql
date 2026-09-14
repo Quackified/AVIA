@@ -1,1 +1,0 @@
-SELECT name FROM __intrinsic_tables() WHERE name GLOB '*frame*' OR name GLOB '*jank*' OR name GLOB '*android*' OR name GLOB '*present*' OR name GLOB '*draw*' ORDER BY name;
