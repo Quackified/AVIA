@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -235,6 +236,16 @@ fun Modifier.pressPhysics(
  * M5 entry choreography: content never mounts statically. Each item rises
  * [AlgoTokens.entryRiseDistance] and fades in, staggered by [index] × 40ms.
  * Transform + opacity only — no layout-triggering properties.
+ *
+ * **Scroll safety.** The "has already entered" flag is *saveable*, so a
+ * `LazyColumn` item that is disposed and re-composed — the normal case when the
+ * user scrolls past it and back — resumes at rest instead of replaying its
+ * entrance. Seeding this from plain `remember` meant every scroll-back remounted
+ * the item invisible, waited out its stagger and slid up again: the popping.
+ *
+ * The stagger is also clamped to [AlgoTokens.entryStaggerMax] steps. Uncapped,
+ * row 12 of a long list sat blank for half a second before it even started, and
+ * no one is watching a list entrance by then.
  */
 @Composable
 fun Modifier.entryCascade(
@@ -242,11 +253,15 @@ fun Modifier.entryCascade(
     enabled: Boolean = true
 ): Modifier {
     val rise = with(LocalDensity.current) { AlgoTokens.entryRiseDistance.toPx() }
-    val progress = remember { Animatable(if (enabled) 0f else 1f) }
+    var hasEntered by rememberSaveable { mutableStateOf(!enabled) }
+    val progress = remember { Animatable(if (hasEntered) 1f else 0f) }
 
     LaunchedEffect(enabled) {
-        if (enabled) {
-            delay((index.coerceAtLeast(0) * AlgoTokens.entryStaggerMs).toLong())
+        if (hasEntered) {
+            if (progress.value != 1f) progress.snapTo(1f)
+        } else {
+            val steps = index.coerceIn(0, AlgoTokens.entryStaggerMax)
+            if (steps > 0) delay((steps * AlgoTokens.entryStaggerMs).toLong())
             progress.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(
@@ -254,6 +269,7 @@ fun Modifier.entryCascade(
                     easing = LinearOutSlowInEasing
                 )
             )
+            hasEntered = true
         }
     }
 

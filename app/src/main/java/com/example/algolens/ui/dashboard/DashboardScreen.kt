@@ -236,7 +236,7 @@ fun DashboardScreen(
                 color = TextDark
             )
             Text(
-                text = if (selectedCategory == "All") "All families" else selectedCategory,
+                text = if (selectedCategory == "All") "All Types" else selectedCategory,
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted
             )

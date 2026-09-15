@@ -282,6 +282,12 @@ object AlgoTokens {
     val entryRiseDistance: Dp = 12.dp
     /** Per-item stagger of the one-shot entry cascade. */
     val entryStaggerMs: Int = 40
+    /**
+     * Ceiling on the entry stagger, in steps. A list entrance is read in its
+     * first few rows; clamping here keeps a row deep in a scrolling list from
+     * sitting blank through a delay nobody is watching.
+     */
+    val entryStaggerMax: Int = 5
     /** Duration of a single item's rise+fade. */
     val entryDurationMs: Int = 220
     /** Press response spring — medium stiffness, no bounce. */
