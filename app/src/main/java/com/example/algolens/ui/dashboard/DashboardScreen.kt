@@ -47,7 +47,7 @@ import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
 import com.example.algolens.ui.components.AlgoCard
 import com.example.algolens.ui.components.AlgoGlyphs
-import com.example.algolens.ui.components.entryCascade
+import com.example.algolens.ui.components.EntryCascadeProvider
 import com.example.algolens.ui.components.pressPhysics
 import com.example.algolens.ui.theme.AlgoLensTheme
 import com.example.algolens.ui.theme.AccentOrange
@@ -244,35 +244,45 @@ fun DashboardScreen(
 
 
         // ── 5. Algorithm rows ──
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentPadding = PaddingValues(
-                start = AlgoTokens.space6,
-                end = AlgoTokens.space6,
-                top = AlgoTokens.space4,
-                bottom = AlgoTokens.space6
-            ),
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
-        ) {
-            if (filteredAlgorithms.isEmpty()) {
-                item {
-                    EmptyState(
-                        query = searchQuery,
-                        onClear = {
-                            searchQuery = ""
-                            selectedCategory = "All"
-                        }
-                    )
-                }
-            } else {
-                itemsIndexed(filteredAlgorithms, key = { _, algo -> algo.id }) { index, algo ->
-                    AlgoCard(
-                        algo = algo,
-                        onClick = { onAlgorithmClick(algo) },
-                        index = index
-                    )
+        //
+        // M5 gate: the rows rise-and-fade as a single one-shot cascade when the
+        // screen mounts. EntryCascadeProvider closes that window after
+        // AlgoTokens.entryWindowMs, after which `entryCascade` hands the modifier
+        // straight back — so scrolling a row into the viewport is a plain layout
+        // pass with no Animatable, no coroutine and no render layer. Without this
+        // wrapper every row still mounted at alpha 0 and animated, which is what
+        // made a flick through the list pop and shift.
+        EntryCascadeProvider {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(
+                    start = AlgoTokens.space6,
+                    end = AlgoTokens.space6,
+                    top = AlgoTokens.space4,
+                    bottom = AlgoTokens.space6
+                ),
+                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+            ) {
+                if (filteredAlgorithms.isEmpty()) {
+                    item {
+                        EmptyState(
+                            query = searchQuery,
+                            onClear = {
+                                searchQuery = ""
+                                selectedCategory = "All"
+                            }
+                        )
+                    }
+                } else {
+                    itemsIndexed(filteredAlgorithms, key = { _, algo -> algo.id }) { index, algo ->
+                        AlgoCard(
+                            algo = algo,
+                            onClick = { onAlgorithmClick(algo) },
+                            index = index
+                        )
+                    }
                 }
             }
         }

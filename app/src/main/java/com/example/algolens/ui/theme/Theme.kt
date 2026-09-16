@@ -290,6 +290,24 @@ object AlgoTokens {
     val entryStaggerMax: Int = 5
     /** Duration of a single item's rise+fade. */
     val entryDurationMs: Int = 220
+    /**
+     * Ceiling on *which* rows are choreographed at all, by list position. Only
+     * the rows a freshly mounted screen can actually show are allowed to enter;
+     * every deeper row is composed by scrolling, and a scroll-composed row must
+     * land at rest rather than fade up from zero under the user's thumb. Rows
+     * past this budget take the no-op fast path permanently.
+     */
+    val entryMaxItems: Int = 6
+    /**
+     * Total length of the mount entry cascade: the last stagger step, one full
+     * item entry, and a small margin. A row composed after this window has
+     * closed appears at rest — see [entryMaxItems] for the position budget.
+     *
+     * Declared *after* the three values it derives from on purpose: this is an
+     * `object`, so properties initialise in declaration order, and an up-front
+     * `entryWindowMs` would have been computed from three zeroes.
+     */
+    val entryWindowMs: Int = entryStaggerMax * entryStaggerMs + entryDurationMs + 120
     /** Press response spring — medium stiffness, no bounce. */
     val pressSpring = spring<Float>(
         dampingRatio = Spring.DampingRatioNoBouncy,

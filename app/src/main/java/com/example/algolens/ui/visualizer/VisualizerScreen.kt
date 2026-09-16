@@ -137,7 +137,16 @@ fun VisualizerScreen(
                             selectedCellIndices = state.challengeState.selectedIndices,
                             challengeTargetIndices = challengeTargets,
                             syncPulse = syncPulseState,
-                            onCellClick = { state.setCellSelected(it) },
+                            onCellClick = { idx ->
+                                // Prediction in flight: only the cells the question
+                                // actually offers are answerable. A stray tap can no
+                                // longer poison the selection that gets scored, and
+                                // taps on eligible cells are the same state the
+                                // prompt's own keys read and submit.
+                                if (!state.challengeInFlight || idx in challengeTargets) {
+                                    state.setCellSelected(idx)
+                                }
+                            },
                             state = state
                         )
                     } else {

@@ -19,12 +19,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -207,12 +210,26 @@ fun Modifier.pressPhysics(
         label = "pressBloom"
     )
 
-    return this
-        .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-            transformOrigin = TransformOrigin.Center
-        }
+    // At rest `bloom` is the constant `pressBloomFrom`, so this `remember`
+    // short-circuits and a scrolling list allocates no stroke at all. Without
+    // it, every row rebuilt a `Color.copy()` + `BorderStroke` on every
+    // recomposition the list produced while moving.
+    val stroke = remember(accent, bloom) {
+        BorderStroke(AlgoTokens.strokeThin, accent.copy(alpha = bloom))
+    }
+
+    // Attach a render layer only while the press is actually displacing the
+    // surface. `graphicsLayer` always allocates one, so applying it
+    // unconditionally parked a permanent offscreen layer on every row of a
+    // scrolling list — at rest, where it bought nothing and cost composition
+    // time on every frame the list moved.
+    val displaced = if (scale == 1f) this else this.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+        transformOrigin = TransformOrigin.Center
+    }
+
+    return displaced
         .pointerInput(enabled) {
             if (!enabled) return@pointerInput
             awaitPointerEventScope {
@@ -226,37 +243,81 @@ fun Modifier.pressPhysics(
                 }
             }
         }
-        .border(
-            border = BorderStroke(AlgoTokens.strokeThin, accent.copy(alpha = bloom)),
-            shape = shape
-        )
+        .border(border = stroke, shape = shape)
 }
 
 /**
- * M5 entry choreography: content never mounts statically. Each item rises
- * [AlgoTokens.entryRiseDistance] and fades in, staggered by [index] × 40ms.
- * Transform + opacity only — no layout-triggering properties.
+ * Screen-scoped, one-shot entry cascade — the M5 choreography gate.
  *
- * **Scroll safety.** The "has already entered" flag is *saveable*, so a
- * `LazyColumn` item that is disposed and re-composed — the normal case when the
- * user scrolls past it and back — resumes at rest instead of replaying its
- * entrance. Seeding this from plain `remember` meant every scroll-back remounted
- * the item invisible, waited out its stagger and slid up again: the popping.
+ * Wrap a screen's content in [EntryCascadeProvider] and items that opt in via
+ * [entryCascade] rise by [AlgoTokens.entryRiseDistance] and fade in once,
+ * staggered by index. The window then closes after [AlgoTokens.entryWindowMs]
+ * and from that moment [entryCascade] is a **no-op that hands back the modifier
+ * unchanged** — no `Animatable`, no coroutine, no `graphicsLayer`, no per-item
+ * offscreen render layer.
  *
- * The stagger is also clamped to [AlgoTokens.entryStaggerMax] steps. Uncapped,
- * row 12 of a long list sat blank for half a second before it even started, and
- * no one is watching a list entrance by then.
+ * **Why the gate exists.** The previous design decided *per item instance*
+ * whether to animate. That meant every row a `LazyColumn` composed after the
+ * initial mount — which is to say every row you scroll into — still started at
+ * `alpha = 0f`, held its layout space while invisible, waited out its stagger,
+ * then slid up. On a scrolling list that reads as content popping in and out and
+ * shifting, and it kept a render layer alive for every row in the list for as
+ * long as the list existed.
+ *
+ * A screen that never provides the gate silently takes the fast path, so
+ * omitting the provider degrades to "items appear at rest" — never to "items
+ * animate forever".
+ */
+@Stable
+class EntryCascade internal constructor() {
+    internal var isOpen by mutableStateOf(true)
+        private set
+
+    internal fun closeWindow() {
+        isOpen = false
+    }
+}
+
+private val LocalEntryCascade = staticCompositionLocalOf<EntryCascade?> { null }
+
+/** Opens the one-shot entry window for [content]; see [EntryCascade]. */
+@Composable
+fun EntryCascadeProvider(content: @Composable () -> Unit) {
+    val cascade = remember { EntryCascade() }
+    LaunchedEffect(cascade) {
+        delay(AlgoTokens.entryWindowMs.toLong())
+        cascade.closeWindow()
+    }
+    CompositionLocalProvider(LocalEntryCascade provides cascade, content = content)
+}
+
+/**
+ * Rise-and-fade entrance for row [index] of a freshly mounted screen. Returns
+ * `this` untouched once the cascade window has closed.
  */
 @Composable
-fun Modifier.entryCascade(
-    index: Int,
-    enabled: Boolean = true
-): Modifier {
+fun Modifier.entryCascade(index: Int): Modifier {
+    val cascade = LocalEntryCascade.current ?: return this
+    if (!cascade.isOpen) return this
+    // Position budget — the half of [AlgoTokens.entryMaxItems] that the stagger
+    // clamp alone did not enforce. Clamping only the *delay* still left every
+    // deeper row mounted at `alpha = 0f` for the length of the window, so a row
+    // scrolled into the viewport inside those ~520ms faded up from nothing
+    // under the user's thumb: content popping in and out, then shifting.
+    // Rows past the budget now take the no-op fast path from the first frame.
+    if (index >= AlgoTokens.entryMaxItems) return this
+    return entryCascadeInWindow(index)
+}
+
+@Composable
+private fun Modifier.entryCascadeInWindow(index: Int): Modifier {
     val rise = with(LocalDensity.current) { AlgoTokens.entryRiseDistance.toPx() }
-    var hasEntered by rememberSaveable { mutableStateOf(!enabled) }
+    // Saveable so an item disposed and re-composed *inside* the short window
+    // resumes at rest instead of restarting its entrance mid-flight.
+    var hasEntered by rememberSaveable { mutableStateOf(false) }
     val progress = remember { Animatable(if (hasEntered) 1f else 0f) }
 
-    LaunchedEffect(enabled) {
+    LaunchedEffect(Unit) {
         if (hasEntered) {
             if (progress.value != 1f) progress.snapTo(1f)
         } else {
