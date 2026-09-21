@@ -405,4 +405,69 @@ object AlgoGlyphs {
         circle(4.5f, 12f, 1.6f)
         circle(4.5f, 17.5f, 1.6f)
     }
+
+    val TrendingUp: ImageVector = glyph("AlgoGlyphs.TrendingUp") {
+        moveTo(22f, 7f); lineTo(13.5f, 15.5f); lineTo(8.5f, 10.5f); lineTo(2f, 17f)
+        moveTo(16f, 7f); lineTo(22f, 7f); lineTo(22f, 13f)
+    }
+
+    val TrendingDown: ImageVector = glyph("AlgoGlyphs.TrendingDown") {
+        moveTo(22f, 17f); lineTo(13.5f, 8.5f); lineTo(8.5f, 13.5f); lineTo(2f, 7f)
+        moveTo(16f, 17f); lineTo(22f, 17f); lineTo(22f, 11f)
+    }
+
+    val Trophy: ImageVector = glyph("AlgoGlyphs.Trophy") {
+        moveTo(6f, 9f); lineTo(6f, 4f); lineTo(18f, 4f); lineTo(18f, 9f)
+        arcToRelative(6f, 6f, 0f, false, true, -12f, 0f)
+        line(12f, 15f, 12f, 19f)
+        line(8f, 19f, 16f, 19f)
+        moveTo(6f, 6f); lineTo(3f, 6f); arcToRelative(3f, 3f, 0f, false, false, 3f, 3f)
+        moveTo(18f, 6f); lineTo(21f, 6f); arcToRelative(3f, 3f, 0f, false, true, -3f, 3f)
+    }
+
+    val Flame: ImageVector = glyph("AlgoGlyphs.Flame") {
+        moveTo(8.5f, 14.5f)
+        arcToRelative(3.5f, 3.5f, 0f, false, false, 7f, 0f)
+        curveToRelative(0f, -3.5f, -3.5f, -5f, -3.5f, -9.5f)
+        curveToRelative(-1f, 2.5f, -3.5f, 4f, -3.5f, 9.5f)
+        close()
+    }
+
+    val Gesture: ImageVector = glyph("AlgoGlyphs.Gesture") {
+        moveTo(4f, 14f)
+        curveToRelative(2f, -4f, 6f, -4f, 8f, 0f)
+        curveToRelative(2f, 4f, 6f, 4f, 8f, 0f)
+        moveTo(18f, 11f); lineTo(20f, 14f); lineTo(17f, 16f)
+    }
+
+    val Forward: ImageVector = glyph("AlgoGlyphs.Forward") {
+        line(5f, 12f, 19f, 12f)
+        moveTo(13f, 6f); lineTo(19f, 12f); lineTo(13f, 18f)
+    }
+
+    val Lightbulb: ImageVector = glyph("AlgoGlyphs.Lightbulb") {
+        moveTo(9f, 18f); lineTo(15f, 18f)
+        moveTo(10f, 21f); lineTo(14f, 21f)
+        moveTo(9f, 15f)
+        arcToRelative(6f, 6f, 0f, true, true, 6f, 0f)
+        lineTo(15f, 18f); lineTo(9f, 18f); close()
+    }
+
+    val Chat: ImageVector = glyph("AlgoGlyphs.Chat") {
+        roundRect(3.5f, 4f, 20.5f, 17f, 3f)
+        moveTo(8f, 17f); lineTo(5.5f, 20.5f); lineTo(11f, 17f)
+    }
+
+    val Send: ImageVector = glyph("AlgoGlyphs.Send") {
+        moveTo(21f, 3f); lineTo(10f, 14f)
+        moveTo(21f, 3f); lineTo(14.5f, 21f); lineTo(10f, 14f); lineTo(3f, 9.5f); close()
+    }
+
+    val Copy: ImageVector = glyph("AlgoGlyphs.Copy") {
+        roundRect(8f, 8f, 20.5f, 20.5f, 2f)
+        moveTo(4f, 16f); lineTo(4f, 4.5f)
+        quadTo(4f, 4f, 4.5f, 4f)
+        lineTo(16f, 4f)
+    }
 }
+

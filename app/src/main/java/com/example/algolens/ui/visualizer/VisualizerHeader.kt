@@ -17,15 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -178,7 +169,7 @@ private fun HeaderTitle(
         titleBase.copy(
             color = TextPrimary,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
+            letterSpacing = AlgoType.trackHeader,
         )
     }
     val stepCounterStyle = remember(counterBase) {

@@ -19,8 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -106,7 +105,7 @@ fun BufferVisualizer(
                     color = AccentOrange,
                     fontWeight = FontWeight.Bold,
                     fontSize = AlgoType.microSize,
-                    letterSpacing = 0.6.sp
+                    letterSpacing = AlgoType.trackTight
                 )
                 Text(
                     text = "Size: ${step.buffer.size} / ${step.bufferCapacity}",
@@ -290,7 +289,7 @@ private fun TopArrowIndicator(isActive: Boolean) {
             color = accent,
             fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 0.6.sp
+            letterSpacing = AlgoType.trackTight
         )
         Icon(
             imageVector = AlgoGlyphs.ArrowDown,

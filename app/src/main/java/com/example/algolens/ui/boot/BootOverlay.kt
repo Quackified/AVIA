@@ -86,7 +86,7 @@ fun BootOverlay(
                 text = "AVIA",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 4.sp,
+                    letterSpacing = AlgoType.trackBrand,
                 ),
                 color = TextSecondary,
             )

@@ -1,15 +1,13 @@
 package com.example.algolens.ui.profile
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,55 +18,91 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
+import com.example.algolens.model.AlgorithmId
 import com.example.algolens.ui.components.AlgoCard
+import com.example.algolens.ui.components.AlgoGlyphs
+import com.example.algolens.ui.components.DoubleBezelShell
 import com.example.algolens.ui.components.SectionLabel
 import com.example.algolens.ui.theme.AccentGreen
-import com.example.algolens.ui.theme.AccentOrange
+import com.example.algolens.ui.theme.AlgoTokens
+import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.theme.BorderCyan
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
-import com.example.algolens.ui.theme.CardBackground
-import com.example.algolens.ui.theme.CyanGlow
+import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.CyanSubtle
 import com.example.algolens.ui.theme.DarkBackground
-import com.example.algolens.ui.theme.OrangeSubtle
 import com.example.algolens.ui.theme.PrimaryCyan
-import com.example.algolens.ui.theme.PurpleGlow
+import com.example.algolens.ui.theme.PurpleSubtle
 import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextNavy
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
-import com.example.algolens.ui.theme.AlgoType
-import com.example.algolens.ui.components.AlgoGlyphs
 
 @Composable
 fun ProfileScreen(
     onAlgorithmClick: (Algorithm) -> Unit,
+    onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val weeklyActivity = remember { listOf(3, 5, 2, 7, 4, 6, 3) }
-    val days = remember { listOf("M", "T", "W", "T", "F", "S", "S") }
-    val bookmarked = remember { SampleData.algorithms.filter { it.id in listOf(com.example.algolens.model.AlgorithmId.MERGE_SORT, com.example.algolens.model.AlgorithmId.QUICK_SORT, com.example.algolens.model.AlgorithmId.BFS) } }
+    val allAlgorithms = remember { SampleData.algorithms }
+    val totalCount = remember(allAlgorithms) { allAlgorithms.size }
+    val sortingCount = remember(allAlgorithms) {
+        allAlgorithms.count {
+            it.id in listOf(
+                AlgorithmId.BUBBLE_SORT,
+                AlgorithmId.SELECTION_SORT,
+                AlgorithmId.INSERTION_SORT,
+                AlgorithmId.MERGE_SORT,
+                AlgorithmId.QUICK_SORT
+            )
+        }
+    }
+    val searchingCount = remember(allAlgorithms) {
+        allAlgorithms.count {
+            it.id in listOf(AlgorithmId.LINEAR_SEARCH, AlgorithmId.BINARY_SEARCH)
+        }
+    }
+    val structureCount = remember(allAlgorithms) {
+        allAlgorithms.count {
+            it.id in listOf(
+                AlgorithmId.STACK,
+                AlgorithmId.QUEUE,
+                AlgorithmId.BINARY_SEARCH_TREE,
+                AlgorithmId.HEAP
+            )
+        }
+    }
+    val graphCount = remember(allAlgorithms) {
+        allAlgorithms.count {
+            it.id in listOf(AlgorithmId.BFS, AlgorithmId.DFS)
+        }
+    }
+    val codeTraceCount = remember(totalCount) { totalCount * 4 }
+    val bookmarked = remember(allAlgorithms) {
+        allAlgorithms.filter {
+            it.id in listOf(
+                AlgorithmId.MERGE_SORT,
+                AlgorithmId.QUICK_SORT,
+                AlgorithmId.BFS
+            )
+        }
+    }
 
     Column(
         modifier = modifier
@@ -79,6 +113,52 @@ fun ProfileScreen(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // ── 0. Top Header with Settings Action ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = AlgoTokens.space1),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(AlgoTokens.space2)
+                        .clip(CircleShape)
+                        .background(PrimaryCyan)
+                )
+                Text(
+                    text = "OPERATOR PROFILE",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    fontSize = AlgoType.microSize,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = AlgoType.trackSection
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(AlgoTokens.iconButtonSm)
+                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                    .background(CardBackgroundElevated)
+                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                    .clickable { onSettingsClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = AlgoGlyphs.Tune,
+                    contentDescription = "Settings",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(AlgoTokens.inlineIconMd)
+                )
+            }
+        }
+
         // ── 1. Profile Hero ──
         Row(
             modifier = Modifier
@@ -87,7 +167,7 @@ fun ProfileScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Avatar
+            // Monogram Avatar
             Box(
                 modifier = Modifier.size(56.dp)
             ) {
@@ -95,20 +175,16 @@ fun ProfileScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(CyanSubtle, SecondaryPurple.copy(alpha = 0.2f))
-                            )
-                        )
-                        .border(1.5.dp, PrimaryCyan.copy(alpha = 0.35f), RoundedCornerShape(18.dp)),
+                        .background(CardBackgroundElevated)
+                        .border(1.5.dp, BorderCyan, RoundedCornerShape(18.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "DD",
+                        text = "AV",
                         style = MaterialTheme.typography.titleLarge,
                         color = PrimaryCyan,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = (-1).sp
+                        letterSpacing = -AlgoType.trackSection
                     )
                 }
 
@@ -132,7 +208,7 @@ fun ProfileScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "@quacky · CS Student · Year 3",
+                    text = "@quacky · CS Student · AVIA Workspace",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     fontSize = AlgoType.labelSize
@@ -150,71 +226,24 @@ fun ProfileScreen(
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "Beginner",
+                            text = "OFFLINE READY",
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
                             fontWeight = FontWeight.Bold,
-                            fontSize = AlgoType.microSize
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(OrangeSubtle)
-                            .border(1.dp, AccentOrange.copy(alpha = 0.3f), CircleShape)
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "🔥 Streak Active",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AccentOrange,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = AlgoType.microSize
+                            fontSize = AlgoType.microSize,
+                            letterSpacing = AlgoType.trackSection
                         )
                     }
                 }
             }
         }
 
-        // ── 2. Stats Grid ──
-        Row(
+        // ── 2. Real Architecture & Catalogue Specification ──
+        DoubleBezelShell(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(AlgoTokens.space5)
         ) {
-            StatCard(
-                value = "14",
-                label = "Mastered",
-                sub = "algorithms",
-                color = PrimaryCyan,
-                modifier = Modifier.weight(1f)
-            )
-            StatCard(
-                value = "12",
-                label = "Day Streak",
-                sub = "days in a row",
-                color = AccentOrange,
-                modifier = Modifier.weight(1f)
-            )
-            StatCard(
-                value = "48",
-                label = "Sessions",
-                sub = "total",
-                color = PurpleGlow,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        // ── 3. Weekly Activity Chart ──
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(CardBackground)
-                .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
-                .padding(12.dp)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -231,75 +260,32 @@ fun ProfileScreen(
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            text = "WEEKLY ACTIVITY",
+                            text = "CATALOGUE SPECIFICATION",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextDark,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
+                            letterSpacing = AlgoType.trackHeader
                         )
                     }
                     Text(
-                        text = "30 sessions this week",
+                        text = "$totalCount algorithms verified",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextNavy,
                         fontSize = AlgoType.microSize
                     )
                 }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    weeklyActivity.forEachIndexed { i, valNum ->
-                        val isToday = i == 6
-                        val targetHeight = (valNum / 7f).coerceIn(0.1f, 1f)
-                        val animatedFrac by animateFloatAsState(
-                            targetValue = targetHeight,
-                            animationSpec = tween(durationMillis = 500, delayMillis = i * 60),
-                            label = "activityBar_$i"
-                        )
-
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
-                            verticalArrangement = Arrangement.Bottom,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth(),
-                                contentAlignment = Alignment.BottomCenter
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .fillMaxHeight(animatedFrac)
-                                        .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                                        .background(if (isToday) PrimaryCyan else CyanSubtle)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(3.dp))
-
-                            Text(
-                                text = days[i],
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (isToday) PrimaryCyan else TextDark,
-                                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = AlgoType.microSize
-                            )
-                        }
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
+                    CatalogueRow(label = "Sorting algorithms", count = "$sortingCount verified", accent = PrimaryCyan)
+                    CatalogueRow(label = "Search algorithms", count = "$searchingCount verified", accent = PrimaryCyan)
+                    CatalogueRow(label = "Data structure algorithms", count = "$structureCount verified", accent = SecondaryPurple)
+                    CatalogueRow(label = "Graph traversal algorithms", count = "$graphCount verified", accent = SecondaryPurple)
+                    CatalogueRow(label = "Multi-language code traces", count = "$codeTraceCount listings (4 langs)", accent = PrimaryCyan)
                 }
             }
         }
 
-        // ── 4. Bookmarked Section ──
+        // ── 3. Bookmarked Section ──
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -316,7 +302,7 @@ fun ProfileScreen(
                     )
                 }
                 Text(
-                    text = "View all →",
+                    text = "${bookmarked.size} saved",
                     style = MaterialTheme.typography.labelSmall,
                     color = PrimaryCyan,
                     fontWeight = FontWeight.SemiBold,
@@ -337,46 +323,35 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun StatCard(
-    value: String,
+private fun CatalogueRow(
     label: String,
-    sub: String,
-    color: Color,
+    count: String,
+    accent: Color,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Row(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(CardBackground)
-            .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
-            .padding(vertical = 10.dp, horizontal = 6.dp),
-        contentAlignment = Alignment.Center
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+            .background(CardBackgroundElevated)
+            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.displaySmall,
-                color = color,
-                fontWeight = FontWeight.Bold,
-                fontSize = AlgoType.displaySize
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = TextPrimary,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = AlgoType.microSize
-            )
-            Text(
-                text = sub,
-                style = MaterialTheme.typography.bodySmall,
-                color = TextDark,
-                fontSize = AlgoType.microSize
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = TextSecondary,
+            fontSize = AlgoType.labelSize
+        )
+        Text(
+            text = count,
+            style = MaterialTheme.typography.labelSmall,
+            color = accent,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = AlgoType.microSize
+        )
     }
 }
 

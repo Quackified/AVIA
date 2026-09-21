@@ -16,11 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ErrorOutline
+
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -320,7 +316,7 @@ private fun ValuesField(
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 fontSize = AlgoType.microSize,
-                letterSpacing = 0.8.sp,
+                letterSpacing = AlgoType.trackSection,
                 fontWeight = FontWeight.Bold
             )
             if (validation is InputValidationResult.Valid) {
@@ -395,7 +391,7 @@ private fun SearchKeyField(
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted,
             fontSize = AlgoType.microSize,
-            letterSpacing = 0.8.sp,
+            letterSpacing = AlgoType.trackSection,
             fontWeight = FontWeight.Bold
         )
         Box(
@@ -458,7 +454,7 @@ private fun StartNodeDropdown(
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted,
             fontSize = AlgoType.microSize,
-            letterSpacing = 0.8.sp,
+            letterSpacing = AlgoType.trackSection,
             fontWeight = FontWeight.Bold
         )
         Box(

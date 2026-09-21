@@ -14,13 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SwapVert
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text

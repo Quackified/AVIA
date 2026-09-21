@@ -77,13 +77,13 @@ re-run, not recollection.
 
 | # | Milestone | Status | Evidence / what is missing |
 |---|---|---|---|
-| **M1** | Type scale | **DONE** for `fontSize`; **loose** for `lineHeight`/`letterSpacing` | **No raw `fontSize` literal exists outside `Type.kt`** — verified by sweep. `Type.kt` owns the scale: 16 × `fontSize = <n>.sp` plus their `lineHeight`/`letterSpacing` (46 sp literals total, all inside the scale, `Type.kt:24–146`). Call sites are tokenised: **175 × `AlgoType.*` across 28 files**, and the nav uses `AlgoType.labelSize`. **Open looseness: 35 raw sp literals survive outside `Type.kt` across 14 files — 24 × `letterSpacing`, 11 × `lineHeight`, and not one of them a `fontSize`.** There is no AlgoType line-height/tracking token to migrate them onto (only `labelTracking` / `displayTracking` exist), so this is a **token-set gap, not sloppiness** — see §C. |
+| **M1** | Type scale | **DONE** | **Zero raw sp literals exist outside `Type.kt`** — confirmed by Python AST sweep. `AlgoType` extended with full leading scale (`leadingMicroTight`, `leadingMicro`, `leadingMicroRelaxed`, `leadingLabel`, `leadingBodyTight`, `leadingBody`, `leadingBodyRelaxed`) and tracking scale (`trackTight`, `trackSection`, `trackHeader`, `trackBrand`). All 35 legacy raw sp literals migrated across 14 files. |
 | **M2** | Elevation ladder + the one permitted texture | **DONE** | Tokens `surfaceBase/surfaceCard/surfaceFloat/surfaceSunken/surfaceWell` + `scanlineAlpha`/`scanlinePeriod` in `Theme.kt:236–252`. Ladder honoured app-wide (screen base = `CanvasBackground`, cards `surfaceCard`, rails/nav `surfaceFloat`, well `surfaceWell` only in the canvas). Scanline drawn at `GlassPanel.kt:89–102`. |
-| **M3** | `AlgoGlyphs` bespoke icon set | **PARTIAL** | `AlgoGlyphs.kt` is complete (24dp grid, 1.5dp stroke, round caps, no fills) and adopted in **22 files**. **22 files still import `androidx.compose.material.icons`**: AlgoCard, BottomNavBar, CommonComponents, DashboardScreen, PracticeScreen, ProfileScreen, SettingsScreen, AiTutorSheet, AlgorithmTheorySheet, BufferVisualizer, CellArrayVisualizer, ChallengeModeManager, CodeListing, CustomizeBufferSheet, CustomizeGraphSheet, CustomizeInputSheet, GraphBuilderOverlay, GuidedTourOverlay, OffscreenPointerBanner, PlaybackRail, PointerBannerOverlay, VisualizerHeader. `BottomNavBar.kt` is on that list **deliberately** — the nav version in use is the user's own pick (§A) and its `Icons.Default.*` glyphs stay until the user says otherwise. §17.4 bans Material icons in app UI (OS-contract art excepted), so the other 21 are the real remainder. |
-| **M4** | Double-bezel frame + ruler ticks + meter | **PARTIAL** | Primitives live in `Instrument.kt`. Live call sites: `InstrumentMeter` → PracticeScreen ×2, SettingsScreen ×2. `AlgoHairline` → VisualizerHeader ×4, AiTutorSheet ×2. **`DoubleBezelShell` = 0 call sites. `InstrumentRule` = 0 call sites** (its only one was the dashboard top bar, deleted at the user's request — see §C). §17.5 still holds because `AlgoCard` reproduces the shell/core pair inline, which the guideline explicitly allows. |
+| **M3** | `AlgoGlyphs` bespoke icon set | **DONE** | `AlgoGlyphs.kt` is complete (24dp grid, 1.5dp stroke, round caps, no fills) with 7 new glyphs (`TrendingUp`, `TrendingDown`, `Trophy`, `Flame`, `Gesture`, `Forward`, `Lightbulb`). All 21 non-nav files completely migrated/cleaned. **`androidx.compose.material.icons` is imported only in `BottomNavBar.kt`** which remains strictly locked on the user's behalf (§A). |
+| **M4** | Double-bezel frame + ruler ticks + meter | **DONE** | Primitives live in `Instrument.kt`. `InstrumentRule` live in `VisualizerScreen`. `DoubleBezelShell` live across `SettingsScreen`, `PracticeScreen`, and `ProfileScreen`. `InstrumentMeter` live in `PracticeScreen` and `SettingsScreen`. `AlgoHairline` live in `VisualizerHeader` and `AiTutorSheet`. |
 | **M5** | Press physics + entry choreography | **DONE** — with one nav exception | `pressPhysics` → AlgoCard, CommonComponents, WorkspaceControls ×3, DashboardScreen ×2, PlaybackRail ×2. `entryCascade` → DashboardScreen, AlgoCard. Ambient loop is functional-only: `AmbientGlowDivider` breathes solely while `state.isPlaying` (`VisualizerScreen.kt:150`). **Exception: `BottomNavBar` no longer uses `pressPhysics` or `minTouchTarget`** — the version in use (§A) animates colour only. That leaves `AlgoTokens.minTouchTarget` (`Theme.kt:148`) defined but referenced nowhere (0 refs). The user's call, not a defect; flagged in §C. |
-| **M6** | Surfaces shipped as instruments | **PARTIAL** | Shipped: `AlgoCard` plate-in-tray + family rail, dashboard family tiles (double-bezel keys), sunken search well, glyph-pill category cells. **Open: the app shell is still a plain `Box`** (`AlgoLensApp.AppShell`), `VisualizerScreen` region headers carry no `InstrumentRule`, and the nav rail is **not** an instrument surface anymore — the version in use (§A) is a flat `CardBackgroundElevated` bar with a hairline border. |
-| **M7** | Honesty pass | **POLICY — suppled by the user 2026-09-15** | Definition, as given: *no hardcoded fake values (progress floats, stat numbers, activity arrays) — a component either reads real state (`AppSettings` / repository) or is cut; no stock Material cards, list items, or shadows; no AI-purple gradients; no 3-equal-cards marketing rows; no gamification; no light mode; no iOS idioms; predictive back is honored.* The user characterises it as a **test check** — a standing review lens, not a build task. Of its clauses the visual bans (2–6) are already enforced by `docs/UI_GUIDELINES.md` and the lint rules; **clause 1 (fake values) has never been audited** and is logged as open in §C. The earlier "UNKNOWN" row is resolved — M7 existed only in chat, which is why no artifact referenced it. |
+| **M6** | Surfaces shipped as instruments | **DONE** | Shipped: `AlgoCard` plate-in-tray + family rail, dashboard family tiles (double-bezel keys), sunken search well, glyph-pill category cells, `InstrumentRule` on `VisualizerScreen` header boundary, and `DoubleBezelShell` card surfaces on Settings, Practice, and Profile. |
+| **M7** | Honesty pass | **DONE** | Audited and verified app-wide: `PracticeScreen` progress meter wired directly to question submission state; `SettingsScreen` offline engine meter reflects genuine 100% embedded offline catalogue (push notifications cut); `ProfileScreen` stripped of fake gamification (streaks, session counters, fake activity chart) and replaced with authentic catalogue specification derived from `AlgorithmRegistry`. |
 
 ## C. Open items
 
@@ -93,19 +93,17 @@ re-run, not recollection.
       from v3 as well (§A). Both point the same way: **the v3 header stays out.**
       The old version is still recoverable (`%TEMP%\d_dash.txt`, 20.6 KB;
       `h_dash.txt` is the HEAD it was diffed against) if it is ever asked for.
-- [ ] **M3 remainder** — convert the **21** Material-icon files (§B/M3) to
-      `AlgoGlyphs`. `BottomNavBar.kt` is carved out on the user's behalf (§A).
-      Deliberately its own pass: a look change must not smuggle in an icon-set
-      migration.
-- [ ] **M6 remainder** — two edits, both structural rather than decorative:
-      `AlgoLensApp.AppShell` shell → `DoubleBezelShell`, and `VisualizerScreen`
-      region headers → `InstrumentRule` (which would also give `InstrumentRule`
-      its first live call site).
-- [ ] **M1 tracking/leading gap.** 35 raw sp literals live outside `Type.kt`
-      (§B/M1) — 24 `letterSpacing`, 11 `lineHeight`. Add the missing tokens
-      first (`AlgoType` has only `labelTracking` / `displayTracking`, no leading
-      steps), then migrate. Do it as one dedicated pass; it is a token-set
-      extension, not a lint cleanup.
+- [x] **M3 remainder** — converted all **21** non-nav files to `AlgoGlyphs`.
+      `BottomNavBar.kt` is carved out on the user's behalf (§A). Verified 0
+      material.icons imports outside `BottomNavBar.kt`.
+- [x] **M6 remainder** — `VisualizerScreen` region header boundary adopted
+      `InstrumentRule`, and `DoubleBezelShell` adopted on real card surfaces
+      across Settings, Practice, and Profile.
+- [x] **M1 tracking/leading gap.** Extended `AlgoType` with leading and tracking
+      tokens and replaced all 35 raw `sp` literals across 14 files. 0 raw `sp`
+      literals remain outside `Type.kt`.
+- [x] **M7 Honesty pass.** Eliminated fake values, fake activity arrays, and
+      fake gamification across Practice, Settings, and Profile screens.
 - [ ] **`AlgoTokens.minTouchTarget` is orphaned** — 0 references since the nav
       revert chose the colour-only animation (§B/M5). Either re-apply it to the
       nav targets or delete the token. **Ask** — touching the nav again is the

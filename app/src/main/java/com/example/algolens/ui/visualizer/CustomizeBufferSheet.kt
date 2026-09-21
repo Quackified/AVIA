@@ -19,13 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.RestartAlt
+
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -290,7 +284,7 @@ private fun BufferOpEditor(
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 fontSize = AlgoType.microSize,
-                letterSpacing = 0.8.sp,
+                letterSpacing = AlgoType.trackSection,
                 fontWeight = FontWeight.Bold
             )
             LazyRow(
@@ -334,7 +328,7 @@ private fun BufferOpEditor(
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 fontSize = AlgoType.microSize,
-                letterSpacing = 0.8.sp,
+                letterSpacing = AlgoType.trackSection,
                 fontWeight = FontWeight.Bold
             )
             Column(

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.CompassCalibration
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
@@ -43,8 +44,8 @@ import com.example.algolens.ui.theme.TextDark
 enum class NavTab(val label: String, val icon: ImageVector) {
     HOME("Home", Icons.Default.Home),
     EXPLORE("Explore", Icons.Default.Explore),
-    PROFILE("Profile", Icons.Default.Person),
-    SETTINGS("Settings", Icons.Default.Tune)
+    CHAT("Chat", Icons.Default.ChatBubble),
+    PROFILE("Profile", Icons.Default.Person)
 }
 
 @Composable

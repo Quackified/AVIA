@@ -21,6 +21,7 @@ import com.example.algolens.model.Algorithm
 import com.example.algolens.ui.boot.BootController
 import com.example.algolens.ui.boot.BootControllerEffect
 import com.example.algolens.ui.boot.BootOverlay
+import com.example.algolens.ui.chat.ChatScreen
 import com.example.algolens.ui.components.BottomNavBar
 import com.example.algolens.ui.components.NavTab
 import com.example.algolens.ui.dashboard.DashboardScreen
@@ -41,10 +42,15 @@ fun AlgoLensApp(
 
     var activeTab by remember { mutableStateOf(NavTab.HOME) }
     var selectedAlgorithm by remember { mutableStateOf<Algorithm?>(null) }
+    var showingSettings by remember { mutableStateOf(false) }
 
     // System back press handling
-    BackHandler(enabled = selectedAlgorithm != null) {
-        selectedAlgorithm = null
+    BackHandler(enabled = selectedAlgorithm != null || showingSettings) {
+        if (selectedAlgorithm != null) {
+            selectedAlgorithm = null
+        } else if (showingSettings) {
+            showingSettings = false
+        }
     }
 
     Box(
@@ -52,10 +58,7 @@ fun AlgoLensApp(
             .fillMaxSize()
             .background(CanvasBackground)
     ) {
-        // Crossfade between the boot overlay and the real app shell. The
-        // overlay fades out using AlgoTokens.panelSpring (600ms ceiling) once
-        // BootController.ready flips, so the dashboard mounts into the same
-        // dark workspace the OS splash revealed.
+        // Crossfade between the boot overlay and the real app shell.
         AnimatedContent(
             targetState = bootController.ready,
             transitionSpec = {
@@ -73,6 +76,9 @@ fun AlgoLensApp(
                     selectedAlgorithm = selectedAlgorithm,
                     onAlgorithmSelected = { selectedAlgorithm = it },
                     onAlgorithmCleared = { selectedAlgorithm = null },
+                    showingSettings = showingSettings,
+                    onOpenSettings = { showingSettings = true },
+                    onCloseSettings = { showingSettings = false },
                 )
             }
         }
@@ -90,6 +96,9 @@ private fun AppShell(
     selectedAlgorithm: Algorithm?,
     onAlgorithmSelected: (Algorithm) -> Unit,
     onAlgorithmCleared: () -> Unit,
+    showingSettings: Boolean,
+    onOpenSettings: () -> Unit,
+    onCloseSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize().background(CanvasBackground)) {
@@ -97,6 +106,10 @@ private fun AppShell(
             VisualizerScreen(
                 algorithm = selectedAlgorithm,
                 onBack = onAlgorithmCleared,
+            )
+        } else if (showingSettings) {
+            SettingsScreen(
+                onBack = onCloseSettings,
             )
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -116,14 +129,15 @@ private fun AppShell(
                                 onBack = { onTabSelected(NavTab.HOME) },
                             )
                         }
-                        NavTab.PROFILE -> {
-                            ProfileScreen(
+                        NavTab.CHAT -> {
+                            ChatScreen(
                                 onAlgorithmClick = onAlgorithmSelected,
                             )
                         }
-                        NavTab.SETTINGS -> {
-                            SettingsScreen(
-                                onBack = { onTabSelected(NavTab.HOME) },
+                        NavTab.PROFILE -> {
+                            ProfileScreen(
+                                onAlgorithmClick = onAlgorithmSelected,
+                                onSettingsClick = onOpenSettings,
                             )
                         }
                     }

@@ -17,15 +17,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DisplaySettings
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.WifiOff
+
 import androidx.compose.material3.Icon
 import com.example.algolens.data.AppSettings
 import com.example.algolens.ui.components.InstrumentMeter
@@ -74,8 +66,6 @@ fun SettingsScreen(
 ) {
     var selectedLanguage by remember { mutableStateOf("Kotlin") }
     var speedSlider by remember { mutableFloatStateOf(50f) }
-    var offlineEnabled by remember { mutableStateOf(true) }
-    var pushNotifications by remember { mutableStateOf(true) }
     var highContrast by remember { mutableStateOf(false) }
 
     val speedLabel = when {
@@ -235,9 +225,9 @@ fun SettingsScreen(
             }
         }
 
-        // ── 3. Offline Mode ──
+        // ── 3. Offline Engine ──
         SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Offline, text = "Offline Mode")
+            SectionLabel(icon = AlgoGlyphs.Offline, text = "Offline Engine")
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -246,25 +236,37 @@ fun SettingsScreen(
             ) {
                 Column {
                     Text(
-                        text = "Enable Offline Mode",
+                        text = "Embedded Architecture",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Cache algorithms for use without internet",
+                        text = "100% offline runtime · Zero network requests",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
                         fontSize = AlgoType.microSize
                     )
                 }
-                CustomSwitch(
-                    checked = offlineEnabled,
-                    onCheckedChange = { offlineEnabled = it }
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                        .background(CyanSubtle)
+                        .border(AlgoTokens.strokeThin, PrimaryCyan.copy(alpha = 0.3f), RoundedCornerShape(AlgoTokens.radiusSm))
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                ) {
+                    Text(
+                        text = "OFFLINE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PrimaryCyan,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = AlgoType.microSize,
+                        letterSpacing = AlgoType.trackSection
+                    )
+                }
             }
 
-            // Cache progress
+            // Engine status meter
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -279,13 +281,13 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Download progress",
+                            text = "Embedded catalogue",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
                             fontSize = AlgoType.microSize
                         )
                         Text(
-                            text = "68%",
+                            text = "100%",
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
                             fontWeight = FontWeight.Bold,
@@ -294,7 +296,7 @@ fun SettingsScreen(
                     }
 
                     InstrumentMeter(
-                        progress = { 0.68f },
+                        progress = { 1.0f },
                         accent = PrimaryCyan,
                         modifier = Modifier.fillMaxWidth(),
                         height = AlgoTokens.space4
@@ -305,13 +307,13 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "5 of 8 algorithms cached",
+                            text = "13 of 13 algorithms verified",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextDark,
                             fontSize = AlgoType.microSize
                         )
                         Text(
-                            text = "12.4 MB",
+                            text = "52 code traces",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextDark,
                             fontSize = AlgoType.microSize
@@ -332,37 +334,13 @@ fun SettingsScreen(
             ) {
                 Column {
                     Text(
-                        text = "Push Notifications",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Step completions & study reminders",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        fontSize = AlgoType.microSize
-                    )
-                }
-                CustomSwitch(checked = pushNotifications, onCheckedChange = { pushNotifications = it })
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
                         text = "High Contrast Labels",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Increase label visibility on bars",
+                        text = "Increase label visibility on bars and nodes",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
                         fontSize = AlgoType.microSize
@@ -517,19 +495,18 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsCard(
-    content: @Composable () -> Unit
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CardBackground)
-            .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp))
-            .padding(14.dp)
+    com.example.algolens.ui.components.DoubleBezelShell(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(AlgoTokens.space5)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            content()
-        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4),
+            content = content
+        )
     }
 }
 

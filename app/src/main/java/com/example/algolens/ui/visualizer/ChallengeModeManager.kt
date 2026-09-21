@@ -18,14 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.TouchApp
+
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -627,7 +620,7 @@ private fun PromptHeader(state: ChallengeState) {
             color = PrimaryCyan,
             fontWeight = FontWeight.Bold,
             fontSize = AlgoType.microSize,
-            letterSpacing = 0.8.sp
+            letterSpacing = AlgoType.trackSection
         )
     }
 }
@@ -655,13 +648,13 @@ private fun PredictionPromptBody(
                 style = MaterialTheme.typography.bodySmall,
                 color = TextPrimary,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = AlgoType.labelSize, lineHeight = 13.sp, maxLines = 2,
+                fontSize = AlgoType.labelSize, lineHeight = AlgoType.leadingMicroRelaxed, maxLines = 2,
             )
             Text(
                 text = question.contextLine,
                 style = MaterialTheme.typography.labelSmall,
                 color = TextSecondary,
-                fontSize = AlgoType.microSize, lineHeight = 11.sp, maxLines = 1,
+                fontSize = AlgoType.microSize, lineHeight = AlgoType.leadingMicroTight, maxLines = 1,
             )
         }
         when (question.kind) {
@@ -820,7 +813,7 @@ private fun FeedbackRow(
             text = (if (feedback.isCorrect) "CORRECT (+${feedback.pointsAwarded} PTS) " else "INCORRECT ") + feedback.message,
             style = MaterialTheme.typography.bodySmall,
             color = if (feedback.isCorrect) AccentGreen else AccentRed,
-            fontSize = AlgoType.microSize, lineHeight = 12.sp,
+            fontSize = AlgoType.microSize, lineHeight = AlgoType.leadingMicro,
             modifier = Modifier.weight(1f), maxLines = 2,
         )
         Box(

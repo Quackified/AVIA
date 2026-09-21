@@ -22,9 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.Bolt
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -108,7 +106,7 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Bolt,
+                        imageVector = AlgoGlyphs.Bolt,
                         contentDescription = null,
                         tint = PrimaryCyan,
                         modifier = Modifier.size(16.dp)
@@ -138,7 +136,7 @@ fun DashboardScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                    imageVector = AlgoGlyphs.TrendingUp,
                     contentDescription = "Trending",
                     tint = PrimaryCyan,
                     modifier = Modifier.size(16.dp)
@@ -193,7 +191,7 @@ fun DashboardScreen(
         ) {
             val families = listOf(
                 Triple("Sorting", AlgoGlyphs.SwapVert, PrimaryCyan),
-                Triple("Searching", AlgoGlyphs.Search, AlgoTokens.accentYellow),
+                Triple("Searching", AlgoGlyphs.Search, AlgoTokens.accentPurple),
                 Triple("Data Structures", AlgoGlyphs.Stack, AccentOrange),
                 Triple("Graph Traversal", AlgoGlyphs.Tree, AlgoTokens.accentGreen),
             )

@@ -28,13 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.WarningAmber
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -584,7 +578,7 @@ fun AlgorithmTheorySheet(
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 fontSize = AlgoType.bodySize,
-                lineHeight = 16.sp
+                lineHeight = AlgoType.leadingBody
             )
 
             // ── Complexity Matrix Card ──
@@ -602,7 +596,7 @@ fun AlgorithmTheorySheet(
                         style = MaterialTheme.typography.labelSmall,
                         color = PrimaryCyan,
                         fontSize = AlgoType.microSize,
-                        letterSpacing = 0.8.sp,
+                        letterSpacing = AlgoType.trackSection,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -633,7 +627,7 @@ fun AlgorithmTheorySheet(
                     style = MaterialTheme.typography.labelSmall,
                     color = TextMuted,
                     fontSize = AlgoType.microSize,
-                    letterSpacing = 0.8.sp,
+                    letterSpacing = AlgoType.trackSection,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -663,7 +657,7 @@ fun AlgorithmTheorySheet(
                             style = MaterialTheme.typography.bodySmall,
                             color = TextPrimary,
                             fontSize = AlgoType.labelSize,
-                            lineHeight = 14.sp,
+                            lineHeight = AlgoType.leadingLabel,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -677,7 +671,7 @@ fun AlgorithmTheorySheet(
                     style = MaterialTheme.typography.labelSmall,
                     color = AccentGreen,
                     fontSize = AlgoType.microSize,
-                    letterSpacing = 0.8.sp,
+                    letterSpacing = AlgoType.trackSection,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -698,7 +692,7 @@ fun AlgorithmTheorySheet(
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary,
                             fontSize = AlgoType.labelSize,
-                            lineHeight = 14.sp,
+                            lineHeight = AlgoType.leadingLabel,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -712,7 +706,7 @@ fun AlgorithmTheorySheet(
                     style = MaterialTheme.typography.labelSmall,
                     color = AccentPink,
                     fontSize = AlgoType.microSize,
-                    letterSpacing = 0.8.sp,
+                    letterSpacing = AlgoType.trackSection,
                     fontWeight = FontWeight.Bold
                 )
 
@@ -733,7 +727,7 @@ fun AlgorithmTheorySheet(
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary,
                             fontSize = AlgoType.labelSize,
-                            lineHeight = 14.sp,
+                            lineHeight = AlgoType.leadingLabel,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -772,7 +766,7 @@ fun AlgorithmTheorySheet(
                             style = MaterialTheme.typography.bodySmall,
                             color = TextPrimary,
                             fontSize = AlgoType.labelSize,
-                            lineHeight = 13.sp
+                            lineHeight = AlgoType.leadingMicroRelaxed
                         )
                     }
                 }

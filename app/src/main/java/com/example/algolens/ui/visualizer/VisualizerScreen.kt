@@ -123,6 +123,11 @@ fun VisualizerScreen(
                     onBack = onBack
                 )
 
+                // Instrument ruler along canvas header boundary (M6)
+                com.example.algolens.ui.components.InstrumentRule(
+                    accent = spec?.id?.accent ?: AlgoTokens.accentCyan
+                )
+
                 // Canvas (65% weight)
                 Box(
                     modifier = Modifier

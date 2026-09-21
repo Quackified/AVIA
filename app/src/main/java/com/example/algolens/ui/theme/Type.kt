@@ -160,4 +160,23 @@ object AlgoType {
     val labelTracking: TextUnit = 0.08.sp
     /** Display tracking for large numerals / wordmarks. */
     val displayTracking: TextUnit = (-0.03).sp
+
+    // ── Leading (lineHeight) scale ──
+    val leadingMicroTight: TextUnit = 11.sp
+    val leadingMicro: TextUnit = 12.sp
+    val leadingMicroRelaxed: TextUnit = 13.sp
+    val leadingLabel: TextUnit = 14.sp
+    val leadingBodyTight: TextUnit = 15.sp
+    val leadingBody: TextUnit = 16.sp
+    val leadingBodyDefault: TextUnit = 17.sp
+    val leadingBodyRelaxed: TextUnit = 18.sp
+    val leadingTitle: TextUnit = 21.sp
+    val leadingDisplay: TextUnit = 34.sp
+
+    // ── Tracking (letterSpacing) scale ──
+    val trackTight: TextUnit = 0.6.sp
+    val trackSection: TextUnit = 0.8.sp
+    val trackHeader: TextUnit = 1.sp
+    val trackBrand: TextUnit = 4.sp
 }
+

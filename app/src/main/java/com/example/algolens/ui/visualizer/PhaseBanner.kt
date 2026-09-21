@@ -100,7 +100,7 @@ fun PhaseBanner(
                     color = phaseColor,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = AlgoType.microSize,
-                    letterSpacing = 0.6.sp
+                    letterSpacing = AlgoType.trackTight
                 )
             }
 
