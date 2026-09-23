@@ -62,6 +62,7 @@ import com.example.algolens.ui.components.AlgoGlyphs
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onReplayOnboarding: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedLanguage by remember { mutableStateOf("Kotlin") }
@@ -432,7 +433,55 @@ fun SettingsScreen(
             }
         }
 
-        // ── 6. Data Management (Danger Zone) ──
+        // ── 6. Guidance & Workspace Tour ──
+        if (onReplayOnboarding != null) {
+            SettingsCard {
+                SectionLabel(icon = AlgoGlyphs.Spark, text = "Workspace Tour")
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                        .background(CyanSubtle)
+                        .border(
+                            AlgoTokens.strokeThin,
+                            PrimaryCyan.copy(alpha = 0.35f),
+                            RoundedCornerShape(AlgoTokens.radiusSm)
+                        )
+                        .clickable { onReplayOnboarding() }
+                        .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                    ) {
+                        Icon(
+                            imageVector = AlgoGlyphs.Spark,
+                            contentDescription = null,
+                            tint = PrimaryCyan,
+                            modifier = Modifier.size(AlgoTokens.inlineIconMd)
+                        )
+                        Text(
+                            text = "Replay Onboarding Tour",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = PrimaryCyan,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Text(
+                        text = "3 Slides",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                        fontSize = AlgoType.microSize
+                    )
+                }
+            }
+        }
+
+        // ── 7. Data Management (Danger Zone) ──
         SettingsCard {
             SectionLabel(icon = AlgoGlyphs.Storage, text = "Data Management")
 

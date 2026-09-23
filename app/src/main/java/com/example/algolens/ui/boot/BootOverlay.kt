@@ -1,51 +1,63 @@
 package com.example.algolens.ui.boot
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.algolens.ui.components.AviaLogo
 import com.example.algolens.ui.theme.AlgoTokens
-import com.example.algolens.ui.theme.DarkBackground
-import com.example.algolens.ui.theme.PrimaryCyan
-import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.AlgoType
+import com.example.algolens.ui.theme.CanvasBackground
+import com.example.algolens.ui.theme.PrimaryCyan
+import com.example.algolens.ui.theme.SecondaryPurple
+import com.example.algolens.ui.theme.TextDark
+import com.example.algolens.ui.theme.TextMuted
+import com.example.algolens.ui.theme.TextSecondary
+import kotlin.math.PI
+import kotlin.math.sin
 
 /**
- * In-Compose boot overlay: the dark workspace background, a 1dp `PrimaryCyan`
- * progress bar along the top edge, and the `ALGOLENS` wordmark in JetBrains
- * Mono underneath the same geometric boot mark used by the OS splash.
+ * In-Compose boot screen ("AVIA Logo and Text Splash"):
+ * Renders the AVIA logo inside a smooth orbital sweep halo, the brand wordmark,
+ * and an algorithmic harmonic wave loader.
  *
- * Animation:
- *  - Progress bar width animates `0f → 1f` over [holdDurationMs] using a linear
- *    tick (this is a progress indicator, not a "decorative" transition — see
- *    UI_GUIDELINES.md §14 exception for status indicators).
- *  - Overall overlay alpha fades from 1f → 0f once `controller.ready == true`
- *    using [AlgoTokens.panelSpring] (600ms ceiling), so the dashboard mounts
- *    into the same workspace the splash revealed.
- *
- * Tokens only: `PrimaryCyan`, `DarkBackground`, `TextSecondary`, `AlgoTokens`.
- * No raw `Color(0xFF…)`. No linear decorative tweens.
+ * Tap anywhere during the sequence to immediately fast-forward into the workspace.
  */
 @Composable
 fun BootOverlay(
@@ -54,9 +66,9 @@ fun BootOverlay(
 ) {
     val progress by animateFloatAsState(
         targetValue = if (controller.ready) 1f else 0f,
-        animationSpec = androidx.compose.animation.core.tween(
+        animationSpec = tween(
             durationMillis = controller.holdDurationMs.toInt(),
-            easing = androidx.compose.animation.core.LinearEasing,
+            easing = LinearEasing,
         ),
         label = "BootProgress",
     )
@@ -67,98 +79,191 @@ fun BootOverlay(
         label = "BootFadeOut",
     )
 
+    val infiniteTransition = rememberInfiniteTransition(label = "BootLoadingMechanic")
+
+    // Smooth 360-degree orbital rotation for the logo ring
+    val orbitAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1600, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "OrbitAngle"
+    )
+
+    // Continuous phase for the algorithmic bar wave loader
+    val wavePhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "WavePhase"
+    )
+
+    val logoScale by infiniteTransition.animateFloat(
+        initialValue = 0.96f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "LogoScale"
+    )
+
+    val statusText = when {
+        progress < 0.4f -> "INITIALIZING INVARIANT CORE"
+        progress < 0.8f -> "CALIBRATING ALGORITHMIC MODULES"
+        else -> "WORKSPACE READY"
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBackground)
+            .background(CanvasBackground)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                controller.markReady()
+            }
+            .graphicsLayer { this.alpha = alpha }
             .systemBarsPadding(),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space6),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5),
+            modifier = Modifier.padding(horizontal = AlgoTokens.space7)
         ) {
-            BootMarkCanvas(
-                modifier = Modifier.size(AlgoTokens.bootMarkSize),
-                tint = PrimaryCyan,
-            )
-            Text(
-                text = "AVIA",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = AlgoType.trackBrand,
-                ),
-                color = TextSecondary,
-            )
-            Text(
-                text = "loading workspace",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = AlgoType.labelSize,
-                    fontWeight = FontWeight.Normal,
-                ),
-                color = TextSecondary.copy(alpha = 0.6f),
-            )
+            // Hero AVIA Logo inside an orbital precision spinner ring
+            Box(
+                modifier = Modifier.size(88.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokePx = 2.dp.toPx()
+                    // Subtle static track ring
+                    drawCircle(
+                        color = PrimaryCyan.copy(alpha = 0.10f),
+                        style = Stroke(width = 1.dp.toPx())
+                    )
+                    // Rotating sweep gradient arc
+                    rotate(degrees = orbitAngle) {
+                        drawArc(
+                            brush = Brush.sweepGradient(
+                                0.0f to Color.Transparent,
+                                0.55f to SecondaryPurple.copy(alpha = 0.35f),
+                                0.85f to PrimaryCyan.copy(alpha = 0.9f),
+                                1.0f to PrimaryCyan
+                            ),
+                            startAngle = 0f,
+                            sweepAngle = 270f,
+                            useCenter = false,
+                            style = Stroke(width = strokePx, cap = StrokeCap.Round)
+                        )
+                    }
+                }
+
+                AviaLogo(
+                    size = 48.dp,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = logoScale
+                        scaleY = logoScale
+                    }
+                )
+            }
+
+            // Brand Wordmark
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "AVIA",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = AlgoType.trackBrand,
+                    ),
+                    color = PrimaryCyan,
+                )
+                Spacer(modifier = Modifier.height(AlgoTokens.space1))
+                Text(
+                    text = "ALGORITHM VISUALIZER & INTELLIGENCE ASSISTANT",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = AlgoType.microSize,
+                        letterSpacing = AlgoType.trackSection,
+                    ),
+                    color = TextMuted,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(AlgoTokens.space3))
+
+            // Algorithmic Bar Wave Loading Mechanic + Status Readout
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+            ) {
+                AlgorithmicWaveLoader(phase = wavePhase)
+
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = AlgoType.trackSection,
+                    ),
+                    color = TextSecondary,
+                )
+            }
         }
 
-        // 1dp PrimaryCyan progress bar pinned to the top edge.
-        Box(
+        // Tap to skip hint at bottom edge
+        Text(
+            text = "TAP ANYWHERE TO SKIP",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = AlgoType.microSize,
+                letterSpacing = AlgoType.trackSection,
+            ),
+            color = TextDark,
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(DarkBackground),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(progress)
-                    .height(1.dp)
-                    .background(PrimaryCyan),
-            )
-        }
+                .align(Alignment.BottomCenter)
+                .padding(bottom = AlgoTokens.space7)
+        )
     }
 }
 
 /**
- * Mirrors the OS-splash `ic_boot_mark` vector but drawn in Compose so the
- * in-Compose overlay matches the splash pixel-for-pixel without needing a
- * drawable lookup at runtime. Material "Bolt" glyph + small accent dot —
- * the same mark the dashboard uses for its logo.
+ * 5-bar staggered harmonic wave loader inspired by AVIA's sorting bar visualizer.
  */
 @Composable
-private fun BootMarkCanvas(
-    modifier: Modifier = Modifier,
-    tint: Color,
+private fun AlgorithmicWaveLoader(
+    phase: Float,
+    modifier: Modifier = Modifier
 ) {
-    Canvas(modifier = modifier) {
-        val stroke = 1.5.dp.toPx()
-        // The vector lives in a 108×108 viewport. Scale every coordinate
-        // proportionally to the actual canvas so the bolt stays centred
-        // inside whatever size the modifier requests.
-        val unit = size.minDimension / 108f
-        fun px(x: Float, y: Float) = Offset(x * unit, y * unit)
+    val barCount = 5
+    Row(
+        modifier = modifier.height(22.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        for (i in 0 until barCount) {
+            val offset = i * 0.65f
+            val normalized = ((sin(phase - offset) + 1f) / 2f).coerceIn(0f, 1f)
+            val barHeight = 6.dp + (14.dp * normalized)
+            val barColor = if (normalized > 0.6f) {
+                PrimaryCyan.copy(alpha = 0.55f + 0.45f * normalized)
+            } else {
+                SecondaryPurple.copy(alpha = 0.35f + 0.45f * normalized)
+            }
 
-        // Bolt path — same coordinates as ic_boot_mark.xml, scaled to canvas.
-        val bolt = androidx.compose.ui.graphics.Path().apply {
-            moveTo(px(55.35f, 40.5f).x,  px(55.35f, 40.5f).y)  // top tip
-            lineTo(px(41.85f, 56.7f).x,  px(41.85f, 56.7f).y)  // bottom-left tip
-            lineTo(px(54f,    56.7f).x,  px(54f,    56.7f).y)  // lower notch
-            lineTo(px(52.65f, 67.5f).x,  px(52.65f, 67.5f).y)  // bottom tip
-            lineTo(px(66.15f, 51.3f).x,  px(66.15f, 51.3f).y)  // top-right tip
-            lineTo(px(54f,    51.3f).x,  px(54f,    51.3f).y)  // upper notch
-            close()
+            Box(
+                modifier = Modifier
+                    .width(3.5.dp)
+                    .height(barHeight)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(barColor)
+            )
         }
-        drawPath(
-            path = bolt,
-            color = tint,
-            style = Stroke(width = stroke, cap = StrokeCap.Round, join = StrokeJoin.Round),
-        )
-
-        // Accent dot — sits just outside the upper-right tip of the bolt.
-        // 1dp radius at (68, 44) of the 108dp viewport, scaled to canvas.
-        drawCircle(
-            color = tint,
-            radius = unit * 1f,
-            center = px(68f, 44f),
-        )
     }
 }

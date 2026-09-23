@@ -65,12 +65,8 @@ class BootControllerTest {
 
     @Test
     fun defaultHoldIsSnappy() {
-        // 300ms — long enough for the bolt icon to register, short enough
-        // not to read as "the app is stuck loading." Locked here so a future
-        // change that drifts back toward 600ms (the panelSpring ceiling)
-        // catches this test and forces a deliberate decision.
-        assertEquals(300L, BootController.DEFAULT_HOLD_MS)
-        assertEquals(300L, BootController().holdDurationMs)
+        assertEquals(1800L, BootController.DEFAULT_HOLD_MS)
+        assertEquals(1800L, BootController().holdDurationMs)
     }
 
     @Test

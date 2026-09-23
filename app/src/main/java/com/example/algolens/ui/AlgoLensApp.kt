@@ -17,6 +17,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import com.example.algolens.data.UserPreferences
 import com.example.algolens.model.Algorithm
 import com.example.algolens.ui.boot.BootController
 import com.example.algolens.ui.boot.BootControllerEffect
@@ -25,12 +27,19 @@ import com.example.algolens.ui.chat.ChatScreen
 import com.example.algolens.ui.components.BottomNavBar
 import com.example.algolens.ui.components.NavTab
 import com.example.algolens.ui.dashboard.DashboardScreen
+import com.example.algolens.ui.onboarding.OnboardingScreen
 import com.example.algolens.ui.practice.PracticeScreen
 import com.example.algolens.ui.profile.ProfileScreen
 import com.example.algolens.ui.settings.SettingsScreen
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.visualizer.VisualizerScreen
+
+private enum class RootStage {
+    BOOT,
+    ONBOARDING,
+    APP
+}
 
 @Composable
 fun AlgoLensApp(
@@ -40,17 +49,29 @@ fun AlgoLensApp(
     // Drive the boot countdown from the moment the root composition mounts.
     BootControllerEffect(bootController)
 
+    val context = LocalContext.current
+    var replayingOnboarding by remember { mutableStateOf(false) }
+    val showOnboarding = !UserPreferences.hasCompletedOnboarding || replayingOnboarding
+
     var activeTab by remember { mutableStateOf(NavTab.HOME) }
     var selectedAlgorithm by remember { mutableStateOf<Algorithm?>(null) }
     var showingSettings by remember { mutableStateOf(false) }
 
     // System back press handling
-    BackHandler(enabled = selectedAlgorithm != null || showingSettings) {
-        if (selectedAlgorithm != null) {
+    BackHandler(enabled = replayingOnboarding || selectedAlgorithm != null || showingSettings) {
+        if (replayingOnboarding) {
+            replayingOnboarding = false
+        } else if (selectedAlgorithm != null) {
             selectedAlgorithm = null
         } else if (showingSettings) {
             showingSettings = false
         }
+    }
+
+    val rootStage = when {
+        !bootController.ready -> RootStage.BOOT
+        showOnboarding -> RootStage.ONBOARDING
+        else -> RootStage.APP
     }
 
     Box(
@@ -58,28 +79,40 @@ fun AlgoLensApp(
             .fillMaxSize()
             .background(CanvasBackground)
     ) {
-        // Crossfade between the boot overlay and the real app shell.
+        // Crossfade between the boot overlay, onboarding tour, and real app shell.
         AnimatedContent(
-            targetState = bootController.ready,
+            targetState = rootStage,
             transitionSpec = {
                 (fadeIn(animationSpec = AlgoTokens.panelFadeSpring) togetherWith
                     fadeOut(animationSpec = AlgoTokens.panelFadeSpring))
             },
-            label = "BootToApp",
-        ) { isReady ->
-            if (!isReady) {
-                BootOverlay(controller = bootController)
-            } else {
-                AppShell(
-                    activeTab = activeTab,
-                    onTabSelected = { activeTab = it },
-                    selectedAlgorithm = selectedAlgorithm,
-                    onAlgorithmSelected = { selectedAlgorithm = it },
-                    onAlgorithmCleared = { selectedAlgorithm = null },
-                    showingSettings = showingSettings,
-                    onOpenSettings = { showingSettings = true },
-                    onCloseSettings = { showingSettings = false },
-                )
+            label = "RootStageTransition",
+        ) { stage ->
+            when (stage) {
+                RootStage.BOOT -> {
+                    BootOverlay(controller = bootController)
+                }
+                RootStage.ONBOARDING -> {
+                    OnboardingScreen(
+                        onComplete = {
+                            UserPreferences.setOnboardingCompleted(context, true)
+                            replayingOnboarding = false
+                        }
+                    )
+                }
+                RootStage.APP -> {
+                    AppShell(
+                        activeTab = activeTab,
+                        onTabSelected = { activeTab = it },
+                        selectedAlgorithm = selectedAlgorithm,
+                        onAlgorithmSelected = { selectedAlgorithm = it },
+                        onAlgorithmCleared = { selectedAlgorithm = null },
+                        showingSettings = showingSettings,
+                        onOpenSettings = { showingSettings = true },
+                        onCloseSettings = { showingSettings = false },
+                        onReplayOnboarding = { replayingOnboarding = true },
+                    )
+                }
             }
         }
     }
@@ -99,6 +132,7 @@ private fun AppShell(
     showingSettings: Boolean,
     onOpenSettings: () -> Unit,
     onCloseSettings: () -> Unit,
+    onReplayOnboarding: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize().background(CanvasBackground)) {
@@ -110,6 +144,7 @@ private fun AppShell(
         } else if (showingSettings) {
             SettingsScreen(
                 onBack = onCloseSettings,
+                onReplayOnboarding = onReplayOnboarding,
             )
         } else {
             Column(modifier = Modifier.fillMaxSize()) {

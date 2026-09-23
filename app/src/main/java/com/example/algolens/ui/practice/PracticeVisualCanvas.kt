@@ -139,11 +139,15 @@ fun PracticeVisualCanvas(
 private fun LinearSnapshotView(
     snapshot: PracticeSnapshot.LinearSnapshot
 ) {
+    val hasTopPointers = snapshot.topPointers.isNotEmpty()
+    val hasBottomPointers = snapshot.bottomPointers.isNotEmpty()
+    val pointerBadgeHeight = AlgoTokens.space5 + AlgoTokens.space4 // 20.dp
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(AlgoTokens.minTouchTarget * 2.5f)
-            .padding(vertical = AlgoTokens.space2),
+            .height(AlgoTokens.minTouchTarget * 3.4f)
+            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space2),
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
         verticalAlignment = Alignment.Bottom
     ) {
@@ -162,7 +166,13 @@ private fun LinearSnapshotView(
                 state == ElementState.SORTED || state == ElementState.FOUND -> AccentGreen
                 state == ElementState.TARGET -> AccentPink
                 state == ElementState.ACTIVE -> PrimaryCyan
-                topPointer != null -> SecondaryPurple
+                topPointer != null -> when (topPointer.uppercase()) {
+                    "L" -> PrimaryCyan
+                    "R" -> SecondaryPurple
+                    "PIVOT", "MIN" -> AccentYellow
+                    "TARGET" -> AccentPink
+                    else -> SecondaryPurple
+                }
                 else -> BarUnsorted
             }
 
@@ -175,47 +185,48 @@ private fun LinearSnapshotView(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Top Pointer Indicator
-                Box(
-                    modifier = Modifier.height(AlgoTokens.space5),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (topPointer != null) {
-                        val badgeBg = when (topPointer.uppercase()) {
-                            "PIVOT" -> PurpleSubtle
-                            "MIN" -> YellowSubtle
-                            "TARGET" -> PinkSubtle
-                            "KEY" -> PurpleSubtle
-                            else -> CyanSubtle
-                        }
-                        val badgeColor = when (topPointer.uppercase()) {
-                            "PIVOT" -> PurpleGlow
-                            "MIN" -> AccentYellow
-                            "TARGET" -> AccentPink
-                            "KEY" -> SecondaryPurple
-                            else -> PrimaryCyan
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                                .background(badgeBg)
-                                .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
-                        ) {
-                            Text(
-                                text = topPointer,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = badgeColor,
-                                fontSize = AlgoType.microSize,
-                                fontWeight = FontWeight.Bold
-                            )
+                if (hasTopPointers) {
+                    Box(
+                        modifier = Modifier.height(pointerBadgeHeight),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (topPointer != null) {
+                            val (badgeBg, badgeColor) = when (topPointer.uppercase()) {
+                                "PIVOT", "MIN" -> YellowSubtle to AccentYellow
+                                "TARGET" -> PinkSubtle to AccentPink
+                                "KEY", "HIGH" -> PurpleSubtle to SecondaryPurple
+                                "L", "LOW", "MID", "I" -> CyanSubtle to PrimaryCyan
+                                "R", "J" -> PurpleSubtle to SecondaryPurple
+                                else -> CyanSubtle to PrimaryCyan
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                    .background(badgeBg)
+                                    .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = topPointer.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = badgeColor,
+                                    fontSize = AlgoType.microSize,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(AlgoTokens.space1))
                 }
 
                 // Bar Fill
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(horizontal = AlgoTokens.space1),
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     Box(
@@ -235,29 +246,54 @@ private fun LinearSnapshotView(
                     style = MaterialTheme.typography.labelSmall,
                     color = if (state != ElementState.IDLE) barColor else TextPrimary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = AlgoType.microSize
+                    fontSize = AlgoType.microSize,
+                    maxLines = 1
                 )
 
-                // Bottom Pointer / Index
-                Box(
-                    modifier = Modifier.height(AlgoTokens.space5),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (bottomPointer != null) {
-                        Text(
-                            text = bottomPointer,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AccentYellow,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = AlgoType.microSize
-                        )
-                    } else {
-                        Text(
-                            text = idx.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextDark,
-                            fontSize = AlgoType.microSize
-                        )
+                // Index Label
+                Text(
+                    text = idx.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextDark,
+                    fontSize = AlgoType.microSize,
+                    maxLines = 1
+                )
+
+                // Bottom Pointer Indicator
+                if (hasBottomPointers) {
+                    Spacer(modifier = Modifier.height(AlgoTokens.space1))
+                    Box(
+                        modifier = Modifier.height(pointerBadgeHeight),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (bottomPointer != null) {
+                            val (badgeBg, badgeColor) = when (bottomPointer.uppercase()) {
+                                "L", "LOW", "I", "MID" -> CyanSubtle to PrimaryCyan
+                                "R", "HIGH", "J" -> PurpleSubtle to SecondaryPurple
+                                "KEY" -> PurpleSubtle to SecondaryPurple
+                                "TARGET" -> PinkSubtle to AccentPink
+                                "FOUND" -> GreenSubtle to AccentGreen
+                                "PIVOT", "MIN" -> YellowSubtle to AccentYellow
+                                else -> CyanSubtle to PrimaryCyan
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                    .background(badgeBg)
+                                    .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = bottomPointer.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = badgeColor,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = AlgoType.microSize,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
                     }
                 }
             }

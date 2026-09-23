@@ -32,8 +32,16 @@ class MainActivity : ComponentActivity() {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
 
+        // Initialize persistent user preferences (e.g. onboarding completion)
+        com.example.algolens.data.UserPreferences.init(applicationContext)
+
         val bootController = BootController()
-        splash.setKeepOnScreenCondition { !bootController.ready }
+        // Dismiss the blank OS starting window immediately so only the
+        // in-Compose "AVIA Logo and Text Splash" (BootOverlay) frame is shown.
+        splash.setKeepOnScreenCondition { false }
+        splash.setOnExitAnimationListener { splashScreenView ->
+            splashScreenView.remove()
+        }
 
         enableEdgeToEdge()
 

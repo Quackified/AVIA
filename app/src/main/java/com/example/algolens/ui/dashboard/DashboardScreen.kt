@@ -103,13 +103,10 @@ fun DashboardScreen(
             Column {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                 ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Bolt,
-                        contentDescription = null,
-                        tint = PrimaryCyan,
-                        modifier = Modifier.size(16.dp)
+                    com.example.algolens.ui.components.AviaLogo(
+                        size = AlgoTokens.inlineIconLg
                     )
                     Text(
                         text = "AVIA",

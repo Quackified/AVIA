@@ -23,7 +23,7 @@
     -->
     <style name="Theme.AlgoLens.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/bg_dark</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_boot_mark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_transparent</item>
         <item name="postSplashScreenTheme">@style/Theme.AlgoLens</item>
     </style>
 </resources>

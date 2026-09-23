@@ -1,61 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    AlgoLens boot mark — the icon shown by the OS splash screen and reused
-    by the in-Compose BootOverlay.
-
-    Same glyph as the dashboard header logo (Material Symbols "Bolt"),
-    re-scaled and re-centred so it occupies ~25% of the 108×108 splash
-    viewport. Reference path is `M13,2L3,14h9l-1,8 10,-12h-9l1,-8z` in a
-    24×24 viewport; we apply a uniform 1.35× scale (smaller axis scale,
-    so the bolt's aspect ratio is preserved) and translate by (37.8, 37.8)
-    so its centre lands at the viewport centre (54, 54).
-
-    Final bolt bbox: x∈[41.85, 66.15], y∈[40.5, 67.5] — sits compactly in
-    the middle of the splash, with substantial negative space.
-
-    All in traversal-cyan #00E5FF, 1.5dp stroke, rounded line joins and
-    caps. The accent dot sits just outside the bolt's upper-right tip,
-    scaling down with the glyph so it still reads as part of the icon.
+    AVIA boot mark converted from app/src/main/logo.svg
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-
-    <!--
-        Main bolt. Reference path in 24×24, scaled 1.35× and translated
-        by (37.8, 37.8) so it sits centred inside the 108×108 viewport.
-        Decomposed:
-          M 13,2   →  M 55.35,40.5
-          L 3,14   →  L 41.85,56.7
-          h 9      →  h 12.15     (next point: 54, 56.7)
-          l -1,8   →  l -1.35,10.8 (next point: 52.65, 67.5)
-          10,-12   →  13.5,-16.2  (next point: 66.15, 51.3)
-          h -9     →  h -12.15    (next point: 54, 51.3)
-          l 1,-8   →  l 1.35,-10.8 (next point: 55.35, 40.5)
-    -->
+    android:viewportWidth="512"
+    android:viewportHeight="512">
     <path
-        android:strokeWidth="1.5"
-        android:strokeColor="#00E5FF"
-        android:fillColor="@android:color/transparent"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M 55.35,40.5
-                          L 41.85,56.7
-                          L 54,56.7
-                          L 52.65,67.5
-                          L 66.15,51.3
-                          L 54,51.3
-                          L 55.35,40.5 Z" />
-
-    <!--
-        Small accent dot — sits just outside the upper-right tip of the
-        bolt (which is at ~55.35,40.5 in this viewport), scaling with
-        the glyph so it still reads as part of the icon.
-    -->
-    <path
-        android:fillColor="#00E5FF"
-        android:pathData="M 68,44
-                          A 1,1 0 1 0 68.001,44 Z" />
+        android:fillColor="#31E1ED"
+        android:pathData="M 339.38 315.25 Q 342.38 321.50 342.62 325.88 Q 342.88 330.25 340.00 333.62 Q 337.12 337.00 330.62 340.25 Q 320.62 345.00 315.12 343.12 Q 309.62 341.25 304.88 331.25 L 290.42 301.00 L 221.51 301.00 L 207.12 331.25 Q 202.12 341.00 196.75 342.88 Q 191.38 344.75 181.38 340.00 Q 174.88 337.00 172.00 333.62 Q 169.12 330.25 169.38 325.62 Q 169.62 321.00 172.88 314.75 L 238.62 178.00 Q 241.12 173.00 246.00 170.00 Q 250.88 167.00 256.12 167.00 Q 259.88 167.00 263.12 168.38 Q 266.38 169.75 269.00 172.25 Q 271.62 174.75 273.38 178.25 Z M 236.85 268.75 L 275.00 268.75 L 255.88 228.75 Z" />
 </vector>

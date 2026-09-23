@@ -315,6 +315,18 @@ object AlgoGlyphs {
         lineTo(10.5f, 21.5f); lineTo(18f, 10.5f); lineTo(12.5f, 10.5f); close()
     }
 
+    val Avia: ImageVector = glyph("AlgoGlyphs.Avia") {
+        // Outer chevron "A"
+        moveTo(5.5f, 19.5f); lineTo(12f, 4.5f); lineTo(18.5f, 19.5f)
+        // Baseline anchor feet
+        line(4f, 19.5f, 7f, 19.5f)
+        line(17f, 19.5f, 20f, 19.5f)
+        // Comparison bridge staple crossbar |—|
+        moveTo(8f, 13f); lineTo(8f, 15f); lineTo(16f, 15f); lineTo(16f, 13f)
+        // Central aperture diamond core
+        moveTo(12f, 8f); lineTo(14f, 10.5f); lineTo(12f, 13f); lineTo(10f, 10.5f); close()
+    }
+
     val Target: ImageVector = glyph("AlgoGlyphs.Target") {
         circle(12f, 12f, 8f)
         circle(12f, 12f, 3.5f)

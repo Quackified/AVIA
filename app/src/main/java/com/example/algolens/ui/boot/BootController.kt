@@ -53,12 +53,10 @@ class BootController(
 
     companion object {
         /**
-         * 300ms — long enough for the bolt icon to register, short enough
-         * not to feel like the app is loading. The crossfade-out via
-         * [com.example.algolens.ui.theme.AlgoTokens.panelFadeSpring] layers
-         * perceived polish on top without adding to the perceived hold.
+         * 1800ms — a considerate boot hold duration so the brand mark and
+         * loading animation register comfortably before crossfading into the workspace.
          */
-        const val DEFAULT_HOLD_MS: Long = 300L
+        const val DEFAULT_HOLD_MS: Long = 1800L
     }
 }
 
