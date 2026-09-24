@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentYellow
@@ -81,7 +82,7 @@ fun PhaseBanner(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -93,17 +94,21 @@ fun PhaseBanner(
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(5.dp))
+                    .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                     .background(phaseBg)
-                    .border(1.dp, phaseColor.copy(alpha = 0.5f), RoundedCornerShape(5.dp))
-                    .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                    .border(
+                        AlgoTokens.strokeThin,
+                        phaseColor.copy(alpha = 0.5f),
+                        RoundedCornerShape(AlgoTokens.radiusXxs)
+                    )
+                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
             ) {
                 Text(
                     text = step.phaseLabel.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = phaseColor,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = AlgoType.microSize,
+                    fontSize = AlgoType.labelSize,
                     letterSpacing = AlgoType.trackTight
                 )
             }
@@ -113,12 +118,11 @@ fun PhaseBanner(
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = AlgoType.microSize
+                overflow = TextOverflow.Ellipsis
             )
         }
 
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(AlgoTokens.space3))
 
         // Contextual Quick Badge (e.g. Pivot, Min, Key) — activeRange ([0..8]) omitted
         val isBubbleSort = algorithmName.contains("bubble", ignoreCase = true)
@@ -142,17 +146,21 @@ fun PhaseBanner(
         if (contextTag != null) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                     .background(ChipBackground)
-                    .border(1.dp, BorderSubtle, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                    .border(
+                        AlgoTokens.strokeThin,
+                        BorderSubtle,
+                        RoundedCornerShape(AlgoTokens.radiusXs)
+                    )
+                    .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
             ) {
                 Text(
                     text = contextTag,
                     style = MaterialTheme.typography.labelSmall,
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = AlgoType.microSize
+                    fontSize = AlgoType.labelSize
                 )
             }
         }

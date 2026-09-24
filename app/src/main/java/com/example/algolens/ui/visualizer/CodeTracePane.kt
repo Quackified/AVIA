@@ -32,6 +32,16 @@ import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.SecondaryPurple
 
 /**
+ * Standalone peek height. This is the pane's own **frame geometry**, not
+ * spacing, so it is a named constant rather than a `space*` token — the spacing
+ * grid governs padding between elements, not a component's frame size.
+ */
+private val PEEK_HEIGHT = 126.dp
+
+/** Standalone expanded height — see [PEEK_HEIGHT]. */
+private val EXPANDED_HEIGHT = 285.dp
+
+/**
  * Enhanced Multi-Language Code Trace Pane with syntax highlighting,
  * segmented tab row, dynamic active-line mapping, and scroll state preservation.
  *
@@ -50,11 +60,28 @@ fun CodeTracePane(
     step: VisualizerStep,
     algorithmName: String = "Bubble Sort",
     syncPulse: State<Float> = mutableStateOf(0f),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /**
+     * When true the pane fills whatever constraints it is handed instead of
+     * applying its own peek / expand heights, padding, clip and border.
+     * [InstrumentDeck]'s Trace page uses this — the deck owns the geometry, so
+     * nothing here can re-measure the canvas.
+     */
+    fillsAvailableHeight: Boolean = false,
+    /**
+     * Overrides the peek/expand toggle. The deck passes its own collapse action
+     * so the terminal titlebar keeps a job in that context instead of becoming a
+     * dead tap target.
+     */
+    onToggleExpand: (() -> Unit)? = null
 ) {
     val selectedLanguage = com.example.algolens.data.AppSettings.preferredLanguage
     var isExpanded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
+
+    /** In deck mode the page is always "expanded": the deck is the expand. */
+    val expanded = fillsAvailableHeight || isExpanded
+
 
     val codeData = remember(algorithmName, selectedLanguage) {
         AlgorithmCodeRegistry.getCode(algorithmName, selectedLanguage)
@@ -90,7 +117,7 @@ fun CodeTracePane(
     }
 
     val terminalHeight by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (isExpanded) 285.dp else 126.dp,
+        targetValue = if (expanded) EXPANDED_HEIGHT else PEEK_HEIGHT,
         animationSpec = androidx.compose.animation.core.spring(
             dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
             stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
@@ -98,21 +125,31 @@ fun CodeTracePane(
         label = "terminalPeekExpandHeight"
     )
 
-    // ── Concept A: Docked Peek / Expand Terminal UI Frame ──
-    Box(
-        modifier = modifier
+    // ── Two presentations of one pane ──
+    //  1. standalone: the pane owns its peek/expand height, padding, clip and
+    //     border (unchanged from the original implementation).
+    //  2. deck page (`fillsAvailableHeight`): the deck already supplies the
+    //     surface, so the listing goes full-bleed inside it and no geometry here
+    //     can re-measure the canvas behind the deck.
+    val paneModifier = if (fillsAvailableHeight) {
+        modifier.fillMaxWidth()
+    } else {
+        modifier
             .fillMaxWidth()
             .height(terminalHeight)
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2)
+            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
             .background(com.example.algolens.ui.theme.CanvasBackground)
             .border(
                 AlgoTokens.strokeThin,
-                if (isExpanded) com.example.algolens.ui.theme.PrimaryCyan.copy(alpha = 0.35f)
+                if (expanded) com.example.algolens.ui.theme.PrimaryCyan.copy(alpha = 0.35f)
                 else com.example.algolens.ui.theme.BorderSubtle,
-                RoundedCornerShape(12.dp)
+                RoundedCornerShape(AlgoTokens.radiusMd)
             )
-    ) {
+    }
+
+    // ── Docked Peek / Expand Terminal UI Frame ──
+    Box(modifier = paneModifier) {
         CodeListing(
             algorithmName = algorithmName,
             codeData = codeData,
@@ -121,8 +158,8 @@ fun CodeTracePane(
             variables = step.variables,
             syncPulse = syncPulse,
             selectedLanguage = selectedLanguage,
-            isExpanded = isExpanded,
-            onToggleExpand = { isExpanded = !isExpanded },
+            isExpanded = expanded,
+            onToggleExpand = onToggleExpand ?: { isExpanded = !isExpanded },
             lazyListState = lazyListState,
             modifier = Modifier.fillMaxSize()
         )

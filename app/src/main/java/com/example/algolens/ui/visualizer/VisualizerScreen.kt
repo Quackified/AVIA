@@ -35,21 +35,25 @@ import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.VisualizerFamily
 import com.example.algolens.ui.components.AlgoWorkspaceBackground
-import com.example.algolens.ui.components.AmbientGlowDivider
 import com.example.algolens.ui.theme.AlgoLensTheme
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.tutor.AiTutorSheet
 
 /**
- * Thin shell that composes the four workspace regions and the modal
+ * Thin shell that composes the workspace regions and the modal
  * overlays. Every region ([VisualizerHeader], the [VisualizerHost]
- * canvas, [AmbientGlowDivider], [CodeTracePane], [PlaybackRail]) is
- * either a separate file or a small composable; this body holds the
- * cross-cutting concerns (workspace background, status / nav bar
- * padding, theory-drawer backdrop blur, challenge-mode prompt
- * overlay, modal sheet hosting, sync-pulse heartbeat) and nothing
- * else.
+ * canvas, [StageLegend], [TraceStrip], [InstrumentDeck],
+ * [PlaybackRail]) is either a separate file or a small composable;
+ * this body holds the cross-cutting concerns (workspace background,
+ * status / nav bar padding, theory-drawer backdrop blur,
+ * challenge-mode prompt overlay, modal sheet hosting, sync-pulse
+ * heartbeat) and nothing else.
+ *
+ * Phase 5A note: the stage Box is deliberately the parent of both the
+ * legend and the Focus Deck. Overlaying them there — rather than adding
+ * more rows to the Column — is what stops a code-view expansion from
+ * re-measuring (and therefore resizing) the canvas behind it.
  *
  * State lives in [VisualizerScreenState]; see
  * [rememberVisualizerScreenState] for the factory + playback loop.
@@ -64,6 +68,9 @@ fun VisualizerScreen(
     val spec = remember(algorithm.id) { AlgorithmRegistry.specFor(algorithm.id) }
 
     // ── Sync-pulse heartbeat ──
+    // Keys on the *committed* playhead, not `displayStepIdx`: the pulse is a
+    // "you have settled on a new step" cue, and firing it on every step a finger
+    // crosses would strobe. A scrub therefore flashes once, on release.
     val haptic = LocalHapticFeedback.current
     val syncPulse = remember { Animatable(0f) }
     val syncPulseState = remember { derivedStateOf { syncPulse.value } }
@@ -75,8 +82,12 @@ fun VisualizerScreen(
     }
 
     // ── Tactile Haptics ──
-    LaunchedEffect(state.currentStepIdx) {
-        if (AppSettings.hapticsEnabled && state.currentStepIdx > 0) {
+    // Keys on `displayStepIdx` so the tick fires per step *during* a scrub as
+    // well as during playback / single-stepping. The swap-heavy steps still get
+    // the heavier cue, so the drag reads as "scrubbing through comparisons" and
+    // then "landing on a swap".
+    LaunchedEffect(state.displayStepIdx) {
+        if (AppSettings.hapticsEnabled && state.displayStepIdx > 0) {
             val step = state.currentStep
             val isSwapping = step.swappedIndices != null || step.phaseLabel.contains("SWAP", ignoreCase = true)
             if (isSwapping) {
@@ -147,6 +158,25 @@ fun VisualizerScreen(
                     } else {
                         EmptyCanvas(algorithm)
                     }
+
+                    // Stage key — overlays the canvas corner, so it costs no
+                    // vertical budget (see [StageLegend]).
+                    StageLegend(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(AlgoTokens.space3)
+                    )
+
+                    // Focus Deck — a child of the stage Box on purpose: it
+                    // overlays the canvas instead of joining the Column, so
+                    // opening it can never re-measure (and resize) the canvas.
+                    InstrumentDeck(
+                        state = state,
+                        algorithm = algorithm,
+                        currentStep = state.currentStep,
+                        syncPulse = syncPulseState,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
                 }
 
                 // Challenge prompt lives BETWEEN the canvas and the terminal
@@ -168,12 +198,20 @@ fun VisualizerScreen(
                     )
                 }
 
-                // Concept A: Docked 3-Line Peek / Expand Terminal Frame
-                CodeTracePane(
+                // One-line trace strip — the resting form of the code trace. It
+                // opens the Focus Deck's Trace page, where the full scrollable
+                // listing lives. Replacing the 126dp terminal here is what hands
+                // the stage its vertical budget back.
+                TraceStrip(
                     step = state.currentStep,
                     algorithmName = algorithm.name,
-                    syncPulse = syncPulseState,
-                    modifier = Modifier.fillMaxWidth()
+                    onExpand = { state.openDeck(DeckPage.TRACE) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = AlgoTokens.space4,
+                            vertical = AlgoTokens.space1
+                        )
                 )
 
                 // Bottom playback rail  anchored to the screen bottom.

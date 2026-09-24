@@ -81,6 +81,22 @@ class VisualizerScreenState(
     var showTutorSheet: Boolean by mutableStateOf(false)
     var showGuidedTour: Boolean by mutableStateOf(false)
 
+    // ── Focus Deck (Phase 5A) ──
+    /** Which deck page is showing. See [DeckPage]. */
+    var deckPage: DeckPage by mutableStateOf(DeckPage.TRACE)
+
+    /** Whether the Focus Deck is expanded over the stage. */
+    var deckExpanded: Boolean by mutableStateOf(false)
+
+    /**
+     * Transient scrub preview. Non-null only while a finger is on the timeline:
+     * [currentStep] renders from it, so the canvas, the narrative strip and the
+     * code trace all track the drag without the playhead having moved. Kept
+     * separate from [currentStepIdx] so a cancelled gesture leaves the playhead
+     * exactly where it was.
+     */
+    var scrubTarget: Int? by mutableStateOf(null)
+
     // ── Challenge mode ──
     var challengeState: ChallengeState by mutableStateOf(ChallengeState())
 
@@ -118,9 +134,28 @@ class VisualizerScreenState(
     /** Clamped to ≥ 1 so scrubbers / counters never render `Step 0 of 0`. */
     val totalSteps: Int get() = steps.size.coerceAtLeast(1)
 
+    /**
+     * The step index every region renders from: the scrub preview while a drag
+     * is in flight, otherwise the committed playhead. Centralising it here is
+     * why live scrub previewing required no changes in the canvas or the trace.
+     */
+    val displayStepIdx: Int
+        get() = scrubTarget?.coerceIn(0, steps.lastIndex.coerceAtLeast(0)) ?: currentStepIdx
+
     /** Safe to read regardless of [steps] size. */
     val currentStep: VisualizerStep
-        get() = if (steps.isEmpty()) VisualizerStep() else steps[currentStepIdx.coerceIn(0, steps.lastIndex)]
+        get() = if (steps.isEmpty()) VisualizerStep() else steps[displayStepIdx.coerceIn(0, steps.lastIndex)]
+
+    /**
+     * Playhead position as 0f..1f. The transport reads this through a lambda so
+     * advancing the meter never recomposes a text node.
+     */
+    val stepProgress: Float
+        get() = if (totalSteps <= 1) {
+            0f
+        } else {
+            (displayStepIdx.toFloat() / (totalSteps - 1).toFloat()).coerceIn(0f, 1f)
+        }
 
     /** True when challenge mode is "in flight" (active prompt, no feedback yet). */
     val challengeInFlight: Boolean
@@ -143,22 +178,68 @@ class VisualizerScreenState(
 
     fun stepForward() {
         isPlaying = false
+        scrubTarget = null
         if (currentStepIdx < steps.lastIndex) currentStepIdx++
     }
 
     fun stepBackward() {
         isPlaying = false
+        scrubTarget = null
         if (currentStepIdx > 0) currentStepIdx--
     }
 
     fun reset() {
         currentStepIdx = 0
         isPlaying = false
+        scrubTarget = null
     }
 
     fun scrubTo(idx: Int) {
         isPlaying = false
+        scrubTarget = null
         currentStepIdx = idx.coerceIn(0, steps.lastIndex.coerceAtLeast(0))
+    }
+
+    // ── Focus Deck ──
+    /** Opens the deck on [page] (idempotent if already there and open). */
+    fun openDeck(page: DeckPage) {
+        deckPage = page
+        deckExpanded = true
+    }
+
+    fun collapseDeck() {
+        deckExpanded = false
+    }
+
+    fun toggleDeckPage(page: DeckPage) {
+        if (deckPage == page && deckExpanded) {
+            deckExpanded = false
+        } else {
+            deckPage = page
+            deckExpanded = true
+        }
+    }
+
+    // ── Scrub preview (live under the finger, committed on release) ──
+    /**
+     * Moves the *preview* playhead without committing it. Pauses playback so a
+     * drag is never fighting the playback tick.
+     */
+    fun previewScrub(idx: Int) {
+        if (steps.isEmpty()) return
+        isPlaying = false
+        scrubTarget = idx.coerceIn(0, steps.lastIndex)
+    }
+
+    /** Promotes an in-flight preview to the real playhead, if there is one. */
+    fun commitScrub() {
+        scrubTarget?.let { scrubTo(it) }
+        scrubTarget = null
+    }
+
+    /** Drops an in-flight preview, leaving the playhead untouched. */
+    fun cancelScrub() {
+        scrubTarget = null
     }
 
     /** Cell size preset from the header S/M/L toggle (clamped). */

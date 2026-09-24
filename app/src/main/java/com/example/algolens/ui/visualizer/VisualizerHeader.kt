@@ -3,11 +3,9 @@ package com.example.algolens.ui.visualizer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -33,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -66,28 +62,25 @@ import com.example.algolens.ui.components.AlgoGlyphs
  *  1. **Back / title / step counter** on the left.
  *  2. **Action cluster** on the right: TIME / SPACE complexity
  *     readouts (primary info, inline), guided-tour help, and a
- *     kebab that opens a popover holding the theory sheet, the
- *     variable inspector and memory call stack toggles, and the
- *     customize input button.
+ *     kebab that opens a popover holding the theory sheet and the
+ *     family-aware customize-input entry.
  *  3. **Smooth resizing** when the user toggles things (e.g. expands
  *     the mode chips row), using [smoothPanelExpansion] so the
  *     workspace never snaps jarringly.
  *
  * The header is *pure* with respect to the data model — it only
  * reads from the hoisted [VisualizerScreenState] and invokes its
- * mutators. The popover's open/closed state and the inspector /
- * call-stack toggles are the only local UI state, owned here via
- * [rememberSaveable] so they survive configuration changes.
+ * mutators.
  *
  * Layout decision: TIME and SPACE are primary information (the
  * "is this algorithm fast?" glance), so they live inline. THEORY
  * is a sub-action (the user *visits* it, not *reads* it), so it
- * lives in the kebab popover. The variable inspector + memory
- * call stack are readouts that can clutter the workspace when
- * the user doesn't need them; the kebab popover holds their
- * toggles, and the readout content expands inline below the
- * toggle row when on. The guided tour (`?`) stays in the header
- * as a first-run discoverability anchor.
+ * lives in the kebab popover. The guided tour (`?`) stays in the
+ * header as a first-run discoverability anchor.
+ *
+ * The variable inspector and memory call stack used to be toggled
+ * from this header's kebab; they now live on the Focus Deck's State
+ * page, which sits next to the transport the user is already holding.
  */
 @Composable
 fun VisualizerHeader(
@@ -99,8 +92,6 @@ fun VisualizerHeader(
     modifier: Modifier = Modifier
 ) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }
-    var inspectorOpen by rememberSaveable { mutableStateOf(false) }
-    var callStackOpen by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -131,11 +122,7 @@ fun VisualizerHeader(
                 spec = spec,
                 currentStep = currentStep,
                 menuOpen = menuOpen,
-                onMenuOpenChange = { menuOpen = it },
-                inspectorOpen = inspectorOpen,
-                onInspectorOpenChange = { inspectorOpen = it },
-                callStackOpen = callStackOpen,
-                onCallStackOpenChange = { callStackOpen = it }
+                onMenuOpenChange = { menuOpen = it }
             )
         }
 
@@ -251,11 +238,7 @@ private fun HeaderActions(
     spec: AlgorithmSpec?,
     currentStep: VisualizerStep,
     menuOpen: Boolean,
-    onMenuOpenChange: (Boolean) -> Unit,
-    inspectorOpen: Boolean,
-    onInspectorOpenChange: (Boolean) -> Unit,
-    callStackOpen: Boolean,
-    onCallStackOpenChange: (Boolean) -> Unit
+    onMenuOpenChange: (Boolean) -> Unit
 ) {
     // Static per-algorithm text values used in the action cluster and
     // dropdown — cache once per algorithm so they're not re-built every
@@ -335,11 +318,7 @@ private fun HeaderActions(
                 state = state,
                 currentStep = currentStep,
                 menuOpen = menuOpen,
-                onMenuOpenChange = onMenuOpenChange,
-                inspectorOpen = inspectorOpen,
-                onInspectorOpenChange = onInspectorOpenChange,
-                callStackOpen = callStackOpen,
-                onCallStackOpenChange = onCallStackOpenChange
+                onMenuOpenChange = onMenuOpenChange
             )
         }
     }
@@ -382,10 +361,14 @@ private fun CompactHeaderPill(
 
 /**
  * Kebab popover. Standard Material 3 dropdown: one [DropdownMenuItem]
- * row per action (leading icon + label, optional trailing chevron /
- * summary), separated by [HorizontalDivider]s. The inspector / call
- * stack rows are disclosure rows — tapping toggles their readout,
- * which expands inline below the row.
+ * row per action (leading icon + label), separated by [AlgoHairline]s.
+ *
+ * Holds exactly two actions: the theory sheet and the family-aware
+ * customize-input entry. It used to also carry "Variable Inspector" and
+ * "Memory Call Stack" disclosure rows; those readouts moved to the Focus
+ * Deck's State page (Phase 5A), because a menu is the wrong home for the
+ * app's only per-step variable surface and the same content was two taps
+ * deep behind a popover.
  */
 @Composable
 private fun HeaderOverflowMenuHost(
@@ -394,11 +377,7 @@ private fun HeaderOverflowMenuHost(
     state: VisualizerScreenState,
     currentStep: VisualizerStep,
     menuOpen: Boolean,
-    onMenuOpenChange: (Boolean) -> Unit,
-    inspectorOpen: Boolean,
-    onInspectorOpenChange: (Boolean) -> Unit,
-    callStackOpen: Boolean,
-    onCallStackOpenChange: (Boolean) -> Unit
+    onMenuOpenChange: (Boolean) -> Unit
 ) {
     // Static per-algorithm cache for the dropdown's static labels and icons.
     // These never change across playback steps for a given algorithm — caching
@@ -407,14 +386,6 @@ private fun HeaderOverflowMenuHost(
     val algoTitleIcon = remember { AlgoGlyphs.Book }
     val algoTitleIconSize = remember { AlgoTokens.inlineIconLg }
     val dropdownChevronIcon = remember { AlgoGlyphs.ChevronDown }
-
-    val inspectorLabelText = remember { "Variable Inspector" }
-    val inspectorLeadingIcon = remember { AlgoGlyphs.Code }
-    val inspectorLeadingIconSize = remember { AlgoTokens.inlineIconLg }
-
-    val callStackLabelText = remember { "Memory Call Stack" }
-    val callStackLeadingIcon = remember { AlgoGlyphs.Terminal }
-    val callStackLeadingIconSize = remember { AlgoTokens.inlineIconLg }
 
     val customizeIcon = remember { AlgoGlyphs.Tune }
     val customizeIconSize = remember { AlgoTokens.inlineIconLg }
@@ -455,87 +426,6 @@ private fun HeaderOverflowMenuHost(
 
         AlgoHairline()
 
-        // VARIABLE INSPECTOR — disclosure row.
-        DropdownMenuItem(
-            text = {
-                Column {
-                    Text(inspectorLabelText, color = TextPrimary, fontSize = AlgoType.bodySize)
-                    Text(
-                        text = if (currentStep.variables.isNotEmpty())
-                            "${currentStep.variables.size} live variables"
-                        else "pointers",
-                        color = TextMuted,
-                        fontSize = AlgoType.bodySize
-                    )
-                }
-            },
-            leadingIcon = {
-                Icon(
-                    inspectorLeadingIcon,
-                    contentDescription = null,
-                    tint = PrimaryCyan,
-                    modifier = Modifier.size(inspectorLeadingIconSize)
-                )
-            },
-            trailingIcon = {
-                Icon(
-                    dropdownChevronIcon,
-                    contentDescription = if (inspectorOpen) "Collapse" else "Expand",
-                    tint = TextMuted,
-                    modifier = Modifier
-                        .graphicsLayer {
-                            rotationZ = if (inspectorOpen) 180f else 0f
-                        }
-                )
-            },
-            onClick = { onInspectorOpenChange(!inspectorOpen) }
-        )
-        if (inspectorOpen) {
-            VariableInspectorReadout(step = currentStep)
-        }
-
-        AlgoHairline()
-
-        // MEMORY CALL STACK — disclosure row.
-        DropdownMenuItem(
-            text = {
-                Column {
-                    Text(callStackLabelText, color = TextPrimary, fontSize = AlgoType.bodySize)
-                    Text(
-                        "depth ${currentStep.recursionDepth + 1}",
-                        color = TextMuted,
-                        fontSize = AlgoType.bodySize
-                    )
-                }
-            },
-            leadingIcon = {
-                Icon(
-                    callStackLeadingIcon,
-                    contentDescription = null,
-                    tint = PurpleGlow,
-                    modifier = Modifier.size(callStackLeadingIconSize)
-                )
-            },
-            trailingIcon = {
-                Icon(
-                    dropdownChevronIcon,
-                    contentDescription = if (callStackOpen) "Collapse" else "Expand",
-                    tint = TextMuted,
-                    modifier = Modifier
-                        .graphicsLayer {
-                            rotationZ = if (callStackOpen) 180f else 0f
-                        }
-                )
-            },
-            onClick = { onCallStackOpenChange(!callStackOpen) }
-        )
-        if (callStackOpen) {
-            MemoryCallStackReadout(
-                algorithmName = algorithm.name,
-                step = currentStep
-            )
-        }
-
         // CUSTOMIZE — only for algorithms that support custom input.
         // The label is family-aware so the user sees "Customize Stack" /
         // "Customize Queue" / "Customize BST" / "Customize Traversal"
@@ -564,141 +454,6 @@ private fun HeaderOverflowMenuHost(
     }
 }
 
-/**
- * A disclosure row body: the readout that expands inline below the
- * "Variable Inspector" / "Memory Call Stack" dropdown rows.
- */
-@Composable
-private fun ColumnScope.VariableInspectorReadout(step: VisualizerStep) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space2)
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (step.variables.isNotEmpty()) {
-            for ((k, v) in step.variables) {
-                VarBadge(label = k, value = v)
-            }
-        } else {
-            for ((label, index) in step.bottomPointers) {
-                val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
-                VarBadge(label = label, value = "$index ($arrVal)")
-            }
-            for ((label, index) in step.topPointers) {
-                val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
-                VarBadge(label = label, value = "$index ($arrVal)")
-            }
-            if (step.bottomPointers.isEmpty() && step.topPointers.isEmpty()) {
-                VarBadge(label = "step", value = "${step.stepIndex + 1}")
-            }
-        }
-    }
-}
-
-@Composable
-private fun ColumnScope.MemoryCallStackReadout(
-    algorithmName: String,
-    step: VisualizerStep
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space2),
-        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-    ) {
-        Text(
-            text = "$algorithmName(size=${step.array.size})",
-            style = MaterialTheme.typography.labelSmall,
-            color = PurpleGlow,
-            fontWeight = FontWeight.Bold,
-            fontSize = AlgoType.microSize
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            StackInfoBadge(label = "DEPTH", value = "${step.recursionDepth + 1}")
-            StackInfoBadge(label = "MODE", value = step.renderMode.name.lowercase())
-            StackInfoBadge(
-                label = "LINE",
-                value = if (step.activeCodeLines.isEmpty()) "—" else step.activeCodeLines.joinToString(",")
-            )
-        }
-    }
-}
-
-@Composable
-private fun VarBadge(label: String, value: String) {
-    // Read-then-remember: color/weight/size are static badge chrome, so bake
-    // them into one stable TextStyle. Per-step value changes then only
-    // remeasure the string — Text's internal style.merge() sees a stable
-    // style instead of rebuilding overrides every recomposition.
-    val base = MaterialTheme.typography.bodySmall
-    val badgeStyle = remember(base) {
-        base.copy(
-            color = PrimaryCyan,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = AlgoType.microSize
-        )
-    }
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-            .background(CyanSubtle)
-            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
-    ) {
-        Text(
-            text = "$label = $value",
-            style = badgeStyle
-        )
-    }
-}
-
-@Composable
-private fun StackInfoBadge(label: String, value: String) {
-    // Read-then-remember: same static-chrome bake as VarBadge — the live
-    // value string stays dynamic, the TextStyle refs stay stable.
-    val badgeBase = MaterialTheme.typography.labelSmall
-    val labelStyle = remember(badgeBase) {
-        badgeBase.copy(
-            color = TextMuted,
-            fontWeight = FontWeight.Bold,
-            fontSize = AlgoType.microSize
-        )
-    }
-    val valueStyle = remember(badgeBase) {
-        badgeBase.copy(
-            color = PurpleGlow,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = AlgoType.microSize
-        )
-    }
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-            .background(PurpleSubtle)
-            .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.4f), RoundedCornerShape(AlgoTokens.radiusXs))
-            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-    ) {
-        Text(
-            text = label,
-            style = labelStyle
-        )
-        Text(
-            text = value,
-            style = valueStyle
-        )
-    }
-}
-
 @Composable
 private fun HeaderModeRow(
     state: VisualizerScreenState,
@@ -707,7 +462,7 @@ private fun HeaderModeRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 2.dp),
+            .padding(top = AlgoTokens.space1),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -723,7 +478,7 @@ private fun HeaderModeRow(
                 onSelect = { key -> state.arrayViewMode = key as ArrayViewMode }
             )
         } else {
-            Spacer(modifier = Modifier.width(1.dp))
+            Spacer(modifier = Modifier.width(AlgoTokens.strokeThin))
         }
 
         // Right: Edit Input action button
@@ -738,20 +493,20 @@ private fun HeaderModeRow(
                         RoundedCornerShape(AlgoTokens.radiusSm)
                     )
                     .clickable { state.showInputSheet = true }
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
             ) {
                 Icon(
                     imageVector = AlgoGlyphs.Sliders,
                     contentDescription = "Edit Input",
                     tint = PrimaryCyan,
-                    modifier = Modifier.size(12.dp)
+                    modifier = Modifier.size(AlgoTokens.inlineIconSm)
                 )
                 Text(
                     text = "Edit Input",
                     color = PrimaryCyan,
-                    fontSize = 10.sp,
+                    fontSize = AlgoType.labelSize,
                     fontWeight = FontWeight.Bold
                 )
             }

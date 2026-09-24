@@ -84,6 +84,7 @@ re-run, not recollection.
 | **M5** | Press physics + entry choreography | **DONE** — with one nav exception | `pressPhysics` → AlgoCard, CommonComponents, WorkspaceControls ×3, DashboardScreen ×2, PlaybackRail ×2. `entryCascade` → DashboardScreen, AlgoCard. Ambient loop is functional-only: `AmbientGlowDivider` breathes solely while `state.isPlaying` (`VisualizerScreen.kt:150`). **Exception: `BottomNavBar` no longer uses `pressPhysics` or `minTouchTarget`** — the version in use (§A) animates colour only. That leaves `AlgoTokens.minTouchTarget` (`Theme.kt:148`) defined but referenced nowhere (0 refs). The user's call, not a defect; flagged in §C. |
 | **M6** | Surfaces shipped as instruments | **DONE** | Shipped: `AlgoCard` plate-in-tray + family rail, dashboard family tiles (double-bezel keys), sunken search well, glyph-pill category cells, `InstrumentRule` on `VisualizerScreen` header boundary, and `DoubleBezelShell` card surfaces on Settings, Practice, and Profile. |
 | **M7** | Honesty pass | **DONE** | Audited and verified app-wide: `PracticeScreen` progress meter wired directly to question submission state; `SettingsScreen` offline engine meter reflects genuine 100% embedded offline catalogue (push notifications cut); `ProfileScreen` stripped of fake gamification (streaks, session counters, fake activity chart) and replaced with authentic catalogue specification derived from `AlgorithmRegistry`. |
+| **P5A** | Focus Deck (chrome consolidation) | **DONE** — user-approved scope | The three stacked bottom bands (126dp code peek + scrubber tier + transport tier) became one on-demand deck. `TraceStrip` (30dp) is the resting code trace; `InstrumentDeck` overlays the stage at 46% with `TRACE` / `STATE` pages; `PlaybackRail` was hardened in place (stock `Slider` → `InstrumentMeter` per §17.6; `DarkBackground` → `surfaceFloat` per §17.2; all 22 raw dp/sp → tokens). The variable-inspector and memory-call-stack readouts were **moved** out of the header kebab into `StateDeckPage` (one affordance, one home) and their two dropdown rows deleted. Header params 12 → 8. The scrub track fires the per-step haptic by keying the haptic effect on `displayStepIdx` (the sync-pulse deliberately stays on the committed index so a 137-step drag does not strobe). Evidence: `:app:compileDebugKotlin` ✓, `:app:testDebugUnitTest` **126 tests / 0 failures** (12 suites; `VisualizerScreenStateTest` 12 → 27), `:app:assembleDebug` ✓ (21.00 MB APK). **`:app:lintDebug` ✗ — see §C, pre-existing and unrelated.** |
 
 ## C. Open items
 
@@ -125,6 +126,59 @@ re-run, not recollection.
       92.75 MB `.git`; note the objects still exist in history (commits
       `9650161`, `5a525f9`), so the pack only shrinks after a rewrite — not
       worth doing for a local-only branch.
+
+- [ ] **`:app:lintDebug` is RED, and it was red before Phase 5A.** Phase 5A
+      touched 6 files and added 5; **none of them produce a single lint error.**
+      The 41 errors live entirely in four files P5A never opened:
+      `AlgorithmTheorySheet.kt` ×19, `CodeListing.kt` ×16, `BootOverlay.kt` ×3,
+      `AviaLogo.kt` ×1. `AviaLogo.kt` has **no baseline row at all**, which is
+      the proof that the gate was already failing before this pass — an
+      untouched file cannot have been un-filtered by someone else's edit.
+      **Do not "fix" this with `--update-baseline`:** doing so would fold 41
+      genuine findings (`RoundedCornerShape(*.dp)`, raw `padding`/`size`,
+      hard-coded `Color(0x…)`) into the baseline and reproduce exactly the
+      lying-gate failure §G documents. The honest fix is either to tokenise
+      those four files (mechanical, ~41 edits) or to fix them and *then*
+      regenerate. **Ask before doing either** — two of the four
+      (`AlgorithmTheorySheet`, `CodeListing`) are inside the user's own
+      open make-over list.
+- [ ] **Dead baseline rows exist in the files P5A touched, predating P5A.**
+      `PhaseBanner.kt` carries baseline rows whose `errorLine1` reads
+      `RoundedCornerShape(10.dp)` — a literal that does not exist in the file
+      and did not exist before P5A either. Per §G those rows are stale, and the
+      rows for the six radius + three padding violations P5A *did* fix are now
+      stale too. Pruning them cannot make the gate green (see above) and a wrong
+      prune makes it redder, so P5A deliberately left the 578-row baseline
+      alone. Three rows are confirmed still load-bearing and must be kept:
+      `PhaseBanner.kt` `spacedBy(6.dp)`, `VisualizerHeader.kt`
+      `padding(horizontal = 6.dp)`, `CodeTracePane.kt` preview `padding(16.dp)`.
+- [ ] **`VisualizerHeaderMenuTest` passes vacuously and asserts a banned icon.**
+      Its two tests only check that `Icons.Default.MoreVert` is on the
+      classpath — it never touches the kebab. The header it is named after uses
+      `AlgoGlyphs.More` (`VisualizerHeader.kt:319`), so the test is green about
+      an icon the app does not render, and its import violates §17.4 (Material
+      icons banned in app UI). The file's own KDoc says the popover needs a
+      `createComposeRule` harness the project does not have. Either delete it or
+      give it a real harness. **Ask.**
+- [ ] **`CompactHeaderPill` renders at `7.5.sp`** (two literals,
+      `VisualizerHeader.kt:362-363`) — below the §17.1 "persistent-text floor is
+      10sp" rule, and a counterexample to §C's claim that "0 raw `sp` literals
+      remain outside `Type.kt`". P5A **deliberately did not change it**: the
+      compact pill size was an explicit Phase 2 decision by the user
+      (`includeFontPadding = false`, `lineHeight = fontSize`). Flagging, not
+      touching.
+- [ ] **§17.7's ambient-divider rule is currently vacuous.** It states that "the
+      canvas/trace divider breathes **only while `state.isPlaying`**", but
+      `AmbientGlowDivider` is no longer composed in `VisualizerScreen.kt` at
+      all — the KDoc and the M5 audit row both still described it. P5A
+      corrected the KDoc; the rule itself either needs the divider back at the
+      stage/trace boundary or needs retiring. **Ask.**
+- [ ] **`StageLegend` overlay has one known collision risk.** It is pinned
+      `BottomStart` inside the stage, which is free space for every family, but
+      the 1D renderer draws its own `COMPARE:` / `SWAP:` callout near the bottom
+      of the canvas column. On a very short stage the two could touch. The fix
+      is a one-line move to a real row (costing ~20dp of stage) — only do it if
+      it is seen on a device.
 
 ## D. Verification gates — re-run all of them after every change
 

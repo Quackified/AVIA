@@ -209,17 +209,22 @@ These five hex values are the only colors used in the bar renderer. They are *st
 
 ## Layout
 
-The visualizer is built from one `Column` with this exact shape:
+The visualizer is built from one `Column` with this exact shape (Phase 5A, "Focus Deck"):
 
 ```
 ┌─ VisualizerHeader (auto-height) ────────────────┐
-│  ┌─ Canvas Box (weight 55f) ────────────────────┐  ← VisualizerHost
-│  ├─ AmbientGlowDivider (2dp) ───────────────────┤
-│  ├─ Code Trace Box (weight 45f) ────────────────┤  ← CodeTracePane
+│  Box (weight 1f) — the stage ───────────────────┐
+│    ├─ VisualizerHost            (fills stage)   │  ← the canvas
+│    ├─ StageLegend               (BottomStart)   │  ← overlays, 0dp cost
+│    └─ InstrumentDeck            (BottomCenter)  │  ← overlays, 46% of stage
+│  ├─ CanvasChallengePrompt (AnimatedVisibility) ─┤
+│  ├─ TraceStrip (30dp) ──────────────────────────┤
 │  └─ PlaybackRail (auto-height) ────────────────┘
 ```
 
-`statusBarsPadding()` and `navigationBarsPadding()` are applied once on the outer `Column`; they are not reapplied inside the regions. The canvas Box uses `Alignment.TopCenter` for the `AnimatedVisibility` challenge prompt so it sits over the canvas without being clipped by the region.
+`statusBarsPadding()` and `navigationBarsPadding()` are applied once on the outer `Column`; they are not reapplied inside the regions.
+
+**The stage owns its overlays.** `StageLegend` and `InstrumentDeck` are children of the stage `Box`, not rows of the `Column`. That is what makes the deck free: expanding it cannot re-measure the canvas, so it cannot re-run the responsive cell-sizing maths in `CellArrayVisualizer`. `TraceStrip` + `PlaybackRail` both sit on `surfaceFloat` and read as a single docked instrument — nothing else goes below the stage.
 
 **Spacing rhythm:** the 4dp grid is strict. The eight `space1`–`space8` tokens (2dp, 4dp, 6dp, 8dp, 12dp, 16dp, 24dp, 32dp) are the only spacing values used. A horizontal row of icon buttons uses `space5` (12dp) between buttons and `space4` (8dp) inside each. A pill with leading icon uses `space4` horizontal padding and `space2` vertical padding, with `space2` between icon and label.
 
@@ -314,10 +319,12 @@ The component catalog in `ui/components/WorkspaceControls.kt` is the answer to "
 - **Active state:** `traversal-cyan` icon + label, `traversal-cyan` 1dp top border. Inactive targets are `text-muted` at 60% alpha.
 - **Tap target:** 48dp tall, full-bleed label below the icon. Honors the 48dp Material floor even though the rail is compact.
 
-### Signature: VisualizerHost + PlaybackRail
+### Signature: VisualizerHost + TraceStrip + InstrumentDeck + PlaybackRail
 
 - **VisualizerHost** is the single family-aware dispatcher. It reads `spec.id.family` (LINEAR_1D / GRAPH_2D / BUFFER) and composes the right renderer. **The screen no longer has a `when (renderMode)`** — that is the architectural rule.
-- **PlaybackRail** is a single horizontal row of `RailIconButton`s (reset, step-back, play / pause, step-forward, speed, fullscreen, theory, challenge, tutor) on `glass-elevated`. The play / pause uses `iconButtonLg`; the rest are `iconButtonMd`. The row is the only bottom-of-screen chrome in the visualizer.
+- **TraceStrip** is the resting form of the code trace: one line, the line the narrative banner is describing, on `glass-fill` at `iconButtonSm` (30dp). Tapping it opens the deck's Trace page. It exists so the lockstep promise ("watch the canvas and the code-trace line move together") costs 30dp instead of a permanently-docked 126dp terminal.
+- **InstrumentDeck** is the one on-demand surface, anchored to the bottom of the stage and **overlaying** it at 46% height. Pages: `TRACE` (hosts `CodeTracePane`) and `STATE` (hosts `StateDeckPage`). It is selectable with `SegmentedToggle` and collapses with `RailIconButton` — no new control vocabulary.
+- **PlaybackRail** is the only bottom-of-screen chrome: a two-rung instrument on `glass-elevated`. Rung 1 is the timeline — step counter, `InstrumentMeter` tick track (tap to jump, drag to scrub with a live canvas preview), and the speed chip. Rung 2 is the transport: `[Restart]` · `[Step back] [Play/Pause] [Step forward]` · `[Challenge] [AI Tutor]`. The hero play/pause is `iconButtonLg + space3` (42dp); the rest are `iconButtonLg` (36dp).
 
 ## Do's and Don'ts
 

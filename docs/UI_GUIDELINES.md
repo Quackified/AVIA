@@ -306,7 +306,13 @@ dead `BarVisualizer` code.
 | `SegmentedToggle` | `ui/components/WorkspaceControls.kt` | 2+ option pill switch (cells/bars, tree/array, directed/undirected) |
 | `VisualizerHeader` | `ui/visualizer/VisualizerHeader.kt` | The workspace top region |
 | `VisualizerHost` | `ui/visualizer/VisualizerHost.kt` | Family-aware canvas dispatcher |
-| `PlaybackRail` | `ui/visualizer/PlaybackRail.kt` | The bottom transport row |
+| `StageLegend` | `ui/visualizer/StageLegend.kt` | The §14 element-state key, overlaid on the stage |
+| `TraceStrip` | `ui/visualizer/TraceStrip.kt` | Resting 1-line code trace; opens the deck's Trace page |
+| `InstrumentDeck` | `ui/visualizer/InstrumentDeck.kt` | The Focus Deck (overlays the stage; pages: Trace / State) |
+| `DeckPage` | `ui/visualizer/DeckPage.kt` | Which deck page is showing |
+| `StateDeckPage` | `ui/visualizer/StateDeckPage.kt` | Live variables + call-stack readouts |
+| `CodeTracePane` | `ui/visualizer/CodeTracePane.kt` | Standalone peek/expand terminal; also the deck's Trace body |
+| `PlaybackRail` | `ui/visualizer/PlaybackRail.kt` | The bottom transport (timeline + 5 controls + speed) |
 | `VisualizerScreen` | `ui/visualizer/VisualizerScreen.kt` | The thin shell that composes the regions |
 | `VisualizerScreenState` | `ui/visualizer/VisualizerScreenState.kt` | The state machine the regions read |
 
@@ -319,26 +325,41 @@ look right?" in 90% of cases.
 
 ## 11. Layout grammar
 
-The visualizer is built from one **Column** with this exact shape:
+The visualizer is built from one **Column** with this exact shape
+(Phase 5A — "Focus Deck"):
 
 ```
 ┌─ VisualizerHeader (auto-height) ────────────────┐
-│  ┌─ Canvas Box (weight 55f) ────────────────────┐  ← VisualizerHost
-│  ├─ AmbientGlowDivider (2dp) ───────────────────┤
-│  ├─ Code Trace Box (weight 45f) ────────────────┤  ← CodeTracePane
+│  Box (weight 1f) — the stage ───────────────────┐
+│    ├─ VisualizerHost            (fills stage)   │  ← the canvas
+│    ├─ StageLegend               (BottomStart)   │  ← overlays, 0dp cost
+│    └─ InstrumentDeck            (BottomCenter)  │  ← overlays, 46% of stage
+│  ├─ CanvasChallengePrompt (AnimatedVisibility) ─┤
+│  ├─ TraceStrip (30dp) ──────────────────────────┤
 │  └─ PlaybackRail (auto-height) ────────────────┘
 ```
+
+Two rules carry the whole design:
+
+1. **The stage Box owns its own overlays.** `StageLegend` and
+   `InstrumentDeck` are children of the stage `Box`, not rows of the
+   `Column`. That is why expanding the deck cannot re-measure the canvas —
+   and therefore cannot re-run the responsive cell-sizing maths in
+   `CellArrayVisualizer`. **Never** promote either of them into the column.
+2. **One bottom surface.** `TraceStrip` + `PlaybackRail` both sit on
+   `surfaceFloat` and read as a single docked instrument. Nothing else may be
+   added below the stage.
 
 `statusBarsPadding()` and `navigationBarsPadding()` are applied
 once on the outer `Column` — don't reapply them inside the regions.
 
-The canvas Box uses `Alignment.TopCenter` for the `AnimatedVisibility`
-challenge prompt so it sits over the canvas without being clipped
-by the region.
-
 The `Modifier.smoothPanelExpansion()` from `Theme.kt` is the only
-way to animate region height changes (header resize on mode-toggle,
-code trace collapse on variable-inspector tap).
+way to animate header region height changes (mode chips row).
+
+**Screen-level state budget.** Tapping the trace strip calls
+`state.openDeck(DeckPage.TRACE)`; `InstrumentDeck`'s page selector writes
+`state.deckPage`. The screen body owns **no** deck state of its own
+(`AlgolensVisualizerScreenMutation` enforces this).
 
 ---
 
