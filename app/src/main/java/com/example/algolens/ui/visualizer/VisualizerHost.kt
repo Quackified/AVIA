@@ -186,9 +186,7 @@ private fun GraphTreeCanvas(
         PhaseBanner(
             step = currentStep,
             algorithmName = algorithmId.displayName,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp)
+            modifier = Modifier.fillMaxWidth()
         )
         GraphTreeVisualizer(
             step = currentStep,
@@ -216,9 +214,7 @@ private fun BufferCanvas(
         PhaseBanner(
             step = currentStep,
             algorithmName = spec.id.displayName,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp)
+            modifier = Modifier.fillMaxWidth()
         )
         BufferVisualizer(
             step = currentStep,

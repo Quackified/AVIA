@@ -82,14 +82,14 @@ fun PhaseBanner(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space2),
+            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         // Phase Tag Pill
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
             modifier = Modifier.weight(1f, fill = false)
         ) {
             Box(

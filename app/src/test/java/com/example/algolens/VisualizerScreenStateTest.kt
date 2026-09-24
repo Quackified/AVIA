@@ -153,7 +153,7 @@ class VisualizerScreenStateTest {
     fun deck_startsCollapsedOnTheTracePage() {
         val state = makeState(3)
         assertEquals(DeckPage.TRACE, state.deckPage)
-        assertFalse("the deck must not cover the stage on open", state.deckExpanded)
+        assertFalse("the deck starts collapsed", state.deckExpanded)
     }
 
     @Test

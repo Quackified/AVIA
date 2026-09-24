@@ -32,3 +32,6 @@ build_gradle.py
 run_build.py
 _*.ps1
 _*.py
+
+# ── Graphify ─────────────────────────────────────────────────────────────────
+graphify-out/cost.json

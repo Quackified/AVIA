@@ -198,7 +198,7 @@ fun CellArrayVisualizer(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val nodeCount = step.array.size.coerceAtLeast(1)
-        val availableWidth = (maxWidth - 16.dp).coerceAtLeast(240.dp)
+        val availableWidth = (maxWidth - AlgoTokens.space5 * 2).coerceAtLeast(240.dp)
 
         // Normalized scale: S (0.7f) -> 0.0f, M (1.0f) -> 0.55f, L (1.25f) -> 1.0f
         val normalizedScale = ((cellScale - 0.7f) / (1.25f - 0.7f)).coerceIn(0f, 1f)
@@ -268,7 +268,10 @@ fun CellArrayVisualizer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .padding(
+                        horizontal = AlgoTokens.space5,
+                        vertical = AlgoTokens.space2
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Column(

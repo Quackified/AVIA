@@ -70,6 +70,7 @@ fun CodeListing(
     syncPulse: androidx.compose.runtime.State<Float>,
     selectedLanguage: TraceLanguage,
     isExpanded: Boolean = false,
+    showHeader: Boolean = true,
     onToggleExpand: () -> Unit = {},
     lazyListState: LazyListState,
     modifier: Modifier = Modifier
@@ -86,9 +87,15 @@ fun CodeListing(
         algorithmName.lowercase().replace(" ", "_").replace("-", "_") + "." + fileExtension
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        // ── Terminal Chrome Titlebar (Tap to toggle 3-Line Peek vs Full Code) ──
-        Row(
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(CanvasBackground)
+    ) {
+        // Hidden inside the Focus Deck: its attached tabs replace this titlebar.
+        if (showHeader) {
+            Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(com.example.algolens.ui.theme.CardBackgroundElevated)
@@ -207,14 +214,17 @@ fun CodeListing(
                 }
             }
         }
+        } // end if (showHeader)
 
         // Terminal Header Separator Hairline
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(BorderSubtle)
-        )
+        if (showHeader) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(BorderSubtle)
+            )
+        }
 
         // ── Terminal Code Body ──
         Box(

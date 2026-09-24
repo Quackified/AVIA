@@ -1,6 +1,7 @@
 package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -9,12 +10,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.example.algolens.data.AppSettings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -120,6 +123,15 @@ fun VisualizerScreen(
                 .fillMaxSize()
                 .blur(backdropBlur)
         ) {
+            val animatedDockHeight by animateDpAsState(
+                targetValue = if (state.deckExpanded) DOCK_EXPANDED_TOTAL_HEIGHT else DOCK_PEEK_TOTAL_HEIGHT,
+                animationSpec = androidx.compose.animation.core.spring(
+                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+                    stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
+                ),
+                label = "animatedDockHeight"
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -134,87 +146,90 @@ fun VisualizerScreen(
                     onBack = onBack
                 )
 
-                // Concept A: Unified Live Narrative Stage (fills available stage height)
+                // ── Unified Live Narrative Stage + Docked Terminal ──
+                //  1. VisualizerHost (Cell Array / Bars / Graph) uses bottom padding = animatedDockHeight,
+                //     so the cell visualizer moves UP smoothly when the dock expands (no cells covered).
+                //  2. StageLegend (Compare, Swap, Pivot, etc.) uses static bottom padding = DOCK_PEEK_TOTAL_HEIGHT,
+                //     so it NEVER moves up when the dock expands and stays buried underneath InstrumentDeck.
+                //  3. InstrumentDeck sits at Alignment.BottomCenter (3-line peek at 126.dp <-> expanded at 285.dp),
+                //     replacing the removed 1-line TraceStrip.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                 ) {
-                    if (spec != null) {
-                        VisualizerHost(
-                            spec = spec,
-                            currentStep = state.currentStep,
-                            arrayViewMode = state.arrayViewMode,
-                            selectedCellIndices = state.challengeState.selectedIndices,
-                            challengeTargetIndices = challengeTargets,
-                            syncPulse = syncPulseState,
-                            onCellClick = { idx ->
-                                if (!state.challengeInFlight || idx in challengeTargets) {
-                                    state.setCellSelected(idx)
-                                }
-                            },
-                            state = state
-                        )
-                    } else {
-                        EmptyCanvas(algorithm)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = animatedDockHeight)
+                    ) {
+                        if (spec != null) {
+                            VisualizerHost(
+                                spec = spec,
+                                currentStep = state.currentStep,
+                                arrayViewMode = state.arrayViewMode,
+                                selectedCellIndices = state.challengeState.selectedIndices,
+                                challengeTargetIndices = challengeTargets,
+                                syncPulse = syncPulseState,
+                                onCellClick = { idx ->
+                                    if (!state.challengeInFlight || idx in challengeTargets) {
+                                        state.setCellSelected(idx)
+                                    }
+                                },
+                                state = state
+                            )
+                        } else {
+                            EmptyCanvas(algorithm)
+                        }
                     }
 
-                    // Stage key — overlays the canvas corner, so it costs no
-                    // vertical budget (see [StageLegend]).
+                    // Static Stage Legend — anchored above the resting dock height so it stays
+                    // completely stationary and gets buried beneath InstrumentDeck when expanded.
                     StageLegend(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(AlgoTokens.space3)
+                            .padding(
+                                start = AlgoTokens.space5,
+                                bottom = DOCK_PEEK_TOTAL_HEIGHT + AlgoTokens.space2
+                            )
                     )
 
-                    // Focus Deck — a child of the stage Box on purpose: it
-                    // overlays the canvas instead of joining the Column, so
-                    // opening it can never re-measure (and resize) the canvas.
-                    InstrumentDeck(
-                        state = state,
-                        algorithm = algorithm,
-                        currentStep = state.currentStep,
-                        syncPulse = syncPulseState,
-                        modifier = Modifier.align(Alignment.BottomCenter)
-                    )
-                }
+                    // Docked 3-Line Peek / Expand Terminal (with attached Trace | State window tabs)
+                    // plus optional Challenge prompt above it.
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                    ) {
+                        AnimatedVisibility(
+                            visible = state.challengeInFlight,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
+                            enter = fadeIn(tween(220)) + expandVertically(),
+                            exit = fadeOut(tween(180)) + shrinkVertically()
+                        ) {
+                            CanvasChallengePrompt(
+                                algorithm = algorithm.id,
+                                step = state.currentStep,
+                                nextStep = state.steps.getOrNull(state.currentStepIdx + 1),
+                                state = state.challengeState,
+                                onStateChange = { state.updateChallenge { it } },
+                                onContinueNext = { state.stepForward() }
+                            )
+                        }
 
-                // Challenge prompt lives BETWEEN the canvas and the terminal
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = state.challengeInFlight,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    enter = fadeIn(tween(220)) + expandVertically(),
-                    exit = fadeOut(tween(180)) + shrinkVertically()
-                ) {
-                    CanvasChallengePrompt(
-                        algorithm = algorithm.id,
-                        step = state.currentStep,
-                        nextStep = state.steps.getOrNull(state.currentStepIdx + 1),
-                        state = state.challengeState,
-                        onStateChange = { state.updateChallenge { it } },
-                        onContinueNext = { state.stepForward() }
-                    )
-                }
-
-                // One-line trace strip — the resting form of the code trace. It
-                // opens the Focus Deck's Trace page, where the full scrollable
-                // listing lives. Replacing the 126dp terminal here is what hands
-                // the stage its vertical budget back.
-                TraceStrip(
-                    step = state.currentStep,
-                    algorithmName = algorithm.name,
-                    onExpand = { state.openDeck(DeckPage.TRACE) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            horizontal = AlgoTokens.space4,
-                            vertical = AlgoTokens.space1
+                        InstrumentDeck(
+                            state = state,
+                            algorithm = algorithm,
+                            currentStep = state.currentStep,
+                            syncPulse = syncPulseState,
+                            modifier = Modifier.fillMaxWidth()
                         )
-                )
+                    }
+                }
 
-                // Bottom playback rail  anchored to the screen bottom.
+                // Bottom playback rail anchored to the screen bottom.
                 PlaybackRail(state = state)
             }
         }

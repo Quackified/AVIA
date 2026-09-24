@@ -1,69 +1,69 @@
 package com.example.algolens.ui.visualizer
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.AlgorithmId
-import com.example.algolens.ui.components.AlgoGlyphs
-import com.example.algolens.ui.components.AlgoHairline
-import com.example.algolens.ui.components.RailIconButton
-import com.example.algolens.ui.components.SegmentedToggle
 import com.example.algolens.ui.theme.AlgoLensTheme
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BorderSubtle
+import com.example.algolens.ui.theme.CanvasBackground
+import com.example.algolens.ui.theme.CardBackgroundElevated
+import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.TextMuted
+import com.example.algolens.ui.theme.TextPrimary
 
 /**
- * Height of the expanded deck, as a fraction of the stage it overlays. Kept as a
- * **fraction, not a dp** on purpose: the deck must not introduce a second
- * absolute height budget that fights the responsive canvas for space. At 46% the
- * deck shows a comfortable 6–7 code lines while leaving the majority of the
- * stage visible behind it.
+ * Original 3-line Peek height (126.dp) and Expanded height (285.dp) of the
+ * docked terminal frame, plus the height of the attached window tabs row (~26.dp).
  */
-private const val DECK_HEIGHT_FRACTION = 0.46f
+internal val TERMINAL_PEEK_HEIGHT = 126.dp
+internal val TERMINAL_EXPANDED_HEIGHT = 285.dp
+internal val ATTACHED_TABS_HEIGHT = 26.dp
+internal val DOCK_PEEK_TOTAL_HEIGHT = TERMINAL_PEEK_HEIGHT + ATTACHED_TABS_HEIGHT + 8.dp
+internal val DOCK_EXPANDED_TOTAL_HEIGHT = TERMINAL_EXPANDED_HEIGHT + ATTACHED_TABS_HEIGHT + 8.dp
 
 /**
- * The Focus Deck — the single bottom-anchored surface that replaced the
- * permanently-docked 3-line terminal.
+ * Docked 3-Line Peek / Expand Terminal UI with attached top window tabs
+ * (`Trace` | `State`).
  *
- * **What it fixes.** The visualizer column used to hold three stacked bottom
- * bands: a 126dp code peek, a timeline-scrubber tier and a transport tier. The
- * deck collapses that to one surface the user opens on demand, and because it
- * **overlays the stage** instead of joining the column, opening it cannot
- * re-measure the canvas — which is what used to re-run the responsive
- * cell-sizing maths in `CellArrayVisualizer` mid-interaction.
- *
- * **Pages.** [DeckPage.TRACE] hosts the existing `CodeTracePane` (terminal
- * frame, syntax highlighting, active-line anchoring, shared `LazyListState` —
- * all unchanged) and [DeckPage.STATE] hosts [StateDeckPage]. Adding a page is
- * one enum entry plus one branch here.
- *
- * Pages are selected with the catalogue's own [SegmentedToggle] rather than a
- * bespoke chip row, and the collapse affordance is the rail's own
- * [RailIconButton] — no new control vocabulary was introduced for this surface.
+ * - **Always docked**: rests at [TERMINAL_PEEK_HEIGHT] (126.dp, showing the
+ *   terminal titlebar + 3 lines of code or live state) and expands to
+ *   [TERMINAL_EXPANDED_HEIGHT] (285.dp) when `state.deckExpanded` is true.
+ * - **Attached window tabs**: `Trace` and `State` sit directly on top of the
+ *   terminal frame with no background bar behind them.
+ * - **Unified Terminal UI**: both [DeckPage.TRACE] and [DeckPage.STATE] retain
+ *   the terminal titlebar (`Traffic-Light Dots | filename | Language/State badge | Expand ^ / Collapse v`)
+ *   and share the [CanvasBackground] terminal body.
  */
 @Composable
 fun InstrumentDeck(
@@ -73,48 +73,75 @@ fun InstrumentDeck(
     syncPulse: State<Float>,
     modifier: Modifier = Modifier
 ) {
-    AnimatedVisibility(
-        visible = state.deckExpanded,
-        modifier = modifier.fillMaxWidth(),
-        enter = fadeIn(tween(200)) + expandVertically(expandFrom = Alignment.Bottom),
-        exit = fadeOut(tween(160)) + shrinkVertically(shrinkTowards = Alignment.Bottom)
+    val terminalHeight by animateDpAsState(
+        targetValue = if (state.deckExpanded) TERMINAL_EXPANDED_HEIGHT else TERMINAL_PEEK_HEIGHT,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "instrumentDeckTerminalHeight"
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
     ) {
-        Column(
+        // Attached window tabs sitting flush on top of the terminal frame
+        AttachedDeckTabs(
+            selected = state.deckPage,
+            onSelect = { page ->
+                if (state.deckPage == page) {
+                    state.deckExpanded = !state.deckExpanded
+                } else {
+                    state.deckPage = page
+                }
+            }
+        )
+
+        // Unified Terminal UI Frame (126.dp 3-line peek <-> 285.dp expanded)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(DECK_HEIGHT_FRACTION)
-                .clip(RoundedCornerShape(AlgoTokens.radiusLg))
-                .background(AlgoTokens.surfaceFloat)
+                .height(terminalHeight)
+                .clip(
+                    RoundedCornerShape(
+                        topStart = AlgoTokens.radiusXs,
+                        topEnd = AlgoTokens.radiusMd,
+                        bottomStart = AlgoTokens.radiusMd,
+                        bottomEnd = AlgoTokens.radiusMd
+                    )
+                )
+                .background(CanvasBackground)
                 .border(
                     AlgoTokens.strokeThin,
-                    BorderSubtle,
-                    RoundedCornerShape(AlgoTokens.radiusLg)
+                    if (state.deckExpanded) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
+                    RoundedCornerShape(
+                        topStart = AlgoTokens.radiusXs,
+                        topEnd = AlgoTokens.radiusMd,
+                        bottomStart = AlgoTokens.radiusMd,
+                        bottomEnd = AlgoTokens.radiusMd
+                    )
                 )
         ) {
-            DeckHeaderRow(state = state)
-
-            AlgoHairline()
-
             when (state.deckPage) {
                 DeckPage.TRACE -> CodeTracePane(
                     step = currentStep,
                     algorithmName = algorithm.name,
                     syncPulse = syncPulse,
                     fillsAvailableHeight = true,
-                    // The terminal titlebar becomes the collapse affordance,
-                    // so it stops being a dead tap target in this context.
-                    onToggleExpand = { state.deckExpanded = false },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
+                    isExpandedOverride = state.deckExpanded,
+                    showHeader = true,
+                    onToggleExpand = { state.deckExpanded = !state.deckExpanded },
+                    modifier = Modifier.fillMaxSize()
                 )
 
                 DeckPage.STATE -> StateDeckPage(
                     algorithmName = algorithm.name,
                     step = currentStep,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
+                    isExpanded = state.deckExpanded,
+                    onToggleExpand = { state.deckExpanded = !state.deckExpanded },
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }
@@ -122,39 +149,65 @@ fun InstrumentDeck(
 }
 
 /**
- * Deck chrome: page selector on the left, collapse on the right.
+ * Window tabs (`Trace` | `State`) attached directly to the top-left edge of
+ * the terminal frame, with no background bar behind them.
+ *
+ * The active tab uses [CardBackgroundElevated] so it connects directly into the
+ * terminal titlebar directly below it.
  */
 @Composable
-private fun DeckHeaderRow(state: VisualizerScreenState) {
+private fun AttachedDeckTabs(
+    selected: DeckPage,
+    onSelect: (DeckPage) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(start = AlgoTokens.space2),
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
+        verticalAlignment = Alignment.Bottom
     ) {
-        SegmentedToggle(
-            options = listOf(
-                DeckPage.TRACE.label to DeckPage.TRACE,
-                DeckPage.STATE.label to DeckPage.STATE
-            ),
-            selectedKey = state.deckPage,
-            onContainer = AlgoTokens.surfaceSunken,
-            onSelect = { key ->
-                if (key is DeckPage) state.deckPage = key
-            }
-        )
+        for (page in DeckPage.entries) {
+            val isSelected = page == selected
+            val shape = RoundedCornerShape(
+                topStart = AlgoTokens.radiusSm,
+                topEnd = AlgoTokens.radiusSm
+            )
 
-        RailIconButton(
-            icon = AlgoGlyphs.ChevronDown,
-            contentDescription = "Collapse deck",
-            boxSize = AlgoTokens.iconButtonSm,
-            iconSize = AlgoTokens.inlineIconSm,
-            tint = TextMuted,
-            container = Color.Transparent,
-            borderColor = BorderSubtle,
-            onClick = { state.deckExpanded = false }
-        )
+            Row(
+                modifier = Modifier
+                    .clip(shape)
+                    .background(if (isSelected) CardBackgroundElevated else CanvasBackground.copy(alpha = 0.85f))
+                    .border(
+                        width = AlgoTokens.strokeThin,
+                        color = if (isSelected) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
+                        shape = shape
+                    )
+                    .clickable { onSelect(page) }
+                    .padding(
+                        horizontal = AlgoTokens.space4,
+                        vertical = AlgoTokens.space1
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(AlgoTokens.space3)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) PrimaryCyan else TextMuted.copy(alpha = 0.45f)
+                        )
+                )
+                Text(
+                    text = page.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = if (isSelected) TextPrimary else TextMuted,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                )
+            }
+        }
     }
 }
 
@@ -163,18 +216,12 @@ private fun DeckHeaderRow(state: VisualizerScreenState) {
 fun InstrumentDeckPreview() {
     AlgoLensTheme {
         val algorithm = Algorithm(id = AlgorithmId.QUICK_SORT)
-        // Preview-only: the deck is a conditional surface, so open it at
-        // construction rather than mutating state during composition.
         val deckState = remember(algorithm) {
-            VisualizerScreenState(algorithm).also { it.deckExpanded = true }
+            VisualizerScreenState(algorithm)
         }
         val pulse = remember { mutableStateOf(0f) }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.6f)
-        ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             InstrumentDeck(
                 state = deckState,
                 algorithm = algorithm,
@@ -185,8 +232,7 @@ fun InstrumentDeckPreview() {
                     activeCodeLines = listOf(5),
                     variables = mapOf("i" to "0", "j" to "2", "pivot" to "7")
                 ),
-                syncPulse = pulse,
-                modifier = Modifier.align(Alignment.BottomCenter)
+                syncPulse = pulse
             )
         }
     }

@@ -32,57 +32,202 @@ import com.example.algolens.ui.theme.PurpleGlow
 import com.example.algolens.ui.theme.PurpleSubtle
 import com.example.algolens.ui.theme.TextMuted
 
+import androidx.compose.foundation.border
+import androidx.compose.ui.text.font.FontFamily
+import com.example.algolens.ui.theme.BorderSubtle
+import com.example.algolens.ui.theme.CanvasBackground
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.ui.text.PlatformTextStyle
+import com.example.algolens.ui.theme.AccentGreen
+import com.example.algolens.ui.theme.AccentRed
+import com.example.algolens.ui.theme.AccentYellow
+import com.example.algolens.ui.theme.CardBackgroundElevated
+import com.example.algolens.ui.theme.SecondaryPurple
+import com.example.algolens.ui.theme.TextSecondary
+
 /**
- * The Focus Deck's **State** page: the live variable readout and the recursion /
- * call-stack depth, stacked in one scrollable column.
- *
- * **Provenance.** Both blocks were extracted verbatim from
- * `VisualizerHeader.kt`, where they lived as inline disclosure bodies inside the
- * kebab popover — two taps deep, behind a `DropdownMenuItem`. They are the only
- * surfaces in the app that report per-step variable state, so they belong next
- * to the transport the user is already holding, not inside a menu.
- *
- * Nothing about the readouts changed: same badges, same tokens, same
- * stable-`TextStyle` bake. Only their home moved, and the `ColumnScope`
- * receiver was dropped so they compose from any scope.
- *
- * Per the phase brief ("one affordance, one home"), the header rows that used to
- * open these blocks are **deleted**, not aliased.
+ * The Focus Deck's **State** page: uses the exact same Terminal UI titlebar
+ * (`Traffic-Light Dots | >_ state_inspector | STATE | Expand ^ / Collapse v`)
+ * and [CanvasBackground] body as [CodeListing], followed by the live variable
+ * readout and call-stack depth.
  */
 @Composable
 fun StateDeckPage(
     algorithmName: String,
     step: VisualizerStep,
+    isExpanded: Boolean = false,
+    onToggleExpand: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val stateFileName = remember(algorithmName) {
+        algorithmName.lowercase().replace(" ", "_").replace("-", "_") + ".state"
+    }
+
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space4),
-        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+            .fillMaxSize()
+            .background(CanvasBackground)
     ) {
-        Column {
-            SectionLabel(
-                icon = AlgoGlyphs.Code,
-                text = "Live variables",
-                iconColor = PrimaryCyan
-            )
-            VariableInspectorReadout(step = step)
+        // ── Terminal Header Bar (matches CodeListing's header bar) ──
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(CardBackgroundElevated)
+                .clickable { onToggleExpand() }
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left: Terminal Window Traffic-Light Dots + State File Name
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(AlgoTokens.space3)
+                            .clip(CircleShape)
+                            .background(AccentRed.copy(alpha = 0.85f))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(AlgoTokens.space3)
+                            .clip(CircleShape)
+                            .background(AccentYellow.copy(alpha = 0.85f))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(AlgoTokens.space3)
+                            .clip(CircleShape)
+                            .background(AccentGreen.copy(alpha = 0.85f))
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                ) {
+                    Icon(
+                        imageVector = AlgoGlyphs.Terminal,
+                        contentDescription = null,
+                        tint = PurpleGlow,
+                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                    )
+                    Text(
+                        text = stateFileName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = AlgoType.microSize
+                    )
+                }
+            }
+
+            // Right: STATE Badge + Peek/Expand Toggle
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(SecondaryPurple.copy(alpha = 0.18f))
+                        .border(
+                            AlgoTokens.strokeHairline,
+                            SecondaryPurple.copy(alpha = 0.45f),
+                            RoundedCornerShape(AlgoTokens.radiusXs)
+                        )
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "STATE",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                        ),
+                        color = PurpleGlow,
+                        fontSize = AlgoType.microSize,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(CyanSubtle)
+                        .border(
+                            AlgoTokens.strokeHairline,
+                            PrimaryCyan.copy(alpha = 0.4f),
+                            RoundedCornerShape(AlgoTokens.radiusXs)
+                        )
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isExpanded) "Collapse v" else "Expand ^",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                        ),
+                        color = PrimaryCyan,
+                        fontSize = AlgoType.microSize,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
 
-        AlgoHairline()
+        // Terminal Header Separator Hairline
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(AlgoTokens.strokeThin)
+                .background(BorderSubtle)
+        )
 
-        Column {
-            SectionLabel(
-                icon = AlgoGlyphs.Terminal,
-                text = "Call stack",
-                iconColor = PurpleGlow
-            )
-            MemoryCallStackReadout(
-                algorithmName = algorithmName,
-                step = step
-            )
+        // ── Scrollable Terminal State Body ──
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+        ) {
+            Column {
+                SectionLabel(
+                    icon = AlgoGlyphs.Code,
+                    text = "Live variables",
+                    iconColor = PrimaryCyan
+                )
+                VariableInspectorReadout(step = step)
+            }
+
+            AlgoHairline()
+
+            Column {
+                SectionLabel(
+                    icon = AlgoGlyphs.Terminal,
+                    text = "Call stack",
+                    iconColor = PurpleGlow
+                )
+                MemoryCallStackReadout(
+                    algorithmName = algorithmName,
+                    step = step
+                )
+            }
         }
     }
 }
@@ -141,6 +286,7 @@ private fun MemoryCallStackReadout(
             text = "$algorithmName(size=${step.array.size})",
             style = MaterialTheme.typography.labelSmall,
             color = PurpleGlow,
+            fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
             fontSize = AlgoType.microSize
         )
@@ -163,14 +309,11 @@ private fun MemoryCallStackReadout(
 
 @Composable
 private fun VarBadge(label: String, value: String) {
-    // Read-then-remember: color/weight/size are static badge chrome, so bake
-    // them into one stable TextStyle. Per-step value changes then only
-    // remeasure the string — Text's internal style.merge() sees a stable
-    // style instead of rebuilding overrides every recomposition.
     val base = MaterialTheme.typography.bodySmall
     val badgeStyle = remember(base) {
         base.copy(
             color = PrimaryCyan,
+            fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.SemiBold,
             fontSize = AlgoType.microSize
         )
@@ -179,6 +322,11 @@ private fun VarBadge(label: String, value: String) {
         modifier = Modifier
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
             .background(CyanSubtle)
+            .border(
+                AlgoTokens.strokeThin,
+                PrimaryCyan.copy(alpha = 0.35f),
+                RoundedCornerShape(AlgoTokens.radiusXs)
+            )
             .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
     ) {
         Text(
@@ -190,12 +338,11 @@ private fun VarBadge(label: String, value: String) {
 
 @Composable
 private fun StackInfoBadge(label: String, value: String) {
-    // Read-then-remember: same static-chrome bake as VarBadge — the live
-    // value string stays dynamic, the TextStyle refs stay stable.
     val badgeBase = MaterialTheme.typography.labelSmall
     val labelStyle = remember(badgeBase) {
         badgeBase.copy(
             color = TextMuted,
+            fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
             fontSize = AlgoType.microSize
         )
@@ -203,6 +350,7 @@ private fun StackInfoBadge(label: String, value: String) {
     val valueStyle = remember(badgeBase) {
         badgeBase.copy(
             color = PurpleGlow,
+            fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.SemiBold,
             fontSize = AlgoType.microSize
         )
@@ -211,6 +359,11 @@ private fun StackInfoBadge(label: String, value: String) {
         modifier = Modifier
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
             .background(PurpleSubtle)
+            .border(
+                AlgoTokens.strokeThin,
+                BorderSubtle,
+                RoundedCornerShape(AlgoTokens.radiusXs)
+            )
             .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
@@ -226,7 +379,7 @@ private fun StackInfoBadge(label: String, value: String) {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF111D30)
+@Preview(showBackground = true, backgroundColor = 0xFF060A14)
 @Composable
 fun StateDeckPagePreview() {
     AlgoLensTheme {

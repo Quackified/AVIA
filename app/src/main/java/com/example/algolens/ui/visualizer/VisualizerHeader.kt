@@ -96,7 +96,7 @@ fun VisualizerHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = AlgoTokens.space5 + AlgoTokens.space1, vertical = AlgoTokens.space3)
+            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3)
             .smoothPanelExpansion(),
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
     ) {
@@ -111,7 +111,7 @@ fun VisualizerHeader(
             // instructions).
             HeaderTitle(
                 algorithm = algorithm,
-                currentStepIdx = state.currentStepIdx,
+                currentStepIdx = state.displayStepIdx,
                 totalSteps = state.totalSteps,
                 modifier = Modifier.weight(1f),
                 onBack = onBack
@@ -166,8 +166,12 @@ private fun HeaderTitle(
         counterBase.copy(
             color = TextMuted,
             fontSize = AlgoType.microSize,
+            fontFeatureSettings = "tnum"
         )
     }
+    val padWidth = totalSteps.toString().length.coerceAtLeast(2)
+    val stepNumPadded = (currentStepIdx + 1).toString().padStart(padWidth, '0')
+    val totalStepsPadded = totalSteps.toString().padStart(padWidth, '0')
 
     Row(
         modifier = modifier,
@@ -212,7 +216,7 @@ private fun HeaderTitle(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = "Step ${currentStepIdx + 1} of $totalSteps",
+                text = "Step $stepNumPadded of $totalStepsPadded",
                 style = stepCounterStyle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

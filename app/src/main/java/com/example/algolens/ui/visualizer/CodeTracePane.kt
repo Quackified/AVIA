@@ -61,27 +61,16 @@ fun CodeTracePane(
     algorithmName: String = "Bubble Sort",
     syncPulse: State<Float> = mutableStateOf(0f),
     modifier: Modifier = Modifier,
-    /**
-     * When true the pane fills whatever constraints it is handed instead of
-     * applying its own peek / expand heights, padding, clip and border.
-     * [InstrumentDeck]'s Trace page uses this — the deck owns the geometry, so
-     * nothing here can re-measure the canvas.
-     */
     fillsAvailableHeight: Boolean = false,
-    /**
-     * Overrides the peek/expand toggle. The deck passes its own collapse action
-     * so the terminal titlebar keeps a job in that context instead of becoming a
-     * dead tap target.
-     */
+    isExpandedOverride: Boolean? = null,
+    showHeader: Boolean = true,
     onToggleExpand: (() -> Unit)? = null
 ) {
     val selectedLanguage = com.example.algolens.data.AppSettings.preferredLanguage
     var isExpanded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
 
-    /** In deck mode the page is always "expanded": the deck is the expand. */
-    val expanded = fillsAvailableHeight || isExpanded
-
+    val expanded = isExpandedOverride ?: isExpanded
 
     val codeData = remember(algorithmName, selectedLanguage) {
         AlgorithmCodeRegistry.getCode(algorithmName, selectedLanguage)
@@ -104,10 +93,10 @@ fun CodeTracePane(
 
     // Keep the active line centered in the 3-line Peek window (activeLine - 1 at top),
     // or smoothly scroll into view when expanded.
-    LaunchedEffect(activeLinesInCurrentLang, isExpanded) {
+    LaunchedEffect(activeLinesInCurrentLang, expanded) {
         val firstActiveLine = activeLinesInCurrentLang.minOrNull()
         if (firstActiveLine != null && codeData.lines.isNotEmpty()) {
-            val anchorIdx = if (!isExpanded) {
+            val anchorIdx = if (!expanded) {
                 (firstActiveLine - 2).coerceIn(0, (codeData.lines.size - 1).coerceAtLeast(0))
             } else {
                 (firstActiveLine - 3).coerceIn(0, (codeData.lines.size - 1).coerceAtLeast(0))
@@ -125,12 +114,6 @@ fun CodeTracePane(
         label = "terminalPeekExpandHeight"
     )
 
-    // ── Two presentations of one pane ──
-    //  1. standalone: the pane owns its peek/expand height, padding, clip and
-    //     border (unchanged from the original implementation).
-    //  2. deck page (`fillsAvailableHeight`): the deck already supplies the
-    //     surface, so the listing goes full-bleed inside it and no geometry here
-    //     can re-measure the canvas behind the deck.
     val paneModifier = if (fillsAvailableHeight) {
         modifier.fillMaxWidth()
     } else {
@@ -159,6 +142,7 @@ fun CodeTracePane(
             syncPulse = syncPulse,
             selectedLanguage = selectedLanguage,
             isExpanded = expanded,
+            showHeader = showHeader,
             onToggleExpand = onToggleExpand ?: { isExpanded = !isExpanded },
             lazyListState = lazyListState,
             modifier = Modifier.fillMaxSize()
