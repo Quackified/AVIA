@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,17 +40,23 @@ import com.example.algolens.ui.theme.YellowSubtle
 import com.example.algolens.ui.theme.ChipBackground
 import com.example.algolens.ui.theme.AlgoType
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
+
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+
 /**
- * Floating glassmorphic Phase Banner shared by every visualizer family.
- * Reflects the current step's [VisualizerStep.phaseLabel] (coloured pill),
- * the human-readable [VisualizerStep.description], and a contextual quick
- * badge when the step carries a pivot / min / key / active range / sorted
- * boundary.
- *
- * Originally lived inside [CellArrayVisualizer] (where it is still used for
- * the 1D sorting / searching cases). It is now its own composable so the
- * BUFFER (Stack / Queue) and GRAPH_2D (BST / Heap / BFS / DFS) families
- * can show the same banner above their canvas via [VisualizerHost].
+ * Concept A — Live Narrative Stage Header:
+ *  - Top Row: Styled Conversational Step Narrative (15.5sp) with semantic keyword/number
+ *    highlighting and a glowing left accent bar, prefixed by the compact Phase Pill
+ *    (no meaningless [0..8] range tag).
+ *  - Bottom Row: Live Variable Pills ([i = 1]  [j = 3]  [pivot = 5]) positioned
+ *    directly under the narrative text.
  */
 @Composable
 fun PhaseBanner(
@@ -63,7 +71,6 @@ fun PhaseBanner(
         "KEY ELEVATED", "SHIFTING", "KEY INSERTED" -> Pair(SecondaryPurple, PurpleSubtle)
         "SWAPPING", "COMPARING" -> Pair(PrimaryCyan, CyanSubtle)
         "SORTED", "PASS COMPLETE", "LOCKED IN TAIL" -> Pair(AccentGreen, GreenSubtle)
-        // Defaults that work for BUFFER and GRAPH_2D family labels.
         "PUSH", "POP", "ENQUEUE", "DEQUEUE" -> Pair(SecondaryPurple, PurpleSubtle)
         "VISITING", "ENQUEUED", "DEQUEUED" -> Pair(PrimaryCyan, CyanSubtle)
         "INSERTED", "DELETED", "EXTRACTED", "FOUND" -> Pair(AccentGreen, GreenSubtle)
@@ -106,21 +113,27 @@ fun PhaseBanner(
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 fontSize = AlgoType.microSize
             )
         }
 
         Spacer(modifier = Modifier.width(6.dp))
 
-        // Contextual Quick Badge (e.g. Range, Depth, Key, Pivot).
-        // Falls back to the algorithm name for BUFFER / GRAPH_2D steps that
-        // don't carry the 1D-specific step fields below.
+        // Contextual Quick Badge (e.g. Pivot, Min, Key) — activeRange ([0..8]) omitted
+        val isBubbleSort = algorithmName.contains("bubble", ignoreCase = true)
         val contextTag = when {
             step.pivotIndex != null -> "PIVOT [${step.pivotIndex}]"
             step.minIndex != null -> "MIN [${step.minIndex}]"
             step.floatingElement != null -> "KEY ${step.floatingElement.first}"
-            step.activeRange != null -> "[${step.activeRange.first}..${step.activeRange.last}]"
-            step.sortedBoundary != null -> "SORTED: ${step.sortedBoundary}"
+            step.sortedBoundary != null -> {
+                val unsortedCount = if (isBubbleSort) {
+                    step.sortedBoundary
+                } else {
+                    (step.array.size - step.sortedBoundary).coerceAtLeast(0)
+                }
+                if (unsortedCount > 0) "UNSORTED: $unsortedCount" else "SORTED: ${step.array.size}"
+            }
             step.activeNodeId != null -> "NODE ${step.activeNodeId}"
             step.buffer.isNotEmpty() -> "SIZE ${step.buffer.size}/${step.bufferCapacity ?: step.buffer.size}"
             else -> null
@@ -145,3 +158,4 @@ fun PhaseBanner(
         }
     }
 }
+

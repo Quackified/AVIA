@@ -123,11 +123,11 @@ fun VisualizerScreen(
                     onBack = onBack
                 )
 
-                // Canvas (65% weight)
+                // Concept A: Unified Live Narrative Stage (fills available stage height)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(65f)
+                        .weight(1f)
                 ) {
                     if (spec != null) {
                         VisualizerHost(
@@ -149,11 +149,7 @@ fun VisualizerScreen(
                     }
                 }
 
-                // Challenge prompt lives BETWEEN the canvas and the code
-                // trace, not on top of the canvas. Algorithm details stay
-                // fully visible; the prompt stays in the natural "between"
-                // reading position. Sized by content (not weight), so the
-                // canvas + code trace still keep their 65/35 proportions.
+                // Challenge prompt lives BETWEEN the canvas and the terminal
                 androidx.compose.animation.AnimatedVisibility(
                     visible = state.challengeInFlight,
                     modifier = Modifier
@@ -172,19 +168,13 @@ fun VisualizerScreen(
                     )
                 }
 
-                // Code trace (35% weight).
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(35f)
-                ) {
-                    CodeTracePane(
-                        step = state.currentStep,
-                        algorithmName = algorithm.name,
-                        syncPulse = syncPulseState,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                // Concept A: Docked 3-Line Peek / Expand Terminal Frame
+                CodeTracePane(
+                    step = state.currentStep,
+                    algorithmName = algorithm.name,
+                    syncPulse = syncPulseState,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 // Bottom playback rail  anchored to the screen bottom.
                 PlaybackRail(state = state)

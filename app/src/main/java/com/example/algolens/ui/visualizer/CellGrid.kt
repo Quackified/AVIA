@@ -104,23 +104,21 @@ fun CellGrid(
     cellWidth: Dp,
     cellHeight: Dp,
     cellTextSize: TextUnit,
+    cellGap: Dp = 4.dp,
+    viewportWidthDp: Dp = 360.dp,
+    cellScale: Float = 1f,
     lazyListState: LazyListState,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
 
-    // ── Coordinate tracking for bridge overlay ──
-    // Host Box layout coordinates
+    // ── Coordinate tracking for pointer bracket overlay ──
     var gridCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-
-    // Map of cell LayoutCoordinates for direct localPositionOf conversion
     val cellCoordsMap = remember { mutableMapOf<Int, LayoutCoordinates>() }
-
-    // Per-cell center X and top Y relative to the host Box
     val cellCentersX = remember { mutableStateMapOf<Int, Float>() }
     val cellTopsY = remember { mutableStateMapOf<Int, Float>() }
 
-    // Determine bridge target pair
+    // Determine active pointer pair
     val bridgePair = remember(step.elementStates, step.swappedIndices, step.leftPointer, step.rightPointer) {
         when {
             step.swappedIndices != null -> step.swappedIndices
@@ -145,9 +143,14 @@ fun CellGrid(
         )
     }
 
-    // Adaptive vertical spacing allotment (headroom)
-    // Ensures enough space above cells/badges so bridge never clips or touches boundaries
-    val topAllotment = if (hasTopPill) 46.dp else 28.dp
+    val topAllotment = if (hasTopPill) 44.dp else 26.dp
+
+    // Synchronized centering math across S / M / L scales:
+    // Calculate exact horizontal padding so the row is centered whenever it fits,
+    // and uses minimal edge padding when scrolling large arrays.
+    val nodeCount = step.array.size.coerceAtLeast(1)
+    val totalRowWidth = (cellWidth * nodeCount) + (cellGap * (nodeCount - 1).coerceAtLeast(0))
+    val centeredSidePadding = ((viewportWidthDp - totalRowWidth) / 2f).coerceAtLeast(2.dp)
 
     // ── Completion Celebration Wave State & Haptics ──
     val haptic = LocalHapticFeedback.current
@@ -165,7 +168,6 @@ fun CellGrid(
         if (isFullySorted) {
             waveActiveIndex = -1
             celebrationPulse.snapTo(0f)
-            // Left-to-right cascade ripple wave across sorted cells
             for (i in step.array.indices) {
                 waveActiveIndex = i
                 if (AppSettings.hapticsEnabled) {
@@ -177,7 +179,6 @@ fun CellGrid(
             if (AppSettings.hapticsEnabled) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             }
-            // Tada! Final synchronized celebration shimmer
             celebrationPulse.snapTo(1f)
             celebrationPulse.animateTo(0f, tween(600, easing = FastOutSlowInEasing))
         } else {
@@ -205,12 +206,12 @@ fun CellGrid(
             state = lazyListState,
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(
-                start = AlgoTokens.space1,
-                end = AlgoTokens.space1,
+                start = centeredSidePadding,
+                end = centeredSidePadding,
                 top = topAllotment,
                 bottom = AlgoTokens.space1
             ),
-            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(cellGap, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
             itemsIndexed(step.array, key = { index, _ -> "cell_$index" }) { index, value ->
@@ -250,7 +251,7 @@ fun CellGrid(
             }
         }
 
-        // ── Bridge Overlay — drawn in the same Box coordinate space ──
+        // ── ActivePairPointerBracket — drawn in the same Box coordinate space ──
         if (bridgePair != null) {
             val idxA = bridgePair.first
             val idxB = bridgePair.second
@@ -266,12 +267,13 @@ fun CellGrid(
             val transformA = slotFlight.transform(idxA)
             val transformB = slotFlight.transform(idxB)
 
-            ComparisonBridgeOverlay(
+            ActivePairPointerBracket(
                 step = step,
                 cellCenterXA = centerXA,
                 cellCenterXB = centerXB,
                 cellTopY = cellTopY ?: with(density) { (topAllotment + 22.dp).toPx() },
                 hasTopPill = hasTopPill,
+                cellScale = cellScale,
                 transformA = transformA,
                 transformB = transformB,
                 modifier = Modifier.matchParentSize()
@@ -373,7 +375,6 @@ private fun CellItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
             modifier = Modifier
-                .padding(horizontal = AlgoTokens.space1)
                 .clickable(enabled = onCellClick != null) {
                     onCellClick?.invoke(index)
                 }

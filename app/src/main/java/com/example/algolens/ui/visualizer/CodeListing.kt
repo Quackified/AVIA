@@ -62,81 +62,161 @@ import com.example.algolens.ui.components.AlgoGlyphs
  */
 @Composable
 fun CodeListing(
+    algorithmName: String = "Bubble Sort",
     codeData: AlgorithmCodeRegistry.MultiLangCode,
     highlightedLines: List<AnnotatedString>,
     activeLines: List<Int>,
     variables: Map<String, String>,
     syncPulse: androidx.compose.runtime.State<Float>,
     selectedLanguage: TraceLanguage,
-    onLanguageSelected: (TraceLanguage) -> Unit,
+    isExpanded: Boolean = false,
+    onToggleExpand: () -> Unit = {},
     lazyListState: LazyListState,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Centered Header with Multi-Language Tabs (no border)
+    val fileExtension = remember(selectedLanguage) {
+        when (selectedLanguage) {
+            TraceLanguage.KOTLIN -> "kt"
+            TraceLanguage.JAVA -> "java"
+            TraceLanguage.PYTHON -> "py"
+            TraceLanguage.CPP -> "cpp"
+        }
+    }
+    val fileName = remember(algorithmName, fileExtension) {
+        algorithmName.lowercase().replace(" ", "_").replace("-", "_") + "." + fileExtension
+    }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        // ── Terminal Chrome Titlebar (Tap to toggle 3-Line Peek vs Full Code) ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                .background(com.example.algolens.ui.theme.CardBackgroundElevated)
+                .clickable { onToggleExpand() }
+                .padding(horizontal = 12.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Left: Terminal Window Traffic-Light Dots + File Name
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(
-                    imageVector = AlgoGlyphs.Terminal,
-                    contentDescription = null,
-                    tint = PurpleGlow,
-                    modifier = Modifier.size(13.dp)
-                )
-                Text(
-                    text = "Code Trace",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = AlgoType.microSize
-                )
-            }
-
-            // ── Borderless Segmented Language Tabs (Kotlin, Java, Python, C++) ──
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                for (lang in TraceLanguage.entries) {
-                    val isSelected = selectedLanguage == lang
-                    val animatedBg by animateColorAsState(
-                        targetValue = if (isSelected) SecondaryPurple.copy(alpha = 0.25f) else Color.Transparent,
-                        animationSpec = tween(120),
-                        label = "langTabBg_${lang.name}"
-                    )
-
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                            .background(animatedBg)
-                            .clickable { onLanguageSelected(lang) }
-                            .padding(horizontal = 7.dp, vertical = 2.5.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = lang.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) PurpleGlow else TextMuted,
-                            fontSize = AlgoType.microSize,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            .size(7.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(Color(0xFFF59E0B).copy(alpha = 0.85f))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(Color(0xFF10B981).copy(alpha = 0.85f))
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        imageVector = AlgoGlyphs.Terminal,
+                        contentDescription = null,
+                        tint = PurpleGlow,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        text = fileName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 10.sp
+                    )
+                }
+            }
+
+            // Right: Read-Only Preferred Language Badge + Peek/Expand Toggle
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(SecondaryPurple.copy(alpha = 0.18f))
+                        .border(
+                            AlgoTokens.strokeHairline,
+                            SecondaryPurple.copy(alpha = 0.45f),
+                            RoundedCornerShape(4.dp)
                         )
-                    }
+                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = selectedLanguage.label.uppercase(),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                                includeFontPadding = false
+                            )
+                        ),
+                        color = PurpleGlow,
+                        fontSize = 8.5.sp,
+                        lineHeight = 8.5.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(com.example.algolens.ui.theme.CyanSubtle)
+                        .border(
+                            AlgoTokens.strokeHairline,
+                            com.example.algolens.ui.theme.PrimaryCyan.copy(alpha = 0.4f),
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 7.dp, vertical = 2.5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isExpanded) "Collapse v" else "Expand ^",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                                includeFontPadding = false
+                            )
+                        ),
+                        color = com.example.algolens.ui.theme.PrimaryCyan,
+                        fontSize = 8.5.sp,
+                        lineHeight = 8.5.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
 
-        // ── Centered, Borderless Syntax-Highlighted Code Stack ──
+        // Terminal Header Separator Hairline
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(BorderSubtle)
+        )
+
+        // ── Terminal Code Body ──
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -146,9 +226,8 @@ fun CodeListing(
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
-                    .width(316.dp)
-                    .padding(vertical = 2.dp),
-                horizontalAlignment = Alignment.Start
+                    .fillMaxSize()
+                    .padding(vertical = 6.dp)
             ) {
                 itemsIndexed(highlightedLines) { index, lineAnnotated ->
                     val lineNum = index + 1
@@ -177,7 +256,7 @@ fun CodeListing(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(start = 26.dp, top = 2.dp),
+                                    .padding(start = 34.dp, top = 2.dp, bottom = 1.dp),
                                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                             ) {
                                 for ((label, value) in lineVars) {
@@ -193,22 +272,21 @@ fun CodeListing(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(4.dp))
                                 .background(
-                                    if (isActive) lineAccent.copy(alpha = 0.12f)
+                                    if (isActive) lineAccent.copy(alpha = 0.13f)
                                     else Color.Transparent
                                 )
-                                .padding(horizontal = 8.dp, vertical = 2.5.dp),
+                                .padding(horizontal = 10.dp, vertical = 2.5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = lineNum.toString().padStart(2, ' '),
+                                text = lineNum.toString().padStart(2, '0'),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (isActive) lineAccent else TextDark,
                                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
                                 fontSize = AlgoType.microSize,
                                 fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.width(22.dp)
+                                modifier = Modifier.width(24.dp)
                             )
 
                             Text(

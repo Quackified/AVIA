@@ -52,7 +52,8 @@ fun CodeTracePane(
     syncPulse: State<Float> = mutableStateOf(0f),
     modifier: Modifier = Modifier
 ) {
-    var selectedLanguage by remember { mutableStateOf(TraceLanguage.KOTLIN) }
+    val selectedLanguage = com.example.algolens.data.AppSettings.preferredLanguage
+    var isExpanded by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
 
     val codeData = remember(algorithmName, selectedLanguage) {
@@ -74,45 +75,57 @@ fun CodeTracePane(
         codeData.lines.map { line -> SyntaxHighlighter.highlight(line, selectedLanguage) }
     }
 
-    // Smoothly keep the active lines in view only when out of viewport
-    LaunchedEffect(activeLinesInCurrentLang) {
+    // Keep the active line centered in the 3-line Peek window (activeLine - 1 at top),
+    // or smoothly scroll into view when expanded.
+    LaunchedEffect(activeLinesInCurrentLang, isExpanded) {
         val firstActiveLine = activeLinesInCurrentLang.minOrNull()
         if (firstActiveLine != null && codeData.lines.isNotEmpty()) {
-            val targetIdx = (firstActiveLine - 1).coerceIn(0, codeData.lines.size - 1)
-            val visibleIndices = lazyListState.layoutInfo.visibleItemsInfo.map { it.index }
-            if (targetIdx !in visibleIndices) {
-                lazyListState.animateScrollToItem(targetIdx)
+            val anchorIdx = if (!isExpanded) {
+                (firstActiveLine - 2).coerceIn(0, (codeData.lines.size - 1).coerceAtLeast(0))
+            } else {
+                (firstActiveLine - 3).coerceIn(0, (codeData.lines.size - 1).coerceAtLeast(0))
             }
+            lazyListState.animateScrollToItem(anchorIdx)
         }
     }
 
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
-    ) {
-        // ── Code Container ──
-        // The variable inspector and memory call stack moved into
-        // the kebab popover in [VisualizerHeader]; the code-trace
-        // pane now contains only the code container, which fills
-        // the full available height.
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 12.dp, vertical = 2.dp)
-        ) {
-            CodeListing(
-                codeData = codeData,
-                highlightedLines = highlightedLines as List<AnnotatedString>,
-                activeLines = activeLinesInCurrentLang,
-                variables = step.variables,
-                syncPulse = syncPulse,
-                selectedLanguage = selectedLanguage,
-                onLanguageSelected = { selectedLanguage = it },
-                lazyListState = lazyListState,
-                modifier = Modifier.fillMaxSize()
+    val terminalHeight by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isExpanded) 285.dp else 126.dp,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
+        ),
+        label = "terminalPeekExpandHeight"
+    )
+
+    // ── Concept A: Docked Peek / Expand Terminal UI Frame ──
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(terminalHeight)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(com.example.algolens.ui.theme.CanvasBackground)
+            .border(
+                AlgoTokens.strokeThin,
+                if (isExpanded) com.example.algolens.ui.theme.PrimaryCyan.copy(alpha = 0.35f)
+                else com.example.algolens.ui.theme.BorderSubtle,
+                RoundedCornerShape(12.dp)
             )
-        }
+    ) {
+        CodeListing(
+            algorithmName = algorithmName,
+            codeData = codeData,
+            highlightedLines = highlightedLines as List<AnnotatedString>,
+            activeLines = activeLinesInCurrentLang,
+            variables = step.variables,
+            syncPulse = syncPulse,
+            selectedLanguage = selectedLanguage,
+            isExpanded = isExpanded,
+            onToggleExpand = { isExpanded = !isExpanded },
+            lazyListState = lazyListState,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 

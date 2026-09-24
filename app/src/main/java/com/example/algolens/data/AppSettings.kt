@@ -25,4 +25,11 @@ object AppSettings {
      * and the completion celebration wave.
      */
     var hapticsEnabled by androidx.compose.runtime.mutableStateOf(true)
+
+    /**
+     * User's preferred programming language for the Visualizer Code Stack.
+     * Configured in SettingsScreen and displayed in the Terminal Code Frame.
+     */
+    var preferredLanguage by androidx.compose.runtime.mutableStateOf(TraceLanguage.KOTLIN)
 }
+

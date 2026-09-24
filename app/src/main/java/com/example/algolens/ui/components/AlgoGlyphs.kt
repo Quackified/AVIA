@@ -95,17 +95,21 @@ object AlgoGlyphs {
     }
 
     val Reset: ImageVector = glyph("AlgoGlyphs.Reset") {
-        moveTo(4f, 12f)
-        arcToRelative(8.5f, 8.5f, 0f, true, true, 17f, 0f)
-        line(4f, 12f, 4f, 7f)
-        line(4f, 12f, 9f, 12f)
+        moveTo(3.5f, 12f)
+        arcToRelative(8.5f, 8.5f, 0f, true, false, 8.5f, -8.5f)
+        quadTo(6.8f, 3.5f, 3.5f, 8.5f)
+        moveTo(3.5f, 3.5f)
+        lineTo(3.5f, 8.5f)
+        lineTo(8.5f, 8.5f)
     }
 
     val Refresh: ImageVector = glyph("AlgoGlyphs.Refresh") {
-        moveTo(20f, 12f)
-        arcToRelative(8.5f, 8.5f, 0f, true, true, -17f, 0f)
-        line(20f, 12f, 20f, 17f)
-        line(20f, 12f, 15f, 12f)
+        moveTo(3.5f, 12f)
+        arcToRelative(8.5f, 8.5f, 0f, true, false, 8.5f, -8.5f)
+        quadTo(6.8f, 3.5f, 3.5f, 8.5f)
+        moveTo(3.5f, 3.5f)
+        lineTo(3.5f, 8.5f)
+        lineTo(8.5f, 8.5f)
     }
 
     val Speed: ImageVector = glyph("AlgoGlyphs.Speed") {
@@ -279,23 +283,60 @@ object AlgoGlyphs {
         line(15.2f, 15.2f, 20.5f, 20.5f)
     }
 
-    val Tune: ImageVector = glyph("AlgoGlyphs.Tune") {
-        line(3.5f, 6.5f, 20.5f, 6.5f)
-        circle(14.5f, 6.5f, 2.2f)
-        line(3.5f, 12f, 20.5f, 12f)
-        circle(8.5f, 12f, 2.2f)
-        line(3.5f, 17.5f, 20.5f, 17.5f)
-        circle(16.5f, 17.5f, 2.2f)
-    }
+    val Tune: ImageVector = ImageVector.Builder(
+        name = "AlgoGlyphs.Tune",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).path(
+        fill = null,
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.25f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        line(3.5f, 6.5f, 12.3f, 6.5f)
+        circle(14.5f, 6.5f, 2.1f)
+        line(16.7f, 6.5f, 20.5f, 6.5f)
 
-    val Sliders: ImageVector = glyph("AlgoGlyphs.Sliders") {
-        line(7f, 3.5f, 7f, 20.5f)
-        circle(7f, 15f, 2.2f)
-        line(12f, 3.5f, 12f, 20.5f)
-        circle(12f, 8f, 2.2f)
-        line(17f, 3.5f, 17f, 20.5f)
-        circle(17f, 16f, 2.2f)
-    }
+        line(3.5f, 12f, 6.3f, 12f)
+        circle(8.5f, 12f, 2.1f)
+        line(10.7f, 12f, 20.5f, 12f)
+
+        line(3.5f, 17.5f, 14.3f, 17.5f)
+        circle(16.5f, 17.5f, 2.1f)
+        line(18.7f, 17.5f, 20.5f, 17.5f)
+    }.build()
+
+    val Sliders: ImageVector = ImageVector.Builder(
+        name = "AlgoGlyphs.Sliders",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f
+    ).path(
+        fill = null,
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.25f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        // Left slider track + hollow orb
+        line(6f, 4f, 6f, 12.9f)
+        circle(6f, 15f, 2.1f)
+        line(6f, 17.1f, 6f, 20f)
+
+        // Middle slider track + hollow orb
+        line(12f, 4f, 12f, 6.4f)
+        circle(12f, 8.5f, 2.1f)
+        line(12f, 10.6f, 12f, 20f)
+
+        // Right slider track + hollow orb
+        line(18f, 4f, 18f, 13.4f)
+        circle(18f, 15.5f, 2.1f)
+        line(18f, 17.6f, 18f, 20f)
+    }.build()
 
     val Book: ImageVector = glyph("AlgoGlyphs.Book") {
         line(12f, 7f, 12f, 20f)

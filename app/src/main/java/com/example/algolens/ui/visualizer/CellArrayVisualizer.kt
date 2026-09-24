@@ -190,320 +190,142 @@ fun CellArrayVisualizer(
     val isSelectionSort = algorithmName.contains("selection", ignoreCase = true)
     val isInsertionSort = algorithmName.contains("insertion", ignoreCase = true)
 
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        // Responsive tactile-canvas sizing: card dimensions, type scale and
-        // slot pitch derive from the available width and total node count.
-        val nodeCount = step.array.size.coerceAtLeast(1)
-        val availableWidth = maxWidth - 36.dp // canvas well padding + gutters
-        // Adaptive cell sizing: cells grow to fill the available
-        // width so the row always spans the canvas. The header's S/M/L
-        // toggle (cellScale = 0.7..1.25) scales the cell width so
-        // users actually see the cells shrink/grow, not just the
-        // digits inside them. The 14dp floor and 44dp cap still
-        // protect readability at the extremes:
-        //  - 14dp floor: a 20-element array at S scale would otherwise
-        //    collapse cells below the minimum touch-target width.
-        //  - 44dp cap: a 3-element array at L scale would otherwise
-        //    balloon cells past the cap the rest of the UI assumes.
-        val slotGap = AlgoTokens.space3
-        val totalGaps = slotGap * (nodeCount - 1).coerceAtLeast(0)
-        val usableWidth = (availableWidth - totalGaps).coerceAtLeast(0.dp)
-        val cellWidth = ((usableWidth / nodeCount) * cellScale).coerceIn(14.dp, 44.dp)
-        val cellHeight = cellWidth * 1.12f
-        // Font size scales with the cell width (it was the cellScale
-        // multiplier before — that math now lives in the cellWidth
-        // calc above). 0.36 × cellWidth gives a digit size that
-        // reads cleanly across the S/M/L range.
-        val cellTextSize = (cellWidth.value * 0.36f).coerceIn(7f, 16f).sp
+    val exprStyle = MaterialTheme.typography.labelMedium.copy(
+        fontSize = AlgoType.microSize,
+        fontWeight = FontWeight.ExtraBold,
+        letterSpacing = AlgoType.trackTight
+    )
 
-        // Read-then-remember: cache the static text merges once per
-        // composition so the per-step callout reuses a stable TextStyle.
-        // The *string and color* stay dynamic — only the typography merge
-        // (weight/size/spacing) is baked here.
-        val exprStyleBase = MaterialTheme.typography.labelSmall
-        val exprStyle = remember(exprStyleBase) {
-            exprStyleBase.copy(
-                fontWeight = FontWeight.Bold,
-                letterSpacing = AlgoType.trackSection,
-                fontSize = AlgoType.microSize
-            )
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val nodeCount = step.array.size.coerceAtLeast(1)
+        val availableWidth = (maxWidth - 16.dp).coerceAtLeast(240.dp)
+
+        // Normalized scale: S (0.7f) -> 0.0f, M (1.0f) -> 0.55f, L (1.25f) -> 1.0f
+        val normalizedScale = ((cellScale - 0.7f) / (1.25f - 0.7f)).coerceIn(0f, 1f)
+
+        // Target horizontal budget fill ratio so the cell array is ALWAYS the main visual focus:
+        // S fills 90% of the stage width, M fills 96%, L fills 100%.
+        val budgetFillRatio = 0.90f + (0.10f * normalizedScale)
+        val targetRowBudget = availableWidth * budgetFillRatio
+
+        // Adaptive base banding (slotGap): tightens automatically on larger arrays so budget
+        // goes to cell width, and expands on smaller arrays so cells + banding span the stage.
+        val initialGap = when {
+            nodeCount >= 11 -> 3.dp
+            nodeCount >= 9 -> 4.dp
+            nodeCount >= 7 -> 5.5.dp
+            nodeCount >= 5 -> 7.dp
+            else -> 9.dp
+        } * (0.85f + 0.15f * normalizedScale)
+
+        val initialTotalGaps = initialGap * (nodeCount - 1).coerceAtLeast(0)
+        val rawCellWidth = (targetRowBudget - initialTotalGaps) / nodeCount
+
+        // No tiny hard cap! Allow cells on low array counts to expand up to hero sizes (54dp..68dp)
+        // so S scaling on low array counts fills the horizontal budget as the centerpiece.
+        val minReadableWidth = (22f + 8f * normalizedScale).dp
+        val maxHeroCellWidth = (54f + 14f * normalizedScale).dp
+        val cellWidth = rawCellWidth.coerceIn(minReadableWidth, maxHeroCellWidth)
+
+        // When nodeCount is very low (e.g. 3-5 items) and cellWidth reaches maxHeroCellWidth,
+        // adaptively widen the banding (slotGap) so the array still fills the horizontal budget.
+        val slotGap = if (nodeCount > 1) {
+            val remainingBudgetForGaps = (targetRowBudget - (cellWidth * nodeCount)).coerceAtLeast(initialTotalGaps)
+            (remainingBudgetForGaps / (nodeCount - 1)).coerceIn(2.5.dp, 16.dp)
+        } else {
+            0.dp
         }
 
-        // Mirror the computed sizing into the state that the
-        // adaptive-scroll LaunchedEffect above reads. We pass by
-        // value (not assignment) so the effect re-fires whenever
-        // the box re-measures (orientation change, resize, etc).
-        LaunchedEffect(cellWidth, slotGap, maxWidth) {
-            // Inner params shadow the outer vars. Use the
-            // outer \x27cellWidthField\x27 delegate (the var by
-            // remember inside the function) by reading the
-            // outer scope.
+        // Keep cellHeight sleek and balanced (capped at 56.dp) so wide cells on low array counts
+        // never overflow vertically or collide with top pointers / bottom info bar.
+        val cellHeight = (cellWidth * 1.08f).coerceIn(34.dp, 56.dp)
+        val cellTextSize = (cellWidth.value * 0.36f).coerceIn(10f, 18f).sp
+
+        LaunchedEffect(cellWidth, slotGap, availableWidth) {
             outerCellWidth = cellWidth
             outerCellGap = slotGap
-            outerViewportWidthDp = maxWidth - 36.dp
+            outerViewportWidthDp = availableWidth
         }
 
-        LaunchedEffect(cellWidth) {
-            slotPitchPx = with(density) { (cellWidth + slotGap + AlgoTokens.space2).toPx() }
+        LaunchedEffect(cellWidth, slotGap) {
+            slotPitchPx = with(density) { (cellWidth + slotGap).toPx() }
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-        // ── 1. Floating Glassmorphic Phase Banner ──
-        PhaseBanner(
-            step = step,
-            algorithmName = algorithmName,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AlgoTokens.space1)
-        )
+            // ── 1. Compact Phase Header ──
+            PhaseBanner(
+                step = step,
+                algorithmName = algorithmName,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        // ── 2. Array Cells & Visual Gimmicks Canvas (Unified borderless surface) ──
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = AlgoTokens.space3, vertical = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+            // ── 2. Centered Visual Stage (Top info bar removed; Bottom info bar retained) ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // ── A. Insertion Sort: Elevated Key Inspection Header ──
-                if (isInsertionSort && step.floatingElement != null) {
-                    val (keyVal, origIdx) = step.floatingElement
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                            .background(PurpleSubtle)
-                            .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusSm))
-                            .padding(horizontal = 10.dp, vertical = AlgoTokens.space3),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                                    .background(SecondaryPurple)
-                                    .padding(horizontal = 5.dp, vertical = AlgoTokens.space1)
-                            ) {
-                                Text(
-                                    text = "ELEVATED KEY",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = AlgoType.microSize
-                                )
-                            }
-                            Text(
-                                text = "Lifting arr[$origIdx] = $keyVal above array to find slot",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary,
-                                fontSize = AlgoType.microSize
-                            )
-                        }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    CellGrid(
+                        step = step,
+                        selectedCellIndices = selectedCellIndices,
+                        challengeTargetIndices = challengeTargetIndices,
+                        syncPulse = syncPulse,
+                        onCellClick = onCellClick,
+                        isSelectionSort = isSelectionSort,
+                        isBubbleSort = isBubbleSort,
+                        dimOutOfRange = dimOutOfRange,
+                        slotFlight = slotFlight,
+                        challengePulseState = challengePulseState,
+                        cellWidth = cellWidth,
+                        cellHeight = cellHeight,
+                        cellTextSize = cellTextSize,
+                        cellGap = slotGap,
+                        viewportWidthDp = availableWidth,
+                        cellScale = cellScale,
+                        lazyListState = lazyListState
+                    )
 
-                        // Floating Key Card with Glow & Arrow
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(AlgoTokens.iconButtonXs)
-                                    .shadow(4.dp, RoundedCornerShape(AlgoTokens.radiusXxs), spotColor = PurpleGlow)
-                                    .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                                    .background(SecondaryPurple)
-                                    .border(AlgoTokens.strokeMedium, Color.White, RoundedCornerShape(AlgoTokens.radiusXxs)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = keyVal.toString(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = AlgoType.bodySize
-                                )
-                            }
-                            Icon(
-                                imageVector = AlgoGlyphs.ArrowDown,
-                                contentDescription = "Insert",
-                                tint = PurpleGlow,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
-                    }
-                }
+                    OffscreenPointerBanner(
+                        step = step,
+                        lazyListState = lazyListState
+                    )
 
-                // ── B. Bubble Sort: Swapping / Connecting Arc Tag ──
-                if (isBubbleSort && step.leftPointer != null && step.rightPointer != null) {
-                    val isSwapping = step.phaseLabel == "SWAPPING"
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AlgoTokens.space2),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Neutral glass readout:the state is signalled by the pink accent,
-                        // accent only, never by flooding the whole bar red,
-                        // (cells already carry the mutation colour).
+                    // ── Comparison / Step Expression Callout (Bottom Info Bar) ──
+                    val expr = step.comparisonExpr ?: step.description
+                    if (expr.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(AlgoTokens.space1))
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                                .background(AlgoTokens.glassFill)
+                                .background(ChipBackground)
                                 .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXxs))
-                                .padding(horizontal = 10.dp, vertical = AlgoTokens.space1)
+                                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2)
                         ) {
                             Text(
-                                text = buildAnnotatedString {
-                                    if (isSwapping) {
-                                        withStyle(SpanStyle(color = AlgoTokens.accentPink)) {
-                                            append("\u26A1 ")
-                                        }
-                                        append("BUBBLE UP SWAP: arr[${step.leftPointer}] \u2194 arr[${step.rightPointer}]")
-                                    } else {
-                                        withStyle(SpanStyle(color = AlgoTokens.accentCyan)) {
-                                            append("\uD83D\uDD0D ")
-                                        }
-                                        append("ADJACENT COMPARE: arr[${step.leftPointer}] vs arr[${step.rightPointer}]")
-                                    }
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PrimaryCyan,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = AlgoType.microSize
+                                text = expr.uppercase(),
+                                style = exprStyle,
+                                color = when {
+                                    step.comparisonExpr == null -> AlgoTokens.accentCyan
+                                    expr.startsWith("SWAP", ignoreCase = true) -> AlgoTokens.accentPink
+                                    else -> AccentYellow
+                                }
                             )
                         }
-                    }
-                }
-
-                // ── C. Selection Sort: Region Split Curtain Indicator ──
-                if (isSelectionSort && step.sortedBoundary != null && step.sortedBoundary > 0 && step.sortedBoundary < step.array.size) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AlgoTokens.space2),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "\u25C4 SORTED REGION (0..${step.sortedBoundary - 1})",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AccentGreen,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = AlgoType.microSize
-                        )
-                        Text(
-                            text = "UNSORTED CANDIDATES (${step.sortedBoundary}..${step.array.size - 1}) \u25BA",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AccentYellow,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = AlgoType.microSize
-                        )
-                    }
-                }
-
-                // ── D. Merge Sort: Recursion Level & Sub-Blocks Info ──
-                if (isMergeSort && step.mergeBlocks.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AlgoTokens.space2),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                                    .background(PurpleSubtle)
-                                    .padding(horizontal = AlgoTokens.space3, vertical = 1.5.dp)
-                            ) {
-                                Text(
-                                    text = "DEPTH ${step.recursionDepth}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = PurpleGlow,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = AlgoType.microSize
-                                )
-                            }
-                            Text(
-                                text = "Blocks: ${step.mergeBlocks.joinToString(" + ") { "[${it.first}..${it.last}]" }}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary.copy(alpha = 0.7f),
-                                fontSize = AlgoType.microSize
-                            )
-                        }
-                    }
-                }
-
-
-                // ── Main Cells LazyRow with Bridge Overlay ──
-                CellGrid(
-                    step = step,
-                    selectedCellIndices = selectedCellIndices,
-                    challengeTargetIndices = challengeTargetIndices,
-                    syncPulse = syncPulse,
-                    onCellClick = onCellClick,
-                    isSelectionSort = isSelectionSort,
-                    isBubbleSort = isBubbleSort,
-                    dimOutOfRange = dimOutOfRange,
-                    slotFlight = slotFlight,
-                    challengePulseState = challengePulseState,
-                    cellWidth = cellWidth,
-                    cellHeight = cellHeight,
-                    cellTextSize = cellTextSize,
-                    lazyListState = lazyListState
-                )
-
-                // ── Animated Off-Screen Pointer Pop-Up Cell Indicators ──
-                OffscreenPointerBanner(
-                    step = step,
-                    lazyListState = lazyListState
-                )
-
-                // ── Comparison / Step Expression Callout ──
-                val expr = step.comparisonExpr ?: step.description
-                if (expr.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(AlgoTokens.space1))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                            .background(ChipBackground)
-                            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXxs))
-                            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2)
-                    ) {
-                        Text(
-                            text = expr.uppercase(),
-                            style = exprStyle,
-                            // Evaluation readouts stay yellow (threshold semantics);
-                            // only explicit mutation (SWAP:) lines take the pink accent.
-                            color = when {
-                                step.comparisonExpr == null -> AlgoTokens.accentCyan
-                                expr.startsWith("SWAP", ignoreCase = true) -> AlgoTokens.accentPink
-                                else -> AccentYellow
-                            }
-                        )
                     }
                 }
             }
         }
-    }
     }
 }
 

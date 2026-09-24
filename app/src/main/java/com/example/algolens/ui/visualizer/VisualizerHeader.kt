@@ -112,7 +112,7 @@ fun VisualizerHeader(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
-            verticalAlignment = Alignment.Top
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // Title takes the available space and truncates with "..."
             // when it would clip into the action cluster. Actions are
@@ -274,7 +274,7 @@ private fun HeaderActions(
     // signature is owned by a different branch and we keep the change minimal).
 
     Row(
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1 + 1.dp),
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
         verticalAlignment = Alignment.CenterVertically
     ) {
         CompactHeaderPill(
@@ -296,21 +296,25 @@ private fun HeaderActions(
         val helpIcon by remember {
             derivedStateOf { AlgoGlyphs.Help }
         }
-        val compactBtnSize = 22.dp
-        val compactGlyphSize = 11.dp
+        val actionButtonSize by remember {
+            derivedStateOf { AlgoTokens.iconButtonSm }
+        }
+        val actionGlyphSize by remember {
+            derivedStateOf { AlgoTokens.inlineIconSm }
+        }
 
         RailIconButton(
             icon = helpIcon,
             contentDescription = "Guided Tour",
-            boxSize = compactBtnSize,
-            iconSize = compactGlyphSize,
+            boxSize = actionButtonSize,
+            iconSize = actionGlyphSize,
             tint = PrimaryCyan,
             container = Color.Transparent,
             borderColor = BorderSubtle,
             onClick = { state.showGuidedTour = true }
         )
 
-        Box {
+        Box(contentAlignment = Alignment.Center) {
             val kebabIcon by remember {
                 derivedStateOf { AlgoGlyphs.More }
             }
@@ -318,8 +322,8 @@ private fun HeaderActions(
             RailIconButton(
                 icon = kebabIcon,
                 contentDescription = "More actions",
-                boxSize = compactBtnSize,
-                iconSize = compactGlyphSize,
+                boxSize = actionButtonSize,
+                iconSize = actionGlyphSize,
                 tint = TextSecondary,
                 container = Color.Transparent,
                 borderColor = Color.Transparent,
@@ -352,19 +356,25 @@ private fun CompactHeaderPill(
     val shape = RoundedCornerShape(AlgoTokens.radiusXs)
     Box(
         modifier = Modifier
+            .height(20.dp)
             .clip(shape)
             .background(accentContainer)
             .border(AlgoTokens.strokeHairline, borderColor, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 5.dp, vertical = 2.dp),
+            .padding(horizontal = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.copy(
+                platformStyle = androidx.compose.ui.text.PlatformTextStyle(
+                    includeFontPadding = false
+                )
+            ),
             color = accent,
             fontWeight = FontWeight.Bold,
-            fontSize = 7.sp,
+            fontSize = 7.5.sp,
+            lineHeight = 7.5.sp,
             maxLines = 1
         )
     }

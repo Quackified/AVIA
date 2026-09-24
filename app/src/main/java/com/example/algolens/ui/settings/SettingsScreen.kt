@@ -150,10 +150,11 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                listOf("Kotlin", "Java", "Python", "C++").forEach { lang ->
-                    val isSel = selectedLanguage == lang
+                com.example.algolens.data.TraceLanguage.entries.forEach { lang ->
+                    val isSel = AppSettings.preferredLanguage == lang
                     Box(
                         modifier = Modifier
+                            .weight(1f)
                             .clip(RoundedCornerShape(8.dp))
                             .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
                             .border(
@@ -161,11 +162,12 @@ fun SettingsScreen(
                                 if (isSel) PrimaryCyan else BorderSubtle,
                                 RoundedCornerShape(8.dp)
                             )
-                            .clickable { selectedLanguage = lang }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .clickable { AppSettings.preferredLanguage = lang }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = lang,
+                            text = lang.label,
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSel) DarkBackground else TextMuted,
                             fontWeight = FontWeight.SemiBold,
@@ -175,7 +177,7 @@ fun SettingsScreen(
                 }
             }
             Text(
-                text = "Code snippets use $selectedLanguage syntax in step-by-step explanations.",
+                text = "Code stack in the visualizer renders in ${AppSettings.preferredLanguage.label} syntax.",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextDark,
                 fontSize = AlgoType.microSize,

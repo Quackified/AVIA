@@ -16,40 +16,28 @@ import androidx.compose.ui.unit.dp
 import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoTokens
 
+import androidx.compose.ui.graphics.StrokeJoin
+
 /**
- * Luminous comparison & swap bridge connecting active elements.
+ * Sharp-edged pointer bracket (`|—|`) connecting the two active cells being
+ * compared or swapped.
  *
- * Draws a refined, lightweight staple-bracket `|—|` between two cells. Placed
- * as a `matchParentSize()` overlay inside a `Box` that also hosts the `LazyRow`,
- * sharing the exact same coordinate space.
- *
- * [cellCenterXA] and [cellCenterXB] are Box-local horizontal center pixels
- * of the two cells, computed directly via `gridCoordinates.localPositionOf(cellCoords)`.
- *
- * [cellTopY] is the Box-local Y pixel position of the cell number box top edge.
- *
- * [hasTopPill] indicates whether either active cell has a top pointer badge
- * (e.g. PIVOT, MIN, L, R). When true, the bridge floats above the pill with
- * clearance; when false, it floats above the cell with clearance.
- *
- * [transformA] and [transformB] provide live in-flight transforms (offsetX, offsetY)
- * for the two slots. Reading them inside the Canvas draw scope ensures the
- * entire bridge (legs, crossbar, pins) animates seamlessly with cell flights
- * without recomposing the grid.
+ * Replaces the old rounded `ComparisonBridgeOverlay` with:
+ *  - Crisp 90-degree sharp corners (`StrokeJoin.Miter`, `StrokeCap.Square`, straight `lineTo` legs)
+ *  - Stroke thickness and anchor tips that scale adaptively with [cellScale] (S / M / L)
  */
 @Composable
-fun ComparisonBridgeOverlay(
+fun ActivePairPointerBracket(
     step: VisualizerStep,
     cellCenterXA: Float?,
     cellCenterXB: Float?,
     cellTopY: Float,
     hasTopPill: Boolean,
+    cellScale: Float = 1f,
     transformA: SlotTransform? = null,
     transformB: SlotTransform? = null,
-    modifier: Modifier = Modifier,
-    useStraightBracket: Boolean = true
+    modifier: Modifier = Modifier
 ) {
-    // Determine the pair of indices in active comparison or swap
     val activePair = remember(step.elementStates, step.swappedIndices, step.leftPointer, step.rightPointer) {
         when {
             step.swappedIndices != null -> step.swappedIndices
@@ -70,108 +58,117 @@ fun ComparisonBridgeOverlay(
     val isSwapping = step.swappedIndices != null || step.phaseLabel.contains("SWAP", ignoreCase = true)
     val accentColor = if (isSwapping) AlgoTokens.accentPink else AccentYellow
 
-    // Animate opacity for smooth enter/exit
     val targetAlpha = if (activePair != null && cellCenterXA != null && cellCenterXB != null
         && step.array.isNotEmpty()
     ) 1f else 0f
     val alpha = animateFloatAsState(
         targetValue = targetAlpha,
         animationSpec = tween(durationMillis = 150),
-        label = "bridgeAlpha"
+        label = "pointerBracketAlpha"
     )
 
     if (alpha.value < 0.01f) return
 
     val density = LocalDensity.current
+    val scaleFactor = cellScale.coerceIn(0.7f, 1.25f)
 
     Canvas(modifier = modifier) {
         val x1 = cellCenterXA ?: return@Canvas
         val x2 = cellCenterXB ?: return@Canvas
 
-        // Vertical lift animation: scaled to a gentle 0.45x intensity so the bridge
-        // elegantly accommodates the cells' jump without launching too high
-        val oyA = transformA?.offsetY?.value ?: 0f
-        val oyB = transformB?.offsetY?.value ?: 0f
-        val liftY = minOf(oyA, oyB) * 0f
-
-        // Clearance & hierarchy allotment:
-        // TopPointerBadge is 18dp + 4dp space2 above cellTopY = 22dp
-        val topBadgeClearancePx = with(density) { (18.dp + AlgoTokens.space2 + 6.dp).toPx() }
-        val noBadgeClearancePx = with(density) { 8.dp.toPx() }
+        // Clearance above cell box or top pointer badge
+        val topBadgeClearancePx = with(density) { (18.dp + AlgoTokens.space2 + 5.dp).toPx() }
+        val noBadgeClearancePx = with(density) { 6.dp.toPx() }
         val baseClearancePx = if (hasTopPill) topBadgeClearancePx else noBadgeClearancePx
 
-        // The entire bridge gently lifts up together with the cushioned liftY
-        val currentBottomY = cellTopY - baseClearancePx + liftY
-        val bridgeHeightPx = with(density) { (if (hasTopPill) 15.dp else 12.dp).toPx() }
-        val currentTopY = currentBottomY - bridgeHeightPx
+        val currentBottomY = cellTopY - baseClearancePx
+        val bracketHeightPx = with(density) { ((if (hasTopPill) 13f else 10f) * scaleFactor).dp.toPx() }
+        val currentTopY = currentBottomY - bracketHeightPx
 
-        // Endpoints stay solidly anchored to the two cells' horizontal centers (no horizontal squashing)
         val leftX = minOf(x1, x2)
         val rightX = maxOf(x1, x2)
         val spanX = rightX - leftX
         if (spanX < 1f) return@Canvas
 
+        // Sharp 90-degree pointer bracket path (no corner rounding)
         val path = Path().apply {
-            if (useStraightBracket) {
-                val maxCorner = (spanX / 2f).coerceAtLeast(0f)
-                val cornerRadius = with(density) { AlgoTokens.radiusXxs.toPx() }.coerceAtMost(maxCorner)
-                moveTo(leftX, currentBottomY)
-                lineTo(leftX, currentTopY + cornerRadius)
-                if (cornerRadius > 0f) {
-                    quadraticTo(leftX, currentTopY, leftX + cornerRadius, currentTopY)
-                }
-                lineTo(rightX - cornerRadius, currentTopY)
-                if (cornerRadius > 0f) {
-                    quadraticTo(rightX, currentTopY, rightX, currentTopY + cornerRadius)
-                }
-                lineTo(rightX, currentBottomY)
-            } else {
-                val midX = (leftX + rightX) / 2f
-                moveTo(leftX, currentBottomY)
-                quadraticTo(midX, currentTopY, rightX, currentBottomY)
-            }
+            moveTo(leftX, currentBottomY)
+            lineTo(leftX, currentTopY)
+            lineTo(rightX, currentTopY)
+            lineTo(rightX, currentBottomY)
         }
 
-        // Ambient luminous aura (refined, less weight)
+        val primaryStrokePx = with(density) { (1.35f * scaleFactor).dp.toPx() }
+        val glowStrokePx = with(density) { (2.6f * scaleFactor).dp.toPx() }
+
+        // Subtle ambient aura with sharp miter joins
         drawPath(
             path = path,
-            color = accentColor.copy(alpha = 0.15f * alpha.value),
+            color = accentColor.copy(alpha = 0.16f * alpha.value),
             style = Stroke(
-                width = with(density) { 2.dp.toPx() },
-                cap = StrokeCap.Round
+                width = glowStrokePx,
+                cap = StrokeCap.Square,
+                join = StrokeJoin.Miter
             )
         )
 
-        // Crisp primary HUD bridge stroke
+        // Crisp sharp-edged pointer bracket stroke
         drawPath(
             path = path,
             brush = Brush.horizontalGradient(
                 colors = listOf(
-                    accentColor.copy(alpha = 0.6f * alpha.value),
+                    accentColor.copy(alpha = 0.8f * alpha.value),
                     accentColor.copy(alpha = alpha.value),
-                    accentColor.copy(alpha = 0.6f * alpha.value)
+                    accentColor.copy(alpha = 0.8f * alpha.value)
                 ),
                 startX = leftX,
                 endX = rightX
             ),
             style = Stroke(
-                width = with(density) { 1.25.dp.toPx() },
-                cap = StrokeCap.Round
+                width = primaryStrokePx,
+                cap = StrokeCap.Square,
+                join = StrokeJoin.Miter
             )
         )
 
-        // Precise micro anchor pins
-        val dotRadius = with(density) { 1.5.dp.toPx() }
-        drawCircle(
+        // Sharp square pointer tips at the bottom of each vertical leg
+        val tipHalfPx = with(density) { (1.6f * scaleFactor).dp.toPx() }
+        drawRect(
             color = accentColor.copy(alpha = alpha.value),
-            radius = dotRadius,
-            center = Offset(leftX, currentBottomY)
+            topLeft = Offset(leftX - tipHalfPx, currentBottomY - tipHalfPx),
+            size = androidx.compose.ui.geometry.Size(tipHalfPx * 2f, tipHalfPx * 2f)
         )
-        drawCircle(
+        drawRect(
             color = accentColor.copy(alpha = alpha.value),
-            radius = dotRadius,
-            center = Offset(rightX, currentBottomY)
+            topLeft = Offset(rightX - tipHalfPx, currentBottomY - tipHalfPx),
+            size = androidx.compose.ui.geometry.Size(tipHalfPx * 2f, tipHalfPx * 2f)
         )
     }
 }
+
+@Composable
+fun ComparisonBridgeOverlay(
+    step: VisualizerStep,
+    cellCenterXA: Float?,
+    cellCenterXB: Float?,
+    cellTopY: Float,
+    hasTopPill: Boolean,
+    transformA: SlotTransform? = null,
+    transformB: SlotTransform? = null,
+    modifier: Modifier = Modifier,
+    cellScale: Float = 1f
+) {
+    ActivePairPointerBracket(
+        step = step,
+        cellCenterXA = cellCenterXA,
+        cellCenterXB = cellCenterXB,
+        cellTopY = cellTopY,
+        hasTopPill = hasTopPill,
+        cellScale = cellScale,
+        transformA = transformA,
+        transformB = transformB,
+        modifier = modifier
+    )
+}
+
 
