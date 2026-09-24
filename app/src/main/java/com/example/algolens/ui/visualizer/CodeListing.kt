@@ -72,47 +72,46 @@ fun CodeListing(
     lazyListState: LazyListState,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        // Header with Multi-Language Segmented Tabs
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Centered Header with Multi-Language Tabs (no border)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = AlgoTokens.space3),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Icon(
                     imageVector = AlgoGlyphs.Terminal,
                     contentDescription = null,
                     tint = PurpleGlow,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(13.dp)
                 )
                 Text(
-                    text = "Source Code Trace",
+                    text = "Code Trace",
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextPrimary,
+                    color = TextSecondary,
                     fontWeight = FontWeight.Bold,
                     fontSize = AlgoType.microSize
                 )
             }
 
-            // ── Sleek Segmented Language Tabs (Kotlin, Java, Python, C++) ──
+            // ── Borderless Segmented Language Tabs (Kotlin, Java, Python, C++) ──
             Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                    .background(CanvasBackground)
-                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXxs))
-                    .padding(AlgoTokens.space1),
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 for (lang in TraceLanguage.entries) {
                     val isSelected = selectedLanguage == lang
                     val animatedBg by animateColorAsState(
-                        targetValue = if (isSelected) SecondaryPurple else Color.Transparent,
+                        targetValue = if (isSelected) SecondaryPurple.copy(alpha = 0.25f) else Color.Transparent,
                         animationSpec = tween(120),
                         label = "langTabBg_${lang.name}"
                     )
@@ -122,13 +121,13 @@ fun CodeListing(
                             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                             .background(animatedBg)
                             .clickable { onLanguageSelected(lang) }
-                            .padding(horizontal = 7.dp, vertical = 3.dp),
+                            .padding(horizontal = 7.dp, vertical = 2.5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = lang.label,
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) Color.White else TextMuted,
+                            color = if (isSelected) PurpleGlow else TextMuted,
                             fontSize = AlgoType.microSize,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
@@ -137,29 +136,25 @@ fun CodeListing(
             }
         }
 
-        // ── Syntax Highlighted Code Listing (Optimized Cached Lines) ──
+        // ── Centered, Borderless Syntax-Highlighted Code Stack ──
         Box(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter
         ) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                    .background(CanvasBackground)
-                    .padding(vertical = AlgoTokens.space2)
+                    .width(316.dp)
+                    .padding(vertical = 2.dp),
+                horizontalAlignment = Alignment.Start
             ) {
                 itemsIndexed(highlightedLines) { index, lineAnnotated ->
                     val lineNum = index + 1
                     val isActive = lineNum in activeLines
                     val rawLine = codeData.lines.getOrElse(index) { "" }
 
-                    // ── Semantic accent mirroring: each line picks the
-                    //    highest-precedence matching family (swap > compare >
-                    //    pivot > key > sorted > found > cyan). See
-                    //    [CodeLineAccent] for the family list. ──
                     val lineAccent = CodeLineAccent.resolve(rawLine)
 
                     // Inline variable chips: only variables referenced by this line
@@ -182,7 +177,7 @@ fun CodeListing(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(start = 30.dp, top = AlgoTokens.space1),
+                                    .padding(start = 26.dp, top = 2.dp),
                                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                             ) {
                                 for ((label, value) in lineVars) {
@@ -198,12 +193,14 @@ fun CodeListing(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = AlgoTokens.space4, vertical = 2.5.dp),
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    if (isActive) lineAccent.copy(alpha = 0.12f)
+                                    else Color.Transparent
+                                )
+                                .padding(horizontal = 8.dp, vertical = 2.5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // (Left-rail removed — the line-number colour and the per-line [InlineVarChip]
-                            //   already convey "this line is active and its semantic family".)
-
                             Text(
                                 text = lineNum.toString().padStart(2, ' '),
                                 style = MaterialTheme.typography.bodySmall,

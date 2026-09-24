@@ -39,20 +39,17 @@ import com.example.algolens.ui.theme.AlgoType
 import com.example.algolens.ui.components.AlgoGlyphs
 import com.example.algolens.ui.components.pressPhysics
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.CircleShape
+import com.example.algolens.ui.theme.DarkBackground
+
 /**
- * Bottom-edge playback control surface. The transport row contains:
- *
- *  [ Reset ] [ Step-Back ] [ Play / Pause ] [ Step-Forward ] [ ── scrubber ── ] [ Speed ] [ Challenge ] [ AI Tutor ]
- *
- *  - **Step-back / scrubber / step-forward / speed** are all
- *    [AlgoTokens.disabledAlpha]-dimmed when the challenge is in
- *    flight, because the user is mid-prompt and shouldn't be jumping
- *    the algorithm.
- *  - **Challenge and AI Tutor** stay enabled even during a prompt
- *    because they don't mutate the playback position.
- *
- * The rail reads *only* from [VisualizerScreenState] and invokes
- * its mutators — no local state, no nested LaunchedEffects.
+ * Two-Tier Bottom Transport Bar:
+ *  - Tier 1 (Top): Full-width interactive step timeline scrubber with step counter & progress percentage.
+ *  - Tier 2 (Bottom): Un-crushed transport controls —
+ *      Left: [ Reset ] [ Speed ]
+ *      Center: [ Step-Back ] [ Hero Play / Pause ] [ Step-Forward ]
+ *      Right: [ Challenge ] [ AI Tutor ]
  */
 @Composable
 fun PlaybackRail(
@@ -60,162 +57,184 @@ fun PlaybackRail(
     modifier: Modifier = Modifier
 ) {
     val challengeLocked = state.challengeInFlight
-    // ── Static icon + size caches ─────────────────────────────────────────────
-    // Every icon except the play/pause glyph is fully static for the lifetime
-    // of this algorithm run. Caching them with `remember` (no keys) means the
-    // same object reference is reused across all recompositions, so the
-    // surrounding Modifier.size(...) / tint / container wrappers are not rebuilt
-    // each step. `remember` without keys is stable across recomposition as long
-    // as the composable's position in the tree is unchanged — which holds for
-    // the rail that stays mounted during playback.
-    val refreshIcon = remember { AlgoGlyphs.Refresh }
-    val refreshButtonSize = remember { AlgoTokens.iconButtonSm }
-    val refreshIconSize = remember { AlgoTokens.inlineIconMd - 1.dp }
 
+    val refreshIcon = remember { AlgoGlyphs.Refresh }
     val skipBackIcon = remember { AlgoGlyphs.StepBack }
     val skipForwardIcon = remember { AlgoGlyphs.StepForward }
-    val skipButtonSize = remember { AlgoTokens.iconButtonMd }
-    val skipIconSize = remember { AlgoTokens.inlineIconMd }
-
     val emojiEventsIcon = remember { AlgoGlyphs.Target }
     val autoAwesomeIcon = remember { AlgoGlyphs.Spark }
-    val chipButtonSize = remember { AlgoTokens.iconButtonMd }
-    val chipIconSize = remember { AlgoTokens.inlineIconMd }
 
-    // Play/Pause glyph is dynamic (driven by state.isPlaying) — keep inline.
-    // But its container SIZE and ICON SIZE are static; cache them so the
-    // Modifier.size() and the button-size wrapper are not rebuilt each step.
-    val playButtonSize = remember { AlgoTokens.iconButtonLg }
-    val playIconSize = remember { AlgoTokens.inlineIconLg }
-
-    // Read-then-remember: speed-chip text is fully static chrome (labelSmall
-    // + cyan/bold/8.5sp); only the speed *string* changes per tap.
     val speedStyleBase = MaterialTheme.typography.labelSmall
     val speedChipStyle = remember(speedStyleBase) {
         speedStyleBase.copy(
             color = PrimaryCyan,
             fontWeight = FontWeight.Bold,
-            fontSize = AlgoType.microSize
+            fontSize = 10.sp
         )
     }
 
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(AlgoTokens.glassElevated.copy(alpha = 0.92f))
-            .border(AlgoTokens.strokeThin, BorderSubtle)
-            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
-        verticalAlignment = Alignment.CenterVertically
+            .background(DarkBackground.copy(alpha = 0.94f))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        RailIconButton(
-            icon = refreshIcon,
-            contentDescription = "Reset",
-            boxSize = refreshButtonSize,
-            iconSize = refreshIconSize,
-            tint = TextMuted,
-            container = CardBackground,
-            borderColor = BorderSubtle,
-            onClick = { state.reset() }
-        )
-
-        RailIconButton(
-            icon = skipBackIcon,
-            contentDescription = "Step Back",
-            boxSize = skipButtonSize,
-            iconSize = skipIconSize,
-            tint = TextPrimary,
-            container = CardBackground,
-            borderColor = BorderSubtle,
-            enabled = !challengeLocked,
-            onClick = { state.stepBackward() }
-        )
-
-        RailIconButton(
-            icon = if (state.isPlaying) AlgoGlyphs.Pause else AlgoGlyphs.Play,
-            contentDescription = if (state.isPlaying) "Pause" else "Play",
-            boxSize = playButtonSize,
-            iconSize = playIconSize,
-            tint = PrimaryCyan,
-            container = CardBackground,
-            borderColor = PrimaryCyan.copy(alpha = 0.4f),
-            enabled = !challengeLocked || !state.isPlaying,
-            onClick = { state.togglePlay() }
-        )
-
-        RailIconButton(
-            icon = skipForwardIcon,
-            contentDescription = "Step Forward",
-            boxSize = skipButtonSize,
-            iconSize = skipIconSize,
-            tint = TextPrimary,
-            container = CardBackground,
-            borderColor = BorderSubtle,
-            enabled = !challengeLocked,
-            onClick = { state.stepForward() }
-        )
-
-        Slider(
-            value = state.currentStepIdx.toFloat(),
-            onValueChange = { state.scrubTo(it.toInt()) },
-            valueRange = 0f..(state.totalSteps - 1).coerceAtLeast(1).toFloat(),
-            steps = (state.totalSteps - 2).coerceAtLeast(0),
-            enabled = !challengeLocked,
-            colors = SliderDefaults.colors(
-                thumbColor = PrimaryCyan,
-                activeTrackColor = PrimaryCyan,
-                inactiveTrackColor = CardBackground
-            ),
-            modifier = Modifier
-                .weight(1f)
-                .height(20.dp)
-                .alpha(if (challengeLocked) AlgoTokens.disabledAlpha else 1f)
-        )
-
-        // Speed chip
-        Box(
-            modifier = Modifier
-                .alpha(if (challengeLocked) AlgoTokens.disabledAlpha else 1f)
-                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                .background(CardBackground)
-                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                .pressPhysics(
-                    shape = RoundedCornerShape(AlgoTokens.radiusSm),
-                    accent = PrimaryCyan,
-                    enabled = !challengeLocked
-                )
-                .clickable(enabled = !challengeLocked) { state.cycleSpeed() }
-                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
-            contentAlignment = Alignment.Center
+        // ── TIER 1: Full-Width Timeline Scrubber ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = state.speedLabel,
-                style = speedChipStyle
+                text = "${state.currentStepIdx + 1}/${state.totalSteps}",
+                color = TextMuted,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Slider(
+                value = state.currentStepIdx.toFloat(),
+                onValueChange = { state.scrubTo(it.toInt()) },
+                valueRange = 0f..(state.totalSteps - 1).coerceAtLeast(1).toFloat(),
+                steps = (state.totalSteps - 2).coerceAtLeast(0),
+                enabled = !challengeLocked,
+                colors = SliderDefaults.colors(
+                    thumbColor = PrimaryCyan,
+                    activeTrackColor = PrimaryCyan,
+                    inactiveTrackColor = CardBackground
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(20.dp)
+                    .alpha(if (challengeLocked) AlgoTokens.disabledAlpha else 1f)
+            )
+
+            val pct = (((state.currentStepIdx + 1).toFloat() / state.totalSteps.coerceAtLeast(1)) * 100).toInt()
+            Text(
+                text = "$pct%",
+                color = PrimaryCyan,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
             )
         }
 
-        // Challenge toggle
-        RailIconButton(
-            icon = emojiEventsIcon,
-            contentDescription = "Challenge Mode",
-            boxSize = chipButtonSize,
-            iconSize = chipIconSize,
-            tint = if (state.challengeState.isActive) AccentPink else TextMuted,
-            container = if (state.challengeState.isActive) PinkSubtle else CardBackground,
-            borderColor = if (state.challengeState.isActive) AccentPink else BorderSubtle,
-            onClick = { state.toggleChallenge() }
-        )
+        // ── TIER 2: Un-crushed Transport Controls ──
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left Group: Reset + Speed Chip
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RailIconButton(
+                    icon = refreshIcon,
+                    contentDescription = "Reset",
+                    boxSize = 34.dp,
+                    iconSize = 15.dp,
+                    tint = TextMuted,
+                    container = CardBackground,
+                    borderColor = BorderSubtle,
+                    onClick = { state.reset() }
+                )
 
-        // AI Tutor
-        RailIconButton(
-            icon = autoAwesomeIcon,
-            contentDescription = "AI Tutor",
-            boxSize = chipButtonSize,
-            iconSize = chipIconSize,
-            tint = PurpleGlow,
-            container = PurpleSubtle,
-            borderColor = SecondaryPurple.copy(alpha = 0.4f),
-            onClick = { state.showTutorSheet = true }
-        )
+                Box(
+                    modifier = Modifier
+                        .height(34.dp)
+                        .alpha(if (challengeLocked) AlgoTokens.disabledAlpha else 1f)
+                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                        .background(CardBackground)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                        .pressPhysics(
+                            shape = RoundedCornerShape(AlgoTokens.radiusSm),
+                            accent = PrimaryCyan,
+                            enabled = !challengeLocked
+                        )
+                        .clickable(enabled = !challengeLocked) { state.cycleSpeed() }
+                        .padding(horizontal = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = state.speedLabel,
+                        style = speedChipStyle
+                    )
+                }
+            }
+
+            // Center Group: Step Back | Hero Play/Pause | Step Forward
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RailIconButton(
+                    icon = skipBackIcon,
+                    contentDescription = "Step Back",
+                    boxSize = 36.dp,
+                    iconSize = 16.dp,
+                    tint = TextPrimary,
+                    container = CardBackground,
+                    borderColor = BorderSubtle,
+                    enabled = !challengeLocked,
+                    onClick = { state.stepBackward() }
+                )
+
+                // Hero Play / Pause button (Filled Cyan button)
+                RailIconButton(
+                    icon = if (state.isPlaying) AlgoGlyphs.Pause else AlgoGlyphs.Play,
+                    contentDescription = if (state.isPlaying) "Pause" else "Play",
+                    boxSize = 42.dp,
+                    iconSize = 18.dp,
+                    tint = DarkBackground,
+                    container = PrimaryCyan,
+                    borderColor = PrimaryCyan,
+                    enabled = !challengeLocked || !state.isPlaying,
+                    onClick = { state.togglePlay() }
+                )
+
+                RailIconButton(
+                    icon = skipForwardIcon,
+                    contentDescription = "Step Forward",
+                    boxSize = 36.dp,
+                    iconSize = 16.dp,
+                    tint = TextPrimary,
+                    container = CardBackground,
+                    borderColor = BorderSubtle,
+                    enabled = !challengeLocked,
+                    onClick = { state.stepForward() }
+                )
+            }
+
+            // Right Group: Challenge Mode + AI Tutor
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RailIconButton(
+                    icon = emojiEventsIcon,
+                    contentDescription = "Challenge Mode",
+                    boxSize = 34.dp,
+                    iconSize = 15.dp,
+                    tint = if (state.challengeState.isActive) AccentPink else TextMuted,
+                    container = if (state.challengeState.isActive) PinkSubtle else CardBackground,
+                    borderColor = if (state.challengeState.isActive) AccentPink else BorderSubtle,
+                    onClick = { state.toggleChallenge() }
+                )
+
+                RailIconButton(
+                    icon = autoAwesomeIcon,
+                    contentDescription = "AI Tutor",
+                    boxSize = 34.dp,
+                    iconSize = 15.dp,
+                    tint = PurpleGlow,
+                    container = PurpleSubtle,
+                    borderColor = SecondaryPurple.copy(alpha = 0.4f),
+                    onClick = { state.showTutorSheet = true }
+                )
+            }
+        }
     }
 }
+

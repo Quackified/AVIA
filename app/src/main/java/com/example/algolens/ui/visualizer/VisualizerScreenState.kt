@@ -253,5 +253,10 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
         }
     }
 
+    // Sync cell scale when changed in Settings
+    LaunchedEffect(AppSettings.defaultCellScale) {
+        state.applyCellScale(AppSettings.defaultCellScale)
+    }
+
     return state
 }

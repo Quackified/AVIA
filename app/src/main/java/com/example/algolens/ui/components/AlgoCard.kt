@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 
@@ -124,29 +122,18 @@ fun AlgoCard(
                 .clip(RoundedCornerShape(AlgoTokens.bezelInnerRadius))
                 .background(AlgoTokens.surfaceCard)
                 .padding(
-                    start = AlgoTokens.space2,
+                    start = AlgoTokens.space5,
                     end = AlgoTokens.space5,
                     top = AlgoTokens.space4,
                     bottom = AlgoTokens.space4
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Family rail — the card's only saturated element.
-            Box(
-                modifier = Modifier
-                    .width(AlgoTokens.space1)
-                    .height(AlgoTokens.space6 + AlgoTokens.space3)
-                    .clip(RoundedCornerShape(AlgoTokens.space1))
-                    .background(chrome.accent.copy(alpha = 0.85f))
-            )
-
             Icon(
                 imageVector = chrome.glyph,
                 contentDescription = algo.category,
                 tint = chrome.accent.copy(alpha = 0.75f),
-                modifier = Modifier
-                    .padding(start = AlgoTokens.space5)
-                    .size(AlgoTokens.inlineIconLg)
+                modifier = Modifier.size(AlgoTokens.inlineIconLg)
             )
 
             Column(

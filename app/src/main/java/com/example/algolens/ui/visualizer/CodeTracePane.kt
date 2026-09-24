@@ -99,10 +99,7 @@ fun CodeTracePane(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
-                .background(CardBackgroundElevated)
-                .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.25f), RoundedCornerShape(AlgoTokens.radiusMd))
-                .padding(AlgoTokens.space4)
+                .padding(horizontal = 12.dp, vertical = 2.dp)
         ) {
             CodeListing(
                 codeData = codeData,
@@ -115,7 +112,6 @@ fun CodeTracePane(
                 lazyListState = lazyListState,
                 modifier = Modifier.fillMaxSize()
             )
-
         }
     }
 }

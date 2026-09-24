@@ -356,13 +356,13 @@ fun SettingsScreen(
             SectionLabel(icon = AlgoGlyphs.Tune, text = "Visualizer Preferences")
 
             Text(
-                text = "Default Cell Size Preset",
+                text = "Cell Scaling (S / M / L)",
                 style = MaterialTheme.typography.labelMedium,
                 color = TextPrimary,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Controls the default cell scaling when launching visualizers (can also be adjusted live in the visualizer header).",
+                text = "Controls the visual canvas cell scaling across all visualizers (defaults to Small 0.7x).",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextMuted,
                 fontSize = AlgoType.microSize
@@ -375,9 +375,9 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
             ) {
                 listOf(
-                    "Small (0.7x)" to 0.7f,
-                    "Normal (1.0x)" to 1.0f,
-                    "Large (1.25x)" to 1.25f
+                    "S (0.7x)" to 0.7f,
+                    "M (1.0x)" to 1.0f,
+                    "L (1.25x)" to 1.25f
                 ).forEach { (label, scale) ->
                     val isSel = AppSettings.defaultCellScale == scale
                     Box(

@@ -64,10 +64,7 @@ fun BarVisualizer(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
-            .background(CardBackgroundElevated)
-            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusMd))
-            .padding(start = 12.dp, end = 12.dp, top = 24.dp, bottom = 48.dp)
+            .padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 36.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),

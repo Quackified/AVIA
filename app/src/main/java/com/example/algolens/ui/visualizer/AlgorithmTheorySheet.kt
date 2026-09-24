@@ -447,10 +447,10 @@ object AlgorithmTheoryRepository {
 }
 
 /**
- * Dedicated Algorithm Theory & Deep Dive side drawer.
- * Slides in from the right edge over a dimmed scrim, while the host
- * workspace applies an animated backdrop blur (AlgoTokens.backdropBlur
- * = 16.dp, RenderEffect on API 31+).
+ * Redesigned Algorithm Theory & Deep Dive modal bottom sheet.
+ * Slides up from the bottom edge over a dimmed scrim with a pinned header,
+ * 2x2 weighted complexity bento grid (separating Big-O notation from condition notes),
+ * property badges, step-by-step execution cards, and engineering callouts.
  */
 @Composable
 fun AlgorithmTheorySheet(
@@ -458,10 +458,6 @@ fun AlgorithmTheorySheet(
     isVisible: Boolean = true,
     onDismiss: () -> Unit
 ) {
-    // The theory data is derived purely from the algorithm definition and never
-    // changes across playback steps. Cache it once per algorithm.id so the
-    // repository lookup (which does a when-chain over algorithm names) is not
-    // re-evaluated on every recomposition.
     val theory = remember(algorithm.id) {
         AlgorithmTheoryRepository.getTheory(algorithm.name)
     }
@@ -469,310 +465,382 @@ fun AlgorithmTheorySheet(
     BackHandler(enabled = isVisible) { onDismiss() }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Scrim backdrop (tap to dismiss; pairs with host workspace blur)
+        // Scrim backdrop (tap to dismiss)
         AnimatedVisibility(
             visible = isVisible,
-            enter = fadeIn(tween(260)),
-            exit = fadeOut(tween(220))
+            enter = fadeIn(tween(240)),
+            exit = fadeOut(tween(200))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.55f))
+                    .background(Color.Black.copy(alpha = 0.62f))
                     .clickable(onClick = onDismiss)
             )
         }
 
-        // Sliding right-edge drawer with glass surface + cyan seam glow
+        // Bottom modal sheet
         AnimatedVisibility(
             visible = isVisible,
-            enter = slideInHorizontally { it } + fadeIn(tween(260)),
-            exit = slideOutHorizontally { it } + fadeOut(tween(220)),
-            modifier = Modifier.align(Alignment.CenterEnd)
+            enter = androidx.compose.animation.slideInVertically { it } + fadeIn(tween(260)),
+            exit = androidx.compose.animation.slideOutVertically { it } + fadeOut(tween(220)),
+            modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .width(344.dp)
-                    .statusBarsPadding()
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.86f)
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(CardBackground)
+                    .border(
+                        AlgoTokens.strokeThin,
+                        BorderCyan.copy(alpha = 0.35f),
+                        RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    )
                     .navigationBarsPadding()
-                    .padding(vertical = AlgoTokens.space4)
             ) {
-                Column(
+                // Drag Handle
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = AlgoTokens.radiusXl, bottomStart = AlgoTokens.radiusXl))
-                        .background(CardBackground.copy(alpha = 0.96f))
-                        .border(
-                            AlgoTokens.strokeThin,
-                            BorderCyan.copy(alpha = 0.5f),
-                            RoundedCornerShape(topStart = AlgoTokens.radiusXl, bottomStart = AlgoTokens.radiusXl)
-                        )
-                        .padding(horizontal = AlgoTokens.space5 + AlgoTokens.space4, vertical = AlgoTokens.space3)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5 + AlgoTokens.space1)
-                ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                        .fillMaxWidth()
+                        .padding(top = 10.dp, bottom = 4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(AlgoTokens.space8)
-                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                            .background(PurpleSubtle)
-                            .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.3f), RoundedCornerShape(AlgoTokens.radiusSm)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = AlgoGlyphs.Book,
-                            contentDescription = null,
-                            tint = PurpleGlow,
-                            modifier = Modifier.size(AlgoTokens.space6)
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = theory.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Comprehensive Theory & Complexity Matrix",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextMuted,
-                            fontSize = AlgoType.microSize
-                        )
-                    }
+                            .width(36.dp)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(BorderSubtle)
+                    )
                 }
 
-                Box(
+                // Pinned Header
+                Row(
                     modifier = Modifier
-                        .size(AlgoTokens.iconButtonMd - AlgoTokens.space1)
-                        .clip(CircleShape)
-                        .background(CanvasBackground)
-                        .border(AlgoTokens.strokeThin, BorderSubtle, CircleShape)
-                        .clickable { onDismiss() },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Close,
-                        contentDescription = "Close",
-                        tint = TextMuted,
-                        modifier = Modifier.size(AlgoTokens.space6)
-                    )
-                }
-            }
-
-            // Overview
-            Text(
-                text = theory.overview,
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-                fontSize = AlgoType.bodySize,
-                lineHeight = AlgoType.leadingBody
-            )
-
-            // ── Complexity Matrix Card ──
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(AlgoTokens.radiusMd))
-                    .background(CardBackgroundElevated)
-                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusMd))
-                    .padding(AlgoTokens.space5)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)) {
-                    Text(
-                        text = "COMPLEXITY & PROPERTIES",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PrimaryCyan,
-                        fontSize = AlgoType.microSize,
-                        letterSpacing = AlgoType.trackSection,
-                        fontWeight = FontWeight.Bold
-                    )
-
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        ComplexityPill("Best Case", theory.bestCase, AccentGreen)
-                        ComplexityPill("Average", theory.averageCase, AccentYellow)
-                        ComplexityPill("Worst Case", theory.worstCase, AccentRed)
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        ComplexityPill("Space", theory.spaceComplexity, SecondaryPurple)
-                        ComplexityPill("Stable?", if (theory.isStable) "Yes" else "No", if (theory.isStable) AccentGreen else AccentOrange)
-                        ComplexityPill("In-Place?", if (theory.isInPlace) "Yes" else "No", if (theory.isInPlace) AccentGreen else AccentOrange)
-                    }
-                }
-            }
-
-            // ── How It Works ──
-            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
-                Text(
-                    text = "HOW IT WORKS (STEP-BY-STEP):",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextMuted,
-                    fontSize = AlgoType.microSize,
-                    letterSpacing = AlgoType.trackSection,
-                    fontWeight = FontWeight.Bold
-                )
-
-                for ((index, step) in theory.howItWorks.withIndex()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4),
-                        verticalAlignment = Alignment.Top
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(AlgoTokens.inlineIconLg)
-                                .clip(CircleShape)
-                                .background(CyanSubtle),
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(CyanSubtle)
+                                .border(AlgoTokens.strokeThin, PrimaryCyan.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "${index + 1}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PrimaryCyan,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = AlgoType.microSize
+                            Icon(
+                                imageVector = AlgoGlyphs.Book,
+                                contentDescription = null,
+                                tint = PrimaryCyan,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
-                        Text(
-                            text = step,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextPrimary,
-                            fontSize = AlgoType.labelSize,
-                            lineHeight = AlgoType.leadingLabel,
-                            modifier = Modifier.weight(1f)
-                        )
+
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = theory.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TextPrimary,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                PropertyBadge(
+                                    label = if (theory.isStable) "Stable" else "Unstable",
+                                    color = if (theory.isStable) AccentGreen else AccentOrange
+                                )
+                                PropertyBadge(
+                                    label = if (theory.isInPlace) "In-Place" else "Out-of-Place",
+                                    color = if (theory.isInPlace) PrimaryCyan else SecondaryPurple
+                                )
+                            }
+                        }
                     }
-                }
-            }
 
-            // ── When to Use ──
-            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
-                Text(
-                    text = "WHEN TO USE (IDEAL APPLICATIONS):",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AccentGreen,
-                    fontSize = AlgoType.microSize,
-                    letterSpacing = AlgoType.trackSection,
-                    fontWeight = FontWeight.Bold
-                )
-
-                for (useCase in theory.whenToUse) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
-                        verticalAlignment = Alignment.Top
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(CardBackgroundElevated)
+                            .border(AlgoTokens.strokeThin, BorderSubtle, CircleShape)
+                            .clickable { onDismiss() },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = AlgoGlyphs.Check,
-                            contentDescription = null,
-                            tint = AccentGreen,
-                            modifier = Modifier.size(AlgoTokens.inlineIconMd - AlgoTokens.space1)
-                        )
-                        Text(
-                            text = useCase,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary,
-                            fontSize = AlgoType.labelSize,
-                            lineHeight = AlgoType.leadingLabel,
-                            modifier = Modifier.weight(1f)
+                            imageVector = AlgoGlyphs.Close,
+                            contentDescription = "Close",
+                            tint = TextMuted,
+                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
-            }
 
-            // ── Common Pitfalls ──
-            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
-                Text(
-                    text = "COMMON PITFALLS & EDGE CASES:",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AccentPink,
-                    fontSize = AlgoType.microSize,
-                    letterSpacing = AlgoType.trackSection,
-                    fontWeight = FontWeight.Bold
+                // Subtle Header Divider
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(BorderSubtle.copy(alpha = 0.6f))
                 )
 
-                for (pitfall in theory.commonPitfalls) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Icon(
-                            imageVector = AlgoGlyphs.Warning,
-                            contentDescription = null,
-                            tint = AccentPink,
-                            modifier = Modifier.size(AlgoTokens.inlineIconMd - AlgoTokens.space1)
-                        )
-                        Text(
-                            text = pitfall,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary,
-                            fontSize = AlgoType.labelSize,
-                            lineHeight = AlgoType.leadingLabel,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            // ── Pro Tip Callout ──
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                    .background(CyanSubtle)
-                    .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
-                    .padding(AlgoTokens.space5 - AlgoTokens.space1)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4),
-                    verticalAlignment = Alignment.Top
+                // Scrollable Sheet Body
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
                 ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Spark,
-                        contentDescription = null,
-                        tint = PrimaryCyan,
-                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
+                    // Overview
+                    Text(
+                        text = theory.overview,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp
                     )
-                    Column {
+
+                    // ── 2x2 Weighted Bento Complexity Matrix ──
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            text = "ENGINEERING PRO-TIP",
+                            text = "COMPLEXITY MATRIX",
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = AlgoType.microSize
+                            fontSize = 10.sp,
+                            letterSpacing = 1.2.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                        Text(
-                            text = theory.proTips,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextPrimary,
-                            fontSize = AlgoType.labelSize,
-                            lineHeight = AlgoType.leadingMicroRelaxed
-                        )
-                    }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(AlgoTokens.space5 - AlgoTokens.space1))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            ComplexityBentoCard(
+                                label = "BEST TIME",
+                                rawValue = theory.bestCase,
+                                color = AccentGreen,
+                                modifier = Modifier.weight(1f)
+                            )
+                            ComplexityBentoCard(
+                                label = "AVERAGE TIME",
+                                rawValue = theory.averageCase,
+                                color = AccentYellow,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            ComplexityBentoCard(
+                                label = "WORST TIME",
+                                rawValue = theory.worstCase,
+                                color = AccentRed,
+                                modifier = Modifier.weight(1f)
+                            )
+                            ComplexityBentoCard(
+                                label = "SPACE MEMORY",
+                                rawValue = theory.spaceComplexity,
+                                color = PurpleGlow,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // ── How It Works (Step-by-Step Cards) ──
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = "HOW IT WORKS",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextMuted,
+                            fontSize = 10.sp,
+                            letterSpacing = 1.2.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        for ((index, step) in theory.howItWorks.withIndex()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(CardBackgroundElevated)
+                                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(CyanSubtle)
+                                        .border(AlgoTokens.strokeThin, PrimaryCyan.copy(alpha = 0.4f), RoundedCornerShape(6.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "${index + 1}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = PrimaryCyan,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                                Text(
+                                    text = step,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextPrimary,
+                                    fontSize = 12.sp,
+                                    lineHeight = 17.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    // ── When to Use ──
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(CardBackgroundElevated)
+                            .border(AlgoTokens.strokeThin, AccentGreen.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "WHEN TO USE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AccentGreen,
+                            fontSize = 10.sp,
+                            letterSpacing = 1.1.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        for (useCase in theory.whenToUse) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Icon(
+                                    imageVector = AlgoGlyphs.Check,
+                                    contentDescription = null,
+                                    tint = AccentGreen,
+                                    modifier = Modifier
+                                        .padding(top = 2.dp)
+                                        .size(14.dp)
+                                )
+                                Text(
+                                    text = useCase,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary,
+                                    fontSize = 12.sp,
+                                    lineHeight = 17.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    // ── Common Pitfalls ──
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(CardBackgroundElevated)
+                            .border(AlgoTokens.strokeThin, AccentPink.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "COMMON PITFALLS & EDGE CASES",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AccentPink,
+                            fontSize = 10.sp,
+                            letterSpacing = 1.1.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        for (pitfall in theory.commonPitfalls) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Icon(
+                                    imageVector = AlgoGlyphs.Warning,
+                                    contentDescription = null,
+                                    tint = AccentPink,
+                                    modifier = Modifier
+                                        .padding(top = 2.dp)
+                                        .size(14.dp)
+                                )
+                                Text(
+                                    text = pitfall,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary,
+                                    fontSize = 12.sp,
+                                    lineHeight = 17.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    // ── Engineering Pro-Tip Callout ──
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(CyanSubtle)
+                            .border(AlgoTokens.strokeThin, PrimaryCyan.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                            .padding(14.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                imageVector = AlgoGlyphs.Spark,
+                                contentDescription = null,
+                                tint = PrimaryCyan,
+                                modifier = Modifier
+                                    .padding(top = 2.dp)
+                                    .size(16.dp)
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "ENGINEERING PRO-TIP",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PrimaryCyan,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 10.sp,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = theory.proTips,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextPrimary,
+                                    fontSize = 12.sp,
+                                    lineHeight = 17.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
         }
@@ -780,29 +848,67 @@ fun AlgorithmTheorySheet(
 }
 
 @Composable
-private fun ComplexityPill(label: String, value: String, color: Color) {
-    Column(
+private fun PropertyBadge(label: String, color: Color) {
+    Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-            .background(color.copy(alpha = 0.12f))
-            .border(AlgoTokens.strokeThin, color.copy(alpha = 0.3f), RoundedCornerShape(AlgoTokens.radiusXxs))
-            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .clip(RoundedCornerShape(5.dp))
+            .background(color.copy(alpha = 0.14f))
+            .border(AlgoTokens.strokeThin, color.copy(alpha = 0.35f), RoundedCornerShape(5.dp))
+            .padding(horizontal = 7.dp, vertical = 2.dp)
     ) {
         Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = TextMuted,
-            fontSize = AlgoType.microSize,
+            text = label,
+            color = color,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+@Composable
+private fun ComplexityBentoCard(
+    label: String,
+    rawValue: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    val parts = remember(rawValue) { rawValue.split(" - ", limit = 2) }
+    val bigO = parts.firstOrNull()?.trim().orEmpty()
+    val detail = parts.getOrNull(1)?.trim()
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(CardBackgroundElevated)
+            .border(AlgoTokens.strokeThin, color.copy(alpha = 0.30f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
         Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            color = color,
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextMuted,
+            fontSize = 9.sp,
             fontWeight = FontWeight.Bold,
-            fontSize = AlgoType.microSize
+            letterSpacing = 0.6.sp
         )
+        Text(
+            text = bigO,
+            style = MaterialTheme.typography.titleSmall,
+            color = color,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 15.sp
+        )
+        if (!detail.isNullOrEmpty()) {
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary,
+                fontSize = 10.sp,
+                lineHeight = 13.sp,
+                maxLines = 2
+            )
+        }
     }
 }
 

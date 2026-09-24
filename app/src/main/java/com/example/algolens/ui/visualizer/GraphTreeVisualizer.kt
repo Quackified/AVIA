@@ -124,14 +124,7 @@ fun GraphTreeVisualizer(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(CardBackgroundElevated)
-            .border(
-                1.dp,
-                if (isBuilderActive) BorderCyan else BorderSubtle,
-                RoundedCornerShape(12.dp)
-            )
-            .padding(AlgoTokens.space3)
+            .padding(AlgoTokens.space2)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ── Top Interactive Builder Toolbar ──

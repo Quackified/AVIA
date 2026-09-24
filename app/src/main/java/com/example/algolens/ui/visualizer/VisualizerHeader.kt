@@ -139,9 +139,12 @@ fun VisualizerHeader(
             )
         }
 
-        // Mode chips row — only shown for LINEAR_1D algorithms.
-        if (spec?.id?.family == VisualizerFamily.LINEAR_1D) {
-            HeaderModeRow(state)
+        // Sub-bar: Cell View / Bar Chart on the left | Edit Input on the right
+        if (spec?.id?.family == VisualizerFamily.LINEAR_1D || spec?.supportsCustomInput == true) {
+            HeaderModeRow(
+                state = state,
+                spec = spec
+            )
         }
     }
 }
@@ -271,65 +274,52 @@ private fun HeaderActions(
     // signature is owned by a different branch and we keep the change minimal).
 
     Row(
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1 + 1.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconPillButton(
+        CompactHeaderPill(
             label = timeLabel,
             accent = PrimaryCyan,
             accentContainer = CyanSubtle,
-            borderColor = PrimaryCyan.copy(alpha = 0.3f),
+            borderColor = PrimaryCyan.copy(alpha = 0.28f),
             onClick = { state.showTheorySheet = true }
         )
 
-        IconPillButton(
+        CompactHeaderPill(
             label = spaceLabel,
             accent = PurpleGlow,
             accentContainer = PurpleSubtle,
-            borderColor = SecondaryPurple.copy(alpha = 0.3f),
+            borderColor = SecondaryPurple.copy(alpha = 0.28f),
             onClick = { state.showTheorySheet = true }
         )
 
-        // Guided-tour icon button: fully static icon params — cache the
-        // icon + sizes once so the wrapper does not rebuild them every step.
         val helpIcon by remember {
             derivedStateOf { AlgoGlyphs.Help }
         }
-        val helpButtonSize by remember {
-            derivedStateOf { AlgoTokens.iconButtonXs }
-        }
-        val helpIconSize by remember {
-            derivedStateOf { AlgoTokens.inlineIconMd }
-        }
+        val compactBtnSize = 22.dp
+        val compactGlyphSize = 11.dp
 
         RailIconButton(
             icon = helpIcon,
             contentDescription = "Guided Tour",
-            boxSize = helpButtonSize,
-            iconSize = helpIconSize,
+            boxSize = compactBtnSize,
+            iconSize = compactGlyphSize,
             tint = PrimaryCyan,
-            container = CardBackground,
+            container = Color.Transparent,
             borderColor = BorderSubtle,
             onClick = { state.showGuidedTour = true }
         )
 
         Box {
-            // Kebab icon button: icon / sizes are fully static — cache once.
             val kebabIcon by remember {
                 derivedStateOf { AlgoGlyphs.More }
-            }
-            val kebabButtonSize by remember {
-                derivedStateOf { AlgoTokens.iconButtonXs }
-            }
-            val kebabIconSize by remember {
-                derivedStateOf { AlgoTokens.inlineIconMd }
             }
 
             RailIconButton(
                 icon = kebabIcon,
                 contentDescription = "More actions",
-                boxSize = kebabButtonSize,
-                iconSize = kebabIconSize,
+                boxSize = compactBtnSize,
+                iconSize = compactGlyphSize,
                 tint = TextSecondary,
                 container = Color.Transparent,
                 borderColor = Color.Transparent,
@@ -348,6 +338,35 @@ private fun HeaderActions(
                 onCallStackOpenChange = onCallStackOpenChange
             )
         }
+    }
+}
+
+@Composable
+private fun CompactHeaderPill(
+    label: String,
+    accent: Color,
+    accentContainer: Color,
+    borderColor: Color,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(AlgoTokens.radiusXs)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(accentContainer)
+            .border(AlgoTokens.strokeHairline, borderColor, shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 5.dp, vertical = 2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = accent,
+            fontWeight = FontWeight.Bold,
+            fontSize = 7.sp,
+            maxLines = 1
+        )
     }
 }
 
@@ -671,41 +690,62 @@ private fun StackInfoBadge(label: String, value: String) {
 }
 
 @Composable
-private fun HeaderModeRow(state: VisualizerScreenState) {
+private fun HeaderModeRow(
+    state: VisualizerScreenState,
+    spec: AlgorithmSpec?
+) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2, Alignment.End),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Cell size preset: S (0.7x), M (1x), L (1.25x) of the
-        // responsive default. Keeps 7-8+ element arrays from
-        // clipping on small screens.
-        // The preset scales the CELLS renderer's `cellWidth` math in
-        // `CellArrayVisualizer` so the cells themselves visibly
-        // shrink/grow. The BARS renderer uses weight-based bars, so
-        // the toggle is a no-op there — the same preset is reused for
-        // the BARS renderer's gap spacing so the visual weight tracks
-        // across both modes.
-        if (state.arrayViewMode != ArrayViewMode.BARS) {
+        // Left: Cell View / Bar Chart toggle (for 1D linear arrays)
+        if (spec?.id?.family == VisualizerFamily.LINEAR_1D) {
             SegmentedToggle(
                 options = listOf(
-                    "S" to 0.7f,
-                    "M" to 1f,
-                    "L" to 1.25f
+                    "Cell View" to ArrayViewMode.CELLS,
+                    "Bar Chart" to ArrayViewMode.BARS
                 ),
-                selectedKey = state.cellScale,
+                selectedKey = state.arrayViewMode,
                 onContainer = DarkBackground,
-                onSelect = { key -> state.applyCellScale(key as Float) }
+                onSelect = { key -> state.arrayViewMode = key as ArrayViewMode }
             )
+        } else {
+            Spacer(modifier = Modifier.width(1.dp))
         }
-        SegmentedToggle(
-            options = listOf(
-                "Box / Trace Mode" to ArrayViewMode.CELLS,
-                "Bar Chart Mode" to ArrayViewMode.BARS
-            ),
-            selectedKey = state.arrayViewMode,
-            onContainer = DarkBackground,
-            onSelect = { key -> state.arrayViewMode = key as ArrayViewMode }
-        )
+
+        // Right: Edit Input action button
+        if (spec?.supportsCustomInput == true) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                    .background(CyanSubtle)
+                    .border(
+                        AlgoTokens.strokeThin,
+                        PrimaryCyan.copy(alpha = 0.45f),
+                        RoundedCornerShape(AlgoTokens.radiusSm)
+                    )
+                    .clickable { state.showInputSheet = true }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = AlgoGlyphs.Sliders,
+                    contentDescription = "Edit Input",
+                    tint = PrimaryCyan,
+                    modifier = Modifier.size(12.dp)
+                )
+                Text(
+                    text = "Edit Input",
+                    color = PrimaryCyan,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
+

@@ -123,11 +123,6 @@ fun VisualizerScreen(
                     onBack = onBack
                 )
 
-                // Instrument ruler along canvas header boundary (M6)
-                com.example.algolens.ui.components.InstrumentRule(
-                    accent = spec?.id?.accent ?: AlgoTokens.accentCyan
-                )
-
                 // Canvas (65% weight)
                 Box(
                     modifier = Modifier
@@ -143,11 +138,6 @@ fun VisualizerScreen(
                             challengeTargetIndices = challengeTargets,
                             syncPulse = syncPulseState,
                             onCellClick = { idx ->
-                                // Prediction in flight: only the cells the question
-                                // actually offers are answerable. A stray tap can no
-                                // longer poison the selection that gets scored, and
-                                // taps on eligible cells are the same state the
-                                // prompt's own keys read and submit.
                                 if (!state.challengeInFlight || idx in challengeTargets) {
                                     state.setCellSelected(idx)
                                 }
@@ -159,14 +149,7 @@ fun VisualizerScreen(
                     }
                 }
 
-                // Boundary divider (M5: breathes only while playing; a step
-                // change still spikes the pulse).
-                AmbientGlowDivider(
-                    pulseProvider = { syncPulse.value },
-                    isPlaying = state.isPlaying
-                )
-
-                // Challenge prompt  lives BETWEEN the canvas and the code
+                // Challenge prompt lives BETWEEN the canvas and the code
                 // trace, not on top of the canvas. Algorithm details stay
                 // fully visible; the prompt stays in the natural "between"
                 // reading position. Sized by content (not weight), so the

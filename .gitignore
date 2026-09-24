@@ -17,6 +17,7 @@ local.properties
 .claude
 .impeccable
 figma-reference
+figma-make-ref
 
 # ── Session scratch (never version-controlled) ──────────────────────────────
 # Build/debug/profiling output that Cline checkpoints once snapshotted into

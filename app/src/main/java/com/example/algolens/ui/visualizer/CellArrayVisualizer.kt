@@ -263,14 +263,11 @@ fun CellArrayVisualizer(
                 .padding(horizontal = AlgoTokens.space1)
         )
 
-        // ── 2. Array Cells & Visual Gimmicks Canvas ──
+        // ── 2. Array Cells & Visual Gimmicks Canvas (Unified borderless surface) ──
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
-                .background(CardBackgroundElevated)
-                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusMd))
-                .padding(horizontal = AlgoTokens.space4, vertical = 10.dp),
+                .padding(horizontal = AlgoTokens.space3, vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
