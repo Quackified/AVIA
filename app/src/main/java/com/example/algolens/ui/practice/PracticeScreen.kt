@@ -75,7 +75,6 @@ import com.example.algolens.ui.theme.YellowSubtle
  */
 @Composable
 fun PracticeScreen(
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     manager: PracticeSessionManager = rememberPracticeSessionManager()
 ) {
@@ -87,11 +86,11 @@ fun PracticeScreen(
             .background(CanvasBackground)
             .statusBarsPadding()
     ) {
-        // ── 1. Top Navigation & Category Filter ──
+        // ── 1. Root Destination Header & Category Filter ──
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
+                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space3),
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
         ) {
             Row(
@@ -99,29 +98,9 @@ fun PracticeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                 ) {
-                    val backShape = RoundedCornerShape(AlgoTokens.radiusSm)
-                    Box(
-                        modifier = Modifier
-                            .size(AlgoTokens.Spacing.minTouchTarget)
-                            .pressPhysics(shape = backShape, accent = PrimaryCyan)
-                            .clip(backShape)
-                            .background(CardBackground)
-                            .border(AlgoTokens.bezelInset, BorderSubtle, backShape)
-                            .clickable { onBack() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = AlgoGlyphs.Back,
-                            contentDescription = "Back",
-                            tint = TextSecondary,
-                            modifier = Modifier.size(AlgoTokens.inlineIconMd)
-                        )
-                    }
-
                     Text(
                         text = "Explore: Practice",
                         style = MaterialTheme.typography.titleSmall,
@@ -245,7 +224,7 @@ fun PracticeScreen(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
+                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space3),
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
         ) {
             if (manager.isSessionCompleted) {

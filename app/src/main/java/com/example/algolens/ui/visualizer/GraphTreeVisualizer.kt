@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -72,6 +73,8 @@ fun GraphTreeVisualizer(
     step: VisualizerStep,
     modifier: Modifier = Modifier,
     algorithmKey: String = "",
+    telemetryMode: com.example.algolens.model.GraphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.NONE,
+    isCustomGraph: Boolean = false,
     challengeTargetNodeIds: Set<String> = emptySet(),
     onNodeClick: ((String) -> Unit)? = null,
     onGraphModified: ((List<GraphNodeState>, List<GraphEdgeState>) -> Unit)? = null
@@ -87,12 +90,14 @@ fun GraphTreeVisualizer(
         }
     }
 
-    // Gesture builder state
+    // Gesture builder + viewport pan state
     var selectedNodeId by remember { mutableStateOf<String?>(null) }
     var dragStartNode by remember { mutableStateOf<GraphNodeState?>(null) }
     var currentDragPos by remember { mutableStateOf<Offset?>(null) }
     var hoveredTargetNodeId by remember { mutableStateOf<String?>(null) }
     var isBuilderActive by remember { mutableStateOf(false) }
+    var panOffset by remember(algorithmKey) { mutableStateOf(Offset.Zero) }
+    var maxObservedCanvasHeightPx by remember(algorithmKey) { mutableStateOf(0f) }
 
     // ── Per-node "first visit" / "just became active" scale pop ──
     val nodeScales = remember { mutableMapOf<String, Animatable<Float, *>>() }
@@ -128,7 +133,16 @@ fun GraphTreeVisualizer(
         dynamicNodes.associate { it.id to (nodeScales[it.id]?.value ?: 1f) }
     }
 
-    val isHeap = algorithmKey.contains("HEAP", ignoreCase = true)
+    val resolvedMode = remember(telemetryMode, algorithmKey) {
+        if (telemetryMode != com.example.algolens.model.GraphTelemetryMode.NONE) {
+            telemetryMode
+        } else {
+            com.example.algolens.model.AlgorithmId.entries
+                .firstOrNull { it.name.equals(algorithmKey, ignoreCase = true) || it.displayName.equals(algorithmKey, ignoreCase = true) }
+                ?.let { com.example.algolens.data.AlgorithmRegistry.specFor(it)?.graphTelemetryMode }
+                ?: com.example.algolens.model.GraphTelemetryMode.BFS_QUEUE
+        }
+    }
 
     DoubleBezelShell(
         modifier = modifier.fillMaxWidth(),
@@ -146,11 +160,15 @@ fun GraphTreeVisualizer(
                 onToggleBuilder = { isBuilderActive = !isBuilderActive },
                 dynamicNodeCount = dynamicNodes.size,
                 dynamicEdgeCount = dynamicEdges.size,
-                canReset = dynamicNodes.size != step.nodes.size || dynamicEdges.size != step.edges.size || hasLocalEdits,
+                isPanned = panOffset != Offset.Zero,
+                onResetPan = { panOffset = Offset.Zero },
+                canReset = isCustomGraph || hasLocalEdits || dynamicNodes != step.nodes || dynamicEdges != step.edges,
                 onReset = {
                     selectedNodeId = null
                     dragStartNode = null
                     currentDragPos = null
+                    hoveredTargetNodeId = null
+                    panOffset = Offset.Zero
                     hasLocalEdits = false
                     if (onGraphModified != null) {
                         onGraphModified(emptyList(), emptyList())
@@ -161,11 +179,16 @@ fun GraphTreeVisualizer(
                 }
             )
 
-            // ── Main Canvas with Precision Grid + Gesture Detectors + Renderer ──
+            // ── Main Canvas with Gesture Detectors + Renderer ──
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .onSizeChanged { size ->
+                        if (size.height.toFloat() > maxObservedCanvasHeightPx) {
+                            maxObservedCanvasHeightPx = size.height.toFloat()
+                        }
+                    }
                     .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                     .background(CanvasBackground)
                     .border(
@@ -181,6 +204,9 @@ fun GraphTreeVisualizer(
                     selectedNodeId = selectedNodeId,
                     dragStartNode = dragStartNode,
                     hoveredTargetNodeId = hoveredTargetNodeId,
+                    panOffset = panOffset,
+                    referenceHeight = maxObservedCanvasHeightPx,
+                    onPanChanged = { panOffset = it },
                     onNodesChanged = { dynamicNodes = it; if (onGraphModified == null) hasLocalEdits = true },
                     onEdgesChanged = { dynamicEdges = it; if (onGraphModified == null) hasLocalEdits = true },
                     onSelectedNodeIdChanged = { selectedNodeId = it },
@@ -204,6 +230,8 @@ fun GraphTreeVisualizer(
                     currentDragPos = currentDragPos,
                     nodeScales = nodeScalesSnapshot,
                     challengeTargetNodeIds = challengeTargetNodeIds,
+                    panOffset = panOffset,
+                    referenceHeight = maxObservedCanvasHeightPx,
                     modifier = Modifier.fillMaxSize()
                 )
 
@@ -215,7 +243,7 @@ fun GraphTreeVisualizer(
             }
 
             // ── Synchronized Bottom Stage Telemetry (Heap Array Strip OR Graph Frontier Strip) ──
-            if (isHeap) {
+            if (resolvedMode == com.example.algolens.model.GraphTelemetryMode.HEAP_ARRAY) {
                 HeapSynchronizedArrayStrip(
                     step = step,
                     nodes = dynamicNodes,
@@ -225,7 +253,7 @@ fun GraphTreeVisualizer(
                 GraphFrontierTelemetryStrip(
                     step = step,
                     edges = dynamicEdges,
-                    algorithmKey = algorithmKey,
+                    telemetryMode = resolvedMode,
                     onNodeClick = onNodeClick
                 )
             }
@@ -357,23 +385,11 @@ private fun HeapSynchronizedArrayStrip(
 private fun GraphFrontierTelemetryStrip(
     step: VisualizerStep,
     edges: List<GraphEdgeState>,
-    algorithmKey: String,
+    telemetryMode: com.example.algolens.model.GraphTelemetryMode,
     onNodeClick: ((String) -> Unit)?
 ) {
-    val isDfs = algorithmKey.contains("DFS", ignoreCase = true)
-    val isBst = algorithmKey.contains("BST", ignoreCase = true) || algorithmKey.contains("TREE", ignoreCase = true)
-    val frontierLabel = when {
-        isDfs -> "STACK"
-        isBst -> "TARGET"
-        else -> "QUEUE"
-    }
-
-    val frontierItems: List<String> = when {
-        step.buffer.isNotEmpty() -> step.buffer.map { it.value }
-        else -> step.nodes
-            .filter { it.state == ElementState.COMPARING || it.state == ElementState.ACTIVE || it.state == ElementState.FOUND }
-            .map { it.label }
-    }
+    val frontierLabel = telemetryMode.frontierLabel
+    val frontierItems: List<BufferItem> = step.buffer
 
     val highlightedWeightSum = edges
         .filter { it.isHighlighted && it.weight != null }
@@ -391,7 +407,7 @@ private fun GraphFrontierTelemetryStrip(
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. Frontier Pill Group (Queue / Stack)
+        // 1. Frontier Pill Group (Queue / Stack / Target)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
@@ -405,23 +421,24 @@ private fun GraphFrontierTelemetryStrip(
             )
             if (frontierItems.isEmpty()) {
                 Text(
-                    text = "∅",
+                    text = "EMPTY (0)",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextDark,
                     fontSize = AlgoType.microSize
                 )
             } else {
-                frontierItems.forEach { itemLabel ->
+                frontierItems.forEach { item ->
+                    val targetNodeId = item.nodeId ?: item.value
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                             .background(CyanSubtle)
                             .border(AlgoTokens.strokeHairline, PrimaryCyan.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusXxs))
-                            .clickable(enabled = onNodeClick != null) { onNodeClick?.invoke(itemLabel) }
+                            .clickable(enabled = onNodeClick != null) { onNodeClick?.invoke(targetNodeId) }
                             .padding(horizontal = AlgoTokens.space2, vertical = 1.dp)
                     ) {
                         Text(
-                            text = itemLabel,
+                            text = item.value,
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
                             fontSize = AlgoType.microSize,
@@ -469,7 +486,7 @@ private fun GraphFrontierTelemetryStrip(
                     .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                     .background(GreenSubtle)
                     .border(AlgoTokens.strokeHairline, AccentGreen.copy(alpha = 0.45f), RoundedCornerShape(AlgoTokens.radiusXxs))
-                    .padding(horizontal = AlgoTokens.space2, vertical = 1.dp)
+                    .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
             ) {
                 Text(
                     text = "∑w = $highlightedWeightSum",
@@ -487,7 +504,7 @@ private fun GraphFrontierTelemetryStrip(
 @Composable
 fun GraphTreeVisualizerPreview() {
     AlgoLensTheme {
-        Box(modifier = Modifier.height(300.dp).padding(16.dp)) {
+        Box(modifier = Modifier.height(300.dp).padding(AlgoTokens.space4)) {
             GraphTreeVisualizer(
                 step = VisualizerStep(
                     stepIndex = 2,

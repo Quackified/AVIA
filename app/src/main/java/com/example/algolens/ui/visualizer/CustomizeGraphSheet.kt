@@ -79,10 +79,14 @@ fun CustomizeGraphSheet(
     initialValues: List<Int> = emptyList(),
     initialSearchKey: Int? = null,
     initialStartNodeId: String? = null,
+    availableNodeIds: List<String> = com.example.algolens.data.AlgorithmStepRepository.canonicalWeightedGraph().first.map { it.id },
     onApply: (GraphCustomization) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val safeNodes = remember(availableNodeIds) {
+        availableNodeIds.ifEmpty { listOf("A") }
+    }
 
     val title = when (algorithmId) {
         AlgorithmId.HEAP -> "Customize Heap"
@@ -103,17 +107,26 @@ fun CustomizeGraphSheet(
         mutableStateOf(
             initialValues.joinToString(", ").ifEmpty {
                 when (algorithmId) {
-                    AlgorithmId.HEAP -> "3, 8, 9, 2, 6, 1, 5"
-                    AlgorithmId.BINARY_SEARCH_TREE -> "50, 30, 70, 20, 40, 60, 80"
+                    AlgorithmId.HEAP -> com.example.algolens.data.AlgorithmStepRepository.DEFAULT_HEAP_INPUT.joinToString(", ")
+                    AlgorithmId.BINARY_SEARCH_TREE -> com.example.algolens.data.AlgorithmStepRepository.defaultBstValues.joinToString(", ")
                     else -> ""
                 }
             }
         )
     }
     var searchKeyStr by remember {
-        mutableStateOf(initialSearchKey?.toString() ?: "40")
+        mutableStateOf(
+            (initialSearchKey ?: com.example.algolens.data.AlgorithmStepRepository.defaultBstSearchKey).toString()
+        )
     }
-    var startNodeId by remember { mutableStateOf(initialStartNodeId ?: "A") }
+    var startNodeId by remember(safeNodes, initialStartNodeId) {
+        val resolved = if (initialStartNodeId != null && initialStartNodeId in safeNodes) {
+            initialStartNodeId
+        } else {
+            safeNodes.first()
+        }
+        mutableStateOf(resolved)
+    }
 
     val valuesValidation by remember(valuesStr) {
         derivedStateOf {
@@ -150,7 +163,8 @@ fun CustomizeGraphSheet(
     val isValid = (algorithmId != AlgorithmId.BINARY_SEARCH_TREE ||
                   (valuesValidation is InputValidationResult.Valid &&
                    searchKeyValidation is InputValidationResult.Valid)) &&
-                  (algorithmId != AlgorithmId.HEAP || valuesValidation is InputValidationResult.Valid)
+                  (algorithmId != AlgorithmId.HEAP || valuesValidation is InputValidationResult.Valid) &&
+                  ((algorithmId != AlgorithmId.BFS && algorithmId != AlgorithmId.DFS) || startNodeId in safeNodes)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -239,7 +253,7 @@ fun CustomizeGraphSheet(
                 AlgorithmId.BFS, AlgorithmId.DFS -> {
                     StartNodeDropdown(
                         current = startNodeId,
-                        nodes = listOf("A", "B", "C", "D", "E", "F"),
+                        nodes = safeNodes,
                         onSelect = { startNodeId = it }
                     )
                 }

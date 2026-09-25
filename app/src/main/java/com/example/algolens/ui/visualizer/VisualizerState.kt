@@ -64,13 +64,16 @@ data class GraphEdgeState(
 )
 
 /**
- * Item in a Buffer (Stack/Queue).
+ * Item in a Buffer (Stack/Queue/Frontier).
+ * [nodeId] carries the underlying graph/tree node ID separately from the
+ * formatted [value] label (e.g. `nodeId = "B"` while `value = "B(d=4)"` or `"dfs(B)"`).
  */
 @Immutable
 data class BufferItem(
     val id: String,
     val value: String,
-    val state: ElementState = ElementState.IDLE
+    val state: ElementState = ElementState.IDLE,
+    val nodeId: String? = null
 )
 
 /**

@@ -78,14 +78,13 @@ fun StateDeckPage(
             .fillMaxSize()
             .background(CanvasBackground)
     ) {
-        // ── Terminal Header Bar (matches CodeListing's header bar) ──
+        // ── Terminal Header Bar (matches CodeListing's header bar, no duplicate expand button) ──
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                .height(AlgoTokens.iconButtonMd + AlgoTokens.space1)
                 .background(CardBackgroundElevated)
-                .clickable { onToggleExpand() }
-                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
+                .padding(horizontal = AlgoTokens.space5),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -139,77 +138,13 @@ fun StateDeckPage(
                 }
             }
 
-            // Right: STATE Badge + 44dp Peek/Expand Toggle
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                        .background(SecondaryPurple.copy(alpha = 0.18f))
-                        .border(
-                            AlgoTokens.strokeHairline,
-                            SecondaryPurple.copy(alpha = 0.45f),
-                            RoundedCornerShape(AlgoTokens.radiusXs)
-                        )
-                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "STATE",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            platformStyle = PlatformTextStyle(includeFontPadding = false)
-                        ),
-                        color = PurpleGlow,
-                        fontSize = AlgoType.microSize,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .sizeIn(
-                            minWidth = AlgoTokens.Spacing.minTouchTarget,
-                            minHeight = AlgoTokens.Spacing.minTouchTarget
-                        )
-                        .pressPhysics()
-                        .clickable { onToggleExpand() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                            .background(CyanSubtle)
-                            .border(
-                                AlgoTokens.strokeHairline,
-                                PrimaryCyan.copy(alpha = 0.4f),
-                                RoundedCornerShape(AlgoTokens.radiusXs)
-                            )
-                            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-                    ) {
-                        Text(
-                            text = if (isExpanded) "Collapse" else "Expand",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                platformStyle = PlatformTextStyle(includeFontPadding = false)
-                            ),
-                            color = PrimaryCyan,
-                            fontSize = AlgoType.microSize,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Icon(
-                            imageVector = if (isExpanded) AlgoGlyphs.ChevronDown else AlgoGlyphs.ChevronUp,
-                            contentDescription = if (isExpanded) "Collapse deck" else "Expand deck",
-                            tint = PrimaryCyan,
-                            modifier = Modifier.size(AlgoTokens.inlineIconSm)
-                        )
-                    }
-                }
-            }
+            Text(
+                text = "LIVE TELEMETRY",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted,
+                fontFamily = FontFamily.Monospace,
+                fontSize = AlgoType.microSize
+            )
         }
 
         // Terminal Header Separator Hairline
@@ -220,16 +155,16 @@ fun StateDeckPage(
                 .background(BorderSubtle)
         )
 
-        // ── Scrollable Terminal State Body ──
+        // ── Wrapping Terminal State Body (compact peek vs scrollable expanded) ──
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
         ) {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)) {
                 SectionLabel(
                     icon = AlgoGlyphs.Code,
                     text = "Live variables",
@@ -240,7 +175,7 @@ fun StateDeckPage(
 
             AlgoHairline()
 
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)) {
                 SectionLabel(
                     icon = AlgoGlyphs.Terminal,
                     text = "Call stack",
@@ -256,19 +191,19 @@ fun StateDeckPage(
 }
 
 /**
- * Readout body for the variable block: one badge per live variable, falling
- * back to the top / bottom pointer maps (or a bare step counter) for algorithms
- * whose steps carry pointers rather than named variables.
+ * Readout body for the variable block: wraps variable badges across lines via
+ * [androidx.compose.foundation.layout.FlowRow] so telemetry never overflows
+ * horizontally offscreen.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun VariableInspectorReadout(step: VisualizerStep) {
-    Row(
+    androidx.compose.foundation.layout.FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space2)
-            .horizontalScroll(rememberScrollState()),
+            .padding(horizontal = AlgoTokens.space1, vertical = AlgoTokens.space1),
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
     ) {
         if (step.variables.isNotEmpty()) {
             for ((k, v) in step.variables) {
@@ -291,9 +226,10 @@ private fun VariableInspectorReadout(step: VisualizerStep) {
 }
 
 /**
- * Readout body for the call-stack block: the pseudo-frame header plus the
- * depth / render-mode / active-code-line badges.
+ * Readout body for the call-stack block: the pseudo-frame header plus
+ * wrapping depth / render-mode / active-code-line badges.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun MemoryCallStackReadout(
     algorithmName: String,
@@ -302,7 +238,7 @@ private fun MemoryCallStackReadout(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space2),
+            .padding(horizontal = AlgoTokens.space1, vertical = AlgoTokens.space1),
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
     ) {
         val frameSummary = if (step.callStack.isNotEmpty()) {
@@ -319,12 +255,10 @@ private fun MemoryCallStackReadout(
             fontWeight = FontWeight.Bold,
             fontSize = AlgoType.microSize
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+        androidx.compose.foundation.layout.FlowRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
         ) {
             val depthVal = if (step.callStack.isNotEmpty()) step.callStack.size else (step.recursionDepth + 1)
             StackInfoBadge(label = "DEPTH", value = "$depthVal")

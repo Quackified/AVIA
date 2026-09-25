@@ -509,5 +509,38 @@ object AlgoGlyphs {
         quadTo(4f, 4f, 4.5f, 4f)
         lineTo(16f, 4f)
     }
+
+    /** Actual toothed gear icon for Settings. */
+    val SettingsGear: ImageVector = glyph("AlgoGlyphs.SettingsGear") {
+        circle(12f, 12f, 3.2f)
+        circle(12f, 12f, 6.8f)
+        line(12f, 2.5f, 12f, 5.2f)
+        line(12f, 18.8f, 12f, 21.5f)
+        line(2.5f, 12f, 5.2f, 12f)
+        line(18.8f, 12f, 21.5f, 12f)
+        line(5.3f, 5.3f, 7.2f, 7.2f)
+        line(16.8f, 16.8f, 18.7f, 18.7f)
+        line(18.7f, 5.3f, 16.8f, 7.2f)
+        line(7.2f, 16.8f, 5.3f, 18.7f)
+    }
+
+    /** Pencil icon for editing profile and renaming chat threads. */
+    val EditPencil: ImageVector = glyph("AlgoGlyphs.EditPencil") {
+        moveTo(16.5f, 3.5f)
+        lineTo(20.5f, 7.5f)
+        lineTo(8f, 20f)
+        lineTo(3.5f, 20.5f)
+        lineTo(4f, 16f)
+        close()
+        line(14f, 6f, 18f, 10f)
+    }
+
+    /** Sidebar / Hamburger drawer icon for Chat History Sidebar. */
+    val SidebarMenu: ImageVector = glyph("AlgoGlyphs.SidebarMenu") {
+        roundRect(3f, 4f, 21f, 20f, 2.5f)
+        line(9f, 4f, 9f, 20f)
+        line(12.5f, 9f, 17.5f, 9f)
+        line(12.5f, 13f, 17.5f, 13f)
+    }
 }
 

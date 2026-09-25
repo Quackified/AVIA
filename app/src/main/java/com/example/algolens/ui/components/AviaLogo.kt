@@ -13,6 +13,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import com.example.algolens.R
 import com.example.algolens.ui.theme.AlgoTokens
+import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.SecondaryPurple
 
 /**
@@ -23,7 +24,7 @@ import com.example.algolens.ui.theme.SecondaryPurple
 fun AviaLogo(
     modifier: Modifier = Modifier,
     size: Dp = AlgoTokens.bootMarkSize,
-    tint: Color = Color(0xFF31E1ED),
+    tint: Color = PrimaryCyan,
     secondaryTint: Color = SecondaryPurple,
     enableGlow: Boolean = false,
     pulseSpeed: Int = 2400

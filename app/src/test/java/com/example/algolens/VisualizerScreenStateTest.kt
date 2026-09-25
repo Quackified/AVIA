@@ -322,22 +322,184 @@ class VisualizerScreenStateTest {
 
     @Test
     fun bstHeapBfsDfs_populateTelemetryVariablesAndRespectCustomInput() {
+        val bstValues = listOf(50, 30, 70, 20, 40)
         val bstSteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
             com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.BINARY_SEARCH_TREE),
-            bstValues = listOf(50, 30, 70, 20, 40),
+            bstValues = bstValues,
             bstSearchKey = 40
         )
-        assertTrue("BST should include insertion steps", bstSteps.any { it.phaseLabel == "INSERTING" })
+        val insertingSteps = bstSteps.filter { it.phaseLabel == "INSERTING" }
+        assertEquals("Should emit one INSERTING step per input value", bstValues.size, insertingSteps.size)
+        insertingSteps.forEachIndexed { i, step ->
+            assertEquals("Step $i should have ${i + 1} nodes", i + 1, step.nodes.size)
+            val activeNodes = step.nodes.filter { it.state == com.example.algolens.ui.visualizer.ElementState.ACTIVE }
+            assertEquals("Step $i should have exactly 1 active node", 1, activeNodes.size)
+            assertEquals("Active node label should match inserted value", bstValues[i].toString(), activeNodes.first().label)
+            val nodeIds = step.nodes.map { it.id }.toSet()
+            assertTrue(
+                "All edges in step $i must connect already-inserted nodes",
+                step.edges.all { it.from in nodeIds && it.to in nodeIds }
+            )
+            assertEquals(
+                "Insertion buffer should match prefix of values",
+                bstValues.subList(0, i + 1),
+                step.buffer.map { it.value.toInt() }
+            )
+            assertEquals((i + 1).toString(), step.variables["treeSize"])
+        }
         assertTrue("BST should populate visitedNodeIds", bstSteps.last().visitedNodeIds.isNotEmpty())
         assertTrue("BST should populate variables", bstSteps.last().variables.isNotEmpty())
 
-        val customHeapInput = listOf(12, 45, 7, 89, 23, 56, 34, 99, 10)
-        val heapSteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
-            com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.HEAP),
-            inputArray = customHeapInput
+        // Default Heap input should be the 7-element DEFAULT_HEAP_INPUT
+        val defaultHeapSteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.HEAP)
         )
-        assertEquals("Heap should use all 9 custom elements", 9, heapSteps.first().nodes.size)
-        assertTrue("Heap should populate variables", heapSteps.first().variables.isNotEmpty())
+        assertEquals("Default Heap should have 7 nodes", 7, defaultHeapSteps.first().nodes.size)
+
+        // Explicit DEFAULT_INPUT [3, 8, 9, 2, 6, 1, 5, 4, 7] must NOT be coerced to 7 elements
+        val explicitDefaultArraySteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.HEAP),
+            inputArray = com.example.algolens.data.AlgorithmStepRepository.DEFAULT_INPUT
+        )
+        assertEquals("Explicit 9-element array must preserve all 9 nodes", 9, explicitDefaultArraySteps.first().nodes.size)
+
+        // Check Heap sizes 1, 2, and 15 for post-extraction membership and bounded pointers
+        for (size in listOf(1, 2, 15)) {
+            val input = (1..size).map { it * 10 }
+            val steps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+                com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.HEAP),
+                inputArray = input
+            )
+            val finalStep = steps.last()
+            val expectedHeapSize = if (size > 1) size - 1 else 1
+            assertEquals("Final heapSize for n=$size", expectedHeapSize.toString(), finalStep.variables["heapSize"])
+            if (size > 1) {
+                assertEquals(
+                    "Extracted root at tail index ${size - 1} must stay SORTED",
+                    com.example.algolens.ui.visualizer.ElementState.SORTED,
+                    finalStep.nodes[size - 1].state
+                )
+            }
+            for (step in steps) {
+                val bound = step.variables["heapSize"]?.toIntOrNull() ?: size
+                step.bottomPointers.forEach { (label, idx) ->
+                    if (label == "L" || label == "R") {
+                        assertTrue("Child pointer $label at $idx must be < heapBound $bound", idx < bound)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun bfsAndDfsSteps_separateNodeIdFromFormattedBufferValueAndClearCompletedFrontier() {
+        val bfsSteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.BFS)
+        )
+        val validNodeIds = bfsSteps.first().nodes.map { it.id }.toSet()
+        val nonEmptyBfsBuffers = bfsSteps.filter { it.buffer.isNotEmpty() }
+        assertTrue("BFS should have steps with non-empty queue frontier", nonEmptyBfsBuffers.isNotEmpty())
+        for (step in nonEmptyBfsBuffers) {
+            for (item in step.buffer) {
+                assertTrue("BFS BufferItem.nodeId (${item.nodeId}) must be a valid node ID", item.nodeId in validNodeIds)
+                assertTrue("BFS BufferItem.value (${item.value}) should include distance", item.value.contains("(d="))
+            }
+        }
+        assertTrue("Final BFS step must have an empty frontier buffer", bfsSteps.last().buffer.isEmpty())
+
+        val dfsSteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.DFS)
+        )
+        val nonEmptyDfsBuffers = dfsSteps.filter { it.buffer.isNotEmpty() }
+        assertTrue("DFS should have steps with non-empty call stack frontier", nonEmptyDfsBuffers.isNotEmpty())
+        for (step in nonEmptyDfsBuffers) {
+            for (item in step.buffer) {
+                assertTrue("DFS BufferItem.nodeId (${item.nodeId}) must be a valid node ID", item.nodeId in validNodeIds)
+                assertTrue("DFS BufferItem.value (${item.value}) should include dfs(...) frame", item.value.startsWith("dfs("))
+            }
+        }
+        assertTrue("Final DFS step must have an empty frontier buffer", dfsSteps.last().buffer.isEmpty())
+    }
+
+    @Test
+    fun liveStackAndQueueActions_validateAgainstTailStateRegardlessOfScrubbedStep() {
+        val stackState = VisualizerScreenState(Algorithm(id = AlgorithmId.STACK))
+        stackState.scrubTo(0) // Scrub to step 0 where currentStep.buffer is smaller
+        val initialTailSize = stackState.tailBufferSize(isStack = true)
+        assertEquals("Default stack ops leave 3 items at tail", 3, initialTailSize)
+        assertTrue(stackState.canAppendToBuffer(isStack = true))
+        assertTrue(stackState.canRemoveFromBuffer(isStack = true))
+
+        // Pop 3 times until tail is empty, even while scrubbed earlier
+        repeat(3) {
+            stackState.scrubTo(0)
+            stackState.appendLiveStackOp(com.example.algolens.model.BufferOp.Pop)
+        }
+        assertEquals(0, stackState.tailBufferSize(isStack = true))
+        assertFalse("Cannot pop when tail stack is empty", stackState.canRemoveFromBuffer(isStack = true))
+        val opsCountBeforeRejectedPop = stackState.bufferOps.size
+        stackState.appendLiveStackOp(com.example.algolens.model.BufferOp.Pop)
+        assertEquals("Rejected pop should not append an op", opsCountBeforeRejectedPop, stackState.bufferOps.size)
+
+        // Push 8 times to reach capacity
+        repeat(8) { idx ->
+            stackState.appendLiveStackOp(com.example.algolens.model.BufferOp.Push(idx + 1))
+        }
+        assertEquals(8, stackState.tailBufferSize(isStack = true))
+        assertFalse("Cannot push when tail stack reaches capacity 8", stackState.canAppendToBuffer(isStack = true))
+    }
+
+    @Test
+    fun traversalStartIds_reflectCustomGraphEditsAndFallbackWhenStartDeleted() {
+        val bfsState = VisualizerScreenState(Algorithm(id = AlgorithmId.BFS))
+        assertEquals(listOf("A", "B", "C", "D", "E", "F"), bfsState.effectiveTraversalNodeIds)
+
+        val baseGraph = com.example.algolens.data.AlgorithmStepRepository.canonicalWeightedGraph()
+        val withNodeG = Pair(
+            baseGraph.first + com.example.algolens.ui.visualizer.GraphNodeState("G", "G", 85f, 85f),
+            baseGraph.second
+        )
+        bfsState.customGraph = withNodeG
+        assertTrue("effectiveTraversalNodeIds should include added node G", "G" in bfsState.effectiveTraversalNodeIds)
+
+        bfsState.graphConfig = com.example.algolens.model.GraphCustomization.ForTraversal(startNodeId = "G")
+        assertEquals("G", bfsState.effectiveTraversalStartNodeId)
+
+        // Now remove G from customGraph; effectiveTraversalStartNodeId must fall back to "A"
+        bfsState.customGraph = baseGraph
+        assertFalse("G" in bfsState.effectiveTraversalNodeIds)
+        assertEquals("A", bfsState.effectiveTraversalStartNodeId)
+    }
+
+    @Test
+    fun bstLayoutAndGraphCanvasGeometry_preventCircleOverlapOn15NodeSkewedAndDuplicateTrees() {
+        val skewedInput = (1..15).toList()
+        val duplicateInput = List(15) { 42 }
+
+        for (input in listOf(skewedInput, duplicateInput)) {
+            val steps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+                com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.BINARY_SEARCH_TREE),
+                bstValues = input,
+                bstSearchKey = input.last()
+            )
+            val finalNodes = steps.last().nodes
+            assertEquals(15, finalNodes.size)
+            val geom = com.example.algolens.ui.visualizer.GraphCanvasGeometry.from(
+                nodes = finalNodes,
+                drawSize = androidx.compose.ui.geometry.Size(1000f, 680f)
+            )
+            for (i in finalNodes.indices) {
+                for (j in i + 1 until finalNodes.size) {
+                    val c1 = geom.toCanvasOffset(finalNodes[i].x, finalNodes[i].y)
+                    val c2 = geom.toCanvasOffset(finalNodes[j].x, finalNodes[j].y)
+                    val dist = kotlin.math.hypot((c2.x - c1.x).toDouble(), (c2.y - c1.y).toDouble()).toFloat()
+                    assertTrue(
+                        "Nodes ${finalNodes[i].id} and ${finalNodes[j].id} overlap: dist=$dist < 2*radius=${2f * geom.nodeRadius}",
+                        dist >= 2f * geom.nodeRadius - 0.5f
+                    )
+                }
+            }
+        }
     }
 
     @Test

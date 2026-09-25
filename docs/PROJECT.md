@@ -30,9 +30,9 @@ The visual system is deliberately developer-tool-shaped ("Atmospheric Minimalism
 
 - **Form factor:** Android phone (`compileSdk 37`, `minSdk 24`). Edge-to-edge with custom status / navigation bar tinting.
 - **Network posture:** Offline-only by design.
-- **Languages in the code trace:** Kotlin, Java, Python, C++ — every algorithm ships all four (`multiLanguageRegistry_supportsAll4LanguagesForAlgorithms` test enforces this).
+- **Languages in the code trace:** Kotlin, Java, Python, C++ — every algorithm ships all four (`multiLanguageRegistry_supportsAll13AlgorithmsAnd4LanguagesWithValidLineMappings` test enforces this across all 13 `AlgorithmId`s).
 - **Persistence:** Local `SharedPreferences` via `AppSettings` (`preferredLanguage`, `defaultPlaybackSpeedMs`, `highContrastNodeOutlines`, `autoOpenDeckOnPlay`, `showComplexityBadges`, `defaultCellScale`, `hapticsEnabled`, `bookmarkedAlgorithmIds`) and `UserPreferences` (`hasCompletedOnboarding`).
-- **Build & test:** `.\gradlew.bat assembleDebug` and `.\gradlew.bat testDebugUnitTest` (129 unit tests).
+- **Build & test:** `.\gradlew.bat assembleDebug`, `.\gradlew.bat testDebugUnitTest`, and `.\gradlew.bat lintDebug`.
 - **Workflow documentation (`docs/`):**
   - [`docs/PROJECT.md`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/docs/PROJECT.md) — What is this app?
   - [`docs/ARCHITECTURE.md`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/docs/ARCHITECTURE.md) — How does the code work?
@@ -50,14 +50,17 @@ The visual system is deliberately developer-tool-shaped ("Atmospheric Minimalism
   - `BUFFER` (LIFO / FIFO containers + live stage controls): Stack (`+ PUSH`, `POP`, `PEEK`), Queue (`+ ENQ`, `DEQ`).
   - `GRAPH_2D` (2D hierarchical trees & interactive weighted graphs): Binary Search Tree (BST), Heap (Max-Heap / Min-Heap with synchronized array strip), Breadth-First Search (BFS), Depth-First Search (DFS).
 - **Playback transport:** Play / Pause / Step Forward / Step Backward / Live Scrub Preview / Speed Cycle (`0.5x`, `1.0x`, `2.0x`), hoisted into `@Stable VisualizerScreenState`.
-- **Focus Deck (`InstrumentDeck`):** Dual-tab terminal inspector (`TRACE` multi-language code trace + `STATE` live variable inspector and call stack frames).
-- **Family-aware Custom Input:** `CustomizeInputSheet` (`LINEAR_1D`), `CustomizeBufferSheet` / `CustomizeQueueSheet` (`BUFFER`), `CustomizeGraphSheet` + interactive tap/drag Graph Builder (`GRAPH_2D`).
+- **Focus Deck (`InstrumentDeck`):** Dual-tab terminal inspector (`Trace` multi-language code trace + `State` wrapping variable inspector and call stack frames) with a single attached-tab expand/collapse control (`26dp` visual tab inside a `44dp` touch target) and measured stage reservation.
+- **Persistent Multi-Conversation Chat & Project Algorithm Planner (`ChatScreen`):** Offline rule & catalog assistant (`OfflineCatalogChatProvider`) with persistent multi-thread history (`ChatHistoryRepository`), slide-over Conversation History Sidebar (search, create, rename, delete/clear with confirmation), and `ProjectAlgorithmRecommender` (`"Plan an algorithm for my project"`) grounded against `AlgorithmRegistry` and `AlgorithmTheoryRepository` with explicit out-of-catalog notices.
+- **Profile Editing & Honest Account Boundary (`ProfileScreen`, `EditProfileSheet`, `AccountStatusCard`, & `AuthRepository`):** Focused local profile editor (`EditProfileSheet` with `ProfileEditorDraft` validation, unsaved-change confirmation, and Android System Photo Picker `PickVisualMedia` + `ContentResolver`/`BitmapFactory` avatar rendering via `ProfileAvatar` with 2-letter monogram fallback) separated from a concise `AccountStatusCard` that explains on-device storage and reserves future Google Sign-In via Firebase Auth (`signInWithGoogleIdToken`) without collecting credentials when offline.
+- **Family-aware Custom Input:** `CustomizeInputSheet` (`LINEAR_1D`), `CustomizeBufferSheet` / `CustomizeQueueSheet` (`BUFFER`), `CustomizeGraphSheet` + interactive tap/drag/pan Graph Builder (`GRAPH_2D`) with stable world scaling (`GraphCanvasGeometry`).
 - **Challenge Mode & Practice Drills:** Real-time step prediction questions (`ChallengeModeManager`) and standalone complexity/step drills (`PracticeScreen`).
 - **Bookmarks & Settings:** Persistent bookmarks (`VisualizerHeader` toggle + `ProfileScreen` list with empty-state catalog CTA) and reactive workspace preferences (`SettingsScreen` ↔ `AppSettings`).
 
 **Constraints (durable red lines):**
 
-- **Tokenized design system (`docs/DESIGN.md`):** No raw colors outside `ui/theme/Color.kt`; use `AlgoTokens`, `DoubleBezelShell`, `AlgoGlyphs` (`1.5dp` stroke, `StrokeCap.Round`), and `Modifier.pressPhysics`.
+- **Tokenized design system (`docs/DESIGN.md`):** No raw colors outside `ui/theme/Color.kt`; use `AlgoTokens`, `DoubleBezelShell`, `AlgoGlyphs` (`1.5dp` stroke, `StrokeCap.Round`), and `Modifier.pressPhysics` (zero idle border alpha, press-bloom only).
+- **Dual-typeface hierarchy:** Proportional `AlgoSans` (`FontFamily.SansSerif`) for UI, prose, headings, and navigation (`11sp` minimum floor); `JetBrainsMono` (`tnum`) reserved for code traces, complexity expressions, step counters, and live variable values.
 - **Dark-only:** `DarkColorScheme` on `#080D14` deep slate canvas.
 - **44dp minimum touch target:** Primary interactive controls must enforce `AlgoTokens.Spacing.minTouchTarget` (`44.dp`).
 - **Single Switch Rule:** `AlgorithmStepRepository.generateStepsForAlgorithm` is the only `when (algorithm.id)` step-generator switch in the codebase.

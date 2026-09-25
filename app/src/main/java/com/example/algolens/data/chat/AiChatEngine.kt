@@ -74,6 +74,12 @@ object AiChatEngine {
         val query = userText.trim()
         val queryLower = query.lowercase()
 
+        // 0. Check for project-idea algorithm recommendation requests
+        if (ProjectAlgorithmRecommender.isProjectAdviceQuery(queryLower)) {
+            val payload = ProjectAlgorithmRecommender.recommendFromNaturalLanguage(query)
+            return ProjectAlgorithmRecommender.toChatMessage(payload)
+        }
+
         // 1. Check for comparative queries (e.g. "quick sort vs merge sort")
         val comparisonPair = detectComparison(queryLower)
         if (comparisonPair != null) {

@@ -52,6 +52,8 @@ fun GraphBuilderToolbar(
     dynamicEdgeCount: Int,
     canReset: Boolean,
     onReset: () -> Unit,
+    isPanned: Boolean = false,
+    onResetPan: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -105,44 +107,65 @@ fun GraphBuilderToolbar(
             )
         }
 
-        // Reset / Clear buttons
-        if (canReset) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                    .background(CanvasBackground)
-                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
-                    .clickable { onReset() }
-                    .padding(horizontal = 5.dp, vertical = AlgoTokens.space1),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-            ) {
-                Icon(
-                    imageVector = AlgoGlyphs.Refresh,
-                    contentDescription = "Reset",
-                    tint = AccentPink,
-                    modifier = Modifier.size(9.dp)
-                )
-                Text(
-                    text = "Reset Graph",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AccentPink,
-                    fontSize = AlgoType.microSize,
-                    fontWeight = FontWeight.SemiBold
-                )
+        // Right actions: Center View (when panned) + Reset Graph (when modified)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+        ) {
+            if (isPanned) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(CanvasBackground)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                        .clickable { onResetPan() }
+                        .padding(horizontal = 5.dp, vertical = AlgoTokens.space1),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                ) {
+                    Text(
+                        text = "Center View",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PrimaryCyan,
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            if (canReset) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(CanvasBackground)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                        .clickable { onReset() }
+                        .padding(horizontal = 5.dp, vertical = AlgoTokens.space1),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                ) {
+                    Icon(
+                        imageVector = AlgoGlyphs.Refresh,
+                        contentDescription = "Reset",
+                        tint = AccentPink,
+                        modifier = Modifier.size(9.dp)
+                    )
+                    Text(
+                        text = "Reset Graph",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AccentPink,
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * Tap/drag gesture detector that mutates the live graph. Owns the logic
- * for: spawning the first node on an empty canvas, spawning subsequent nodes
- * at tap coordinates, tapping an existing node to select/connect, and
- * dragging from one node to another to create an edge.
- *
- * The caller passes state readers and setter callbacks because the source
- * of truth lives in the public [GraphTreeVisualizer] shell.
+ * Tap/drag gesture detector that mutates the live graph AND supports
+ * viewport panning via [panOffset] shared with [GraphTreeRenderer].
  */
 @Composable
 fun GraphBuilderGestures(
@@ -152,6 +175,9 @@ fun GraphBuilderGestures(
     selectedNodeId: String?,
     dragStartNode: GraphNodeState?,
     hoveredTargetNodeId: String?,
+    panOffset: Offset = Offset.Zero,
+    referenceHeight: Float = 0f,
+    onPanChanged: (Offset) -> Unit = {},
     onNodesChanged: (List<GraphNodeState>) -> Unit,
     onEdgesChanged: (List<GraphEdgeState>) -> Unit,
     onSelectedNodeIdChanged: (String?) -> Unit,
@@ -163,196 +189,285 @@ fun GraphBuilderGestures(
     onNodeClick: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val currentNodesState = androidx.compose.runtime.rememberUpdatedState(dynamicNodes)
+    val currentEdgesState = androidx.compose.runtime.rememberUpdatedState(dynamicEdges)
+    val currentBuilderActiveState = androidx.compose.runtime.rememberUpdatedState(isBuilderActive)
+    val currentSelectedNodeIdState = androidx.compose.runtime.rememberUpdatedState(selectedNodeId)
+    val currentPanOffsetState = androidx.compose.runtime.rememberUpdatedState(panOffset)
+    val currentReferenceHeightState = androidx.compose.runtime.rememberUpdatedState(referenceHeight)
+    val currentOnPanChanged = androidx.compose.runtime.rememberUpdatedState(onPanChanged)
+    val currentOnNodesChanged = androidx.compose.runtime.rememberUpdatedState(onNodesChanged)
+    val currentOnEdgesChanged = androidx.compose.runtime.rememberUpdatedState(onEdgesChanged)
+    val currentOnSelectedNodeIdChanged = androidx.compose.runtime.rememberUpdatedState(onSelectedNodeIdChanged)
+    val currentOnDragStartNodeChanged = androidx.compose.runtime.rememberUpdatedState(onDragStartNodeChanged)
+    val currentOnCurrentDragPosChanged = androidx.compose.runtime.rememberUpdatedState(onCurrentDragPosChanged)
+    val currentOnHoveredTargetNodeIdChanged = androidx.compose.runtime.rememberUpdatedState(onHoveredTargetNodeIdChanged)
+    val currentOnGraphModified = androidx.compose.runtime.rememberUpdatedState(onGraphModified)
+    val currentGetNextNodeLabel = androidx.compose.runtime.rememberUpdatedState(getNextNodeLabel)
+    val currentOnNodeClick = androidx.compose.runtime.rememberUpdatedState(onNodeClick)
+
     Box(
-        modifier = modifier.pointerInput(dynamicNodes, dynamicEdges, isBuilderActive, onNodeClick) {
-            detectTapGestures { tapOffset ->
-                val nodes = dynamicNodes
-                if (nodes.isEmpty()) {
-                    if (!isBuilderActive) return@detectTapGestures
-                    // First node
-                    val newNode = GraphNodeState(
-                        id = "A",
-                        label = "A",
-                        x = 50f,
-                        y = 50f,
-                        state = ElementState.ACTIVE
+        modifier = modifier
+            .pointerInput(Unit) {
+                detectTapGestures { tapOffset ->
+                    val nodes = currentNodesState.value
+                    val edges = currentEdgesState.value
+                    val builderActive = currentBuilderActiveState.value
+                    val selectedId = currentSelectedNodeIdState.value
+                    val currentPan = currentPanOffsetState.value
+                    val refHeight = currentReferenceHeightState.value
+
+                    if (nodes.isEmpty()) {
+                        if (!builderActive) return@detectTapGestures
+                        val newNode = GraphNodeState(
+                            id = "A",
+                            label = "A",
+                            x = 50f,
+                            y = 50f,
+                            state = ElementState.ACTIVE
+                        )
+                        val updatedNodes = listOf(newNode)
+                        currentOnNodesChanged.value(updatedNodes)
+                        currentOnGraphModified.value?.invoke(updatedNodes, edges)
+                        return@detectTapGestures
+                    }
+
+                    val geom = GraphCanvasGeometry.from(
+                        nodes = nodes,
+                        drawSize = size.toSize(),
+                        panOffset = currentPan,
+                        referenceHeight = refHeight
                     )
-                    val updatedNodes = listOf(newNode)
-                    onNodesChanged(updatedNodes)
-                    onGraphModified?.invoke(updatedNodes, dynamicEdges)
-                    return@detectTapGestures
-                }
+                    val hitThreshold = maxOf(24f, geom.nodeRadius + 10f)
 
-                val geom = GraphCanvasGeometry.from(nodes, size.toSize())
+                    // Check if tapped on an existing node
+                    val hitNode = nodes.minByOrNull { node ->
+                        val c = geom.toCanvasOffset(node.x, node.y)
+                        val dx = tapOffset.x - c.x
+                        val dy = tapOffset.y - c.y
+                        sqrt(dx * dx + dy * dy)
+                    }?.takeIf { node ->
+                        val c = geom.toCanvasOffset(node.x, node.y)
+                        val dx = tapOffset.x - c.x
+                        val dy = tapOffset.y - c.y
+                        sqrt(dx * dx + dy * dy) <= hitThreshold
+                    }
 
-                // Check if tapped on an existing node (radius threshold = 32px)
-                val hitNode = nodes.find { node ->
-                    val c = geom.toCanvasOffset(node.x, node.y)
-                    val dx = tapOffset.x - c.x
-                    val dy = tapOffset.y - c.y
-                    sqrt(dx * dx + dy * dy) <= 32f
-                }
+                    // When builder mode is OFF, tapping a node invokes onNodeClick (for Challenge Mode / inspection)
+                    if (!builderActive) {
+                        if (hitNode != null) {
+                            currentOnNodeClick.value?.invoke(hitNode.id)
+                            currentOnSelectedNodeIdChanged.value(if (selectedId == hitNode.id) null else hitNode.id)
+                        }
+                        return@detectTapGestures
+                    }
 
-                // When builder mode is OFF, tapping a node invokes onNodeClick (for Challenge Mode / inspection)
-                if (!isBuilderActive) {
+                    // Check if tapped on an existing edge weight pill to cycle its weight (1..9)
+                    val hitEdgeIndex = edges.indexOfFirst { edge ->
+                        val fromNode = nodes.find { it.id == edge.from } ?: return@indexOfFirst false
+                        val toNode = nodes.find { it.id == edge.to } ?: return@indexOfFirst false
+                        val start = geom.toCanvasOffset(fromNode.x, fromNode.y)
+                        val end = geom.toCanvasOffset(toNode.x, toNode.y)
+                        val midX = (start.x + end.x) / 2f
+                        val midY = (start.y + end.y) / 2f
+                        val dx = tapOffset.x - midX
+                        val dy = tapOffset.y - midY
+                        sqrt(dx * dx + dy * dy) <= 20f
+                    }
+
+                    if (hitEdgeIndex >= 0 && hitNode == null) {
+                        val targetEdge = edges[hitEdgeIndex]
+                        val nextWeight = ((targetEdge.weight ?: 1) % 9) + 1
+                        val updatedEdges = edges.toMutableList().apply {
+                            this[hitEdgeIndex] = targetEdge.copy(weight = nextWeight, isHighlighted = true)
+                        }
+                        currentOnEdgesChanged.value(updatedEdges)
+                        currentOnGraphModified.value?.invoke(nodes, updatedEdges)
+                        return@detectTapGestures
+                    }
+
                     if (hitNode != null) {
-                        onNodeClick?.invoke(hitNode.id)
-                        onSelectedNodeIdChanged(if (selectedNodeId == hitNode.id) null else hitNode.id)
-                    }
-                    return@detectTapGestures
-                }
+                        // Tapped on existing node -> toggle selection or connect if another node was selected
+                        if (selectedId != null && selectedId != hitNode.id) {
+                            val fromId = selectedId
+                            val toId = hitNode.id
+                            val edgeExists = edges.any {
+                                (it.from == fromId && it.to == toId) || (it.from == toId && it.to == fromId)
+                            }
+                            if (!edgeExists) {
+                                val defaultWeight = ((edges.size * 2) % 9) + 1
+                                val newEdge = GraphEdgeState(
+                                    from = fromId,
+                                    to = toId,
+                                    weight = defaultWeight,
+                                    isHighlighted = true
+                                )
+                                val updatedEdges = edges + newEdge
+                                currentOnEdgesChanged.value(updatedEdges)
+                                currentOnGraphModified.value?.invoke(nodes, updatedEdges)
+                            }
+                            currentOnSelectedNodeIdChanged.value(null)
+                        } else {
+                            currentOnSelectedNodeIdChanged.value(if (selectedId == hitNode.id) null else hitNode.id)
+                        }
+                    } else {
+                        // Tapped on empty canvas -> Spawn new node at world coordinate accounting for panOffset
+                        val worldCoord = geom.toWorldCoords(tapOffset)
 
-                // Check if tapped on an existing edge weight pill to cycle its weight (1..9)
-                val hitEdgeIndex = dynamicEdges.indexOfFirst { edge ->
-                    val fromNode = nodes.find { it.id == edge.from } ?: return@indexOfFirst false
-                    val toNode = nodes.find { it.id == edge.to } ?: return@indexOfFirst false
-                    val start = geom.toCanvasOffset(fromNode.x, fromNode.y)
-                    val end = geom.toCanvasOffset(toNode.x, toNode.y)
-                    val midX = (start.x + end.x) / 2f
-                    val midY = (start.y + end.y) / 2f
-                    val dx = tapOffset.x - midX
-                    val dy = tapOffset.y - midY
-                    sqrt(dx * dx + dy * dy) <= 20f
-                }
+                        val nextLabel = currentGetNextNodeLabel.value(nodes)
+                        val newNode = GraphNodeState(
+                            id = nextLabel,
+                            label = nextLabel,
+                            x = worldCoord.x,
+                            y = worldCoord.y,
+                            state = ElementState.ACTIVE
+                        )
 
-                if (hitEdgeIndex >= 0 && hitNode == null) {
-                    val targetEdge = dynamicEdges[hitEdgeIndex]
-                    val nextWeight = ((targetEdge.weight ?: 1) % 9) + 1
-                    val updatedEdges = dynamicEdges.toMutableList().apply {
-                        this[hitEdgeIndex] = targetEdge.copy(weight = nextWeight, isHighlighted = true)
-                    }
-                    onEdgesChanged(updatedEdges)
-                    onGraphModified?.invoke(dynamicNodes, updatedEdges)
-                    return@detectTapGestures
-                }
-
-                if (hitNode != null) {
-                    // Tapped on existing node -> toggle selection or connect if another node was selected
-                    if (selectedNodeId != null && selectedNodeId != hitNode.id) {
-                        // Connect selected node to this node
-                        val fromId = selectedNodeId
-                        val toId = hitNode.id
-                        val edgeExists = dynamicEdges.any { (it.from == fromId && it.to == toId) || (it.from == toId && it.to == fromId) }
-                        if (!edgeExists) {
-                            val defaultWeight = ((dynamicEdges.size * 2) % 9) + 1
-                            val newEdge = GraphEdgeState(
-                                from = fromId,
-                                to = toId,
+                        var updatedEdges = edges
+                        if (selectedId != null) {
+                            val defaultWeight = ((edges.size * 2) % 9) + 1
+                            updatedEdges = updatedEdges + GraphEdgeState(
+                                from = selectedId,
+                                to = nextLabel,
                                 weight = defaultWeight,
                                 isHighlighted = true
                             )
-                            val updatedEdges = dynamicEdges + newEdge
-                            onEdgesChanged(updatedEdges)
-                            onGraphModified?.invoke(dynamicNodes, updatedEdges)
                         }
-                        onSelectedNodeIdChanged(null)
-                    } else {
-                        onSelectedNodeIdChanged(if (selectedNodeId == hitNode.id) null else hitNode.id)
+
+                        val updatedNodes = nodes + newNode
+                        currentOnNodesChanged.value(updatedNodes)
+                        currentOnEdgesChanged.value(updatedEdges)
+                        currentOnSelectedNodeIdChanged.value(nextLabel)
+                        currentOnGraphModified.value?.invoke(updatedNodes, updatedEdges)
                     }
-                } else {
-                    // Tapped on empty canvas -> Spawn new node at coordinate
-                    val nx = ((tapOffset.x - geom.padding) / geom.drawWidth.coerceAtLeast(1f)) * geom.spanX + geom.minX - 15f
-                    val ny = ((tapOffset.y - geom.padding) / geom.drawHeight.coerceAtLeast(1f)) * geom.spanY + geom.minY - 15f
-
-                    val nextLabel = getNextNodeLabel(nodes)
-                    val newNode = GraphNodeState(
-                        id = nextLabel,
-                        label = nextLabel,
-                        x = nx,
-                        y = ny,
-                        state = ElementState.ACTIVE
-                    )
-
-                    var updatedEdges = dynamicEdges
-                    // If a node was selected, auto-connect to new node with a default weight
-                    if (selectedNodeId != null) {
-                        val fromId = selectedNodeId
-                        val defaultWeight = ((dynamicEdges.size * 2) % 9) + 1
-                        updatedEdges = updatedEdges + GraphEdgeState(
-                            from = fromId,
-                            to = nextLabel,
-                            weight = defaultWeight,
-                            isHighlighted = true
-                        )
-                    }
-
-                    val updatedNodes = nodes + newNode
-                    onNodesChanged(updatedNodes)
-                    onEdgesChanged(updatedEdges)
-                    onSelectedNodeIdChanged(nextLabel)
-                    onGraphModified?.invoke(updatedNodes, updatedEdges)
                 }
             }
-        }.pointerInput(dynamicNodes, dynamicEdges, isBuilderActive) {
-            if (!isBuilderActive) return@pointerInput
-            detectDragGestures(
-                onDragStart = { startOffset ->
-                    val nodes = dynamicNodes
-                    if (nodes.isEmpty()) return@detectDragGestures
+            .pointerInput(Unit) {
+                var activeDragSource: GraphNodeState? = null
+                var activeHoverTargetId: String? = null
+                var isPanningViewport = false
 
-                    val geom = GraphCanvasGeometry.from(nodes, size.toSize())
-                    val hit = nodes.find { node ->
-                        val c = geom.toCanvasOffset(node.x, node.y)
-                        val dx = startOffset.x - c.x
-                        val dy = startOffset.y - c.y
-                        sqrt(dx * dx + dy * dy) <= 30f
-                    }
+                detectDragGestures(
+                    onDragStart = { startOffset ->
+                        val nodes = currentNodesState.value
+                        val builderActive = currentBuilderActiveState.value
+                        val currentPan = currentPanOffsetState.value
+                        val refHeight = currentReferenceHeightState.value
 
-                    if (hit != null) {
-                        onDragStartNodeChanged(hit)
-                        onCurrentDragPosChanged(startOffset)
-                    }
-                },
-                onDrag = { change, dragAmount ->
-                    change.consume()
-                    if (dragStartNode != null) {
-                        val newPos = (change.position) + dragAmount
-                        onCurrentDragPosChanged(newPos)
+                        if (!builderActive || nodes.isEmpty()) {
+                            activeDragSource = null
+                            activeHoverTargetId = null
+                            isPanningViewport = true
+                            return@detectDragGestures
+                        }
 
-                        // Find if hovering over a target node
-                        val nodes = dynamicNodes
-                        val geom = GraphCanvasGeometry.from(nodes, size.toSize())
-                        val hovered = nodes.find { node ->
-                            if (node.id == dragStartNode.id) return@find false
+                        val geom = GraphCanvasGeometry.from(
+                            nodes = nodes,
+                            drawSize = size.toSize(),
+                            panOffset = currentPan,
+                            referenceHeight = refHeight
+                        )
+                        val hitThreshold = maxOf(24f, geom.nodeRadius + 10f)
+                        val hit = nodes.minByOrNull { node ->
+                            val c = geom.toCanvasOffset(node.x, node.y)
+                            val dx = startOffset.x - c.x
+                            val dy = startOffset.y - c.y
+                            sqrt(dx * dx + dy * dy)
+                        }?.takeIf { node ->
+                            val c = geom.toCanvasOffset(node.x, node.y)
+                            val dx = startOffset.x - c.x
+                            val dy = startOffset.y - c.y
+                            sqrt(dx * dx + dy * dy) <= hitThreshold
+                        }
+
+                        activeDragSource = hit
+                        activeHoverTargetId = null
+                        isPanningViewport = (hit == null)
+                        if (hit != null) {
+                            currentOnDragStartNodeChanged.value(hit)
+                            currentOnCurrentDragPosChanged.value(startOffset)
+                        }
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        if (isPanningViewport) {
+                            val currentPan = currentPanOffsetState.value
+                            val maxPan = 600f
+                            val nextPan = Offset(
+                                x = (currentPan.x + dragAmount.x).coerceIn(-maxPan, maxPan),
+                                y = (currentPan.y + dragAmount.y).coerceIn(-maxPan, maxPan)
+                            )
+                            currentOnPanChanged.value(nextPan)
+                            return@detectDragGestures
+                        }
+
+                        val source = activeDragSource ?: return@detectDragGestures
+                        val newPos = change.position
+                        currentOnCurrentDragPosChanged.value(newPos)
+
+                        val nodes = currentNodesState.value
+                        val geom = GraphCanvasGeometry.from(
+                            nodes = nodes,
+                            drawSize = size.toSize(),
+                            panOffset = currentPanOffsetState.value,
+                            referenceHeight = currentReferenceHeightState.value
+                        )
+                        val hitThreshold = maxOf(24f, geom.nodeRadius + 10f)
+                        val hovered = nodes.filter { it.id != source.id }.minByOrNull { node ->
                             val c = geom.toCanvasOffset(node.x, node.y)
                             val dx = newPos.x - c.x
                             val dy = newPos.y - c.y
-                            sqrt(dx * dx + dy * dy) <= 30f
+                            sqrt(dx * dx + dy * dy)
+                        }?.takeIf { node ->
+                            val c = geom.toCanvasOffset(node.x, node.y)
+                            val dx = newPos.x - c.x
+                            val dy = newPos.y - c.y
+                            sqrt(dx * dx + dy * dy) <= hitThreshold
                         }
-                        onHoveredTargetNodeIdChanged(hovered?.id)
+                        activeHoverTargetId = hovered?.id
+                        currentOnHoveredTargetNodeIdChanged.value(hovered?.id)
+                    },
+                    onDragEnd = {
+                        if (!isPanningViewport) {
+                            val startNode = activeDragSource
+                            val targetId = activeHoverTargetId
+                            val nodes = currentNodesState.value
+                            val edges = currentEdgesState.value
+                            if (startNode != null && targetId != null && startNode.id != targetId) {
+                                val edgeExists = edges.any {
+                                    (it.from == startNode.id && it.to == targetId) || (it.from == targetId && it.to == startNode.id)
+                                }
+                                if (!edgeExists) {
+                                    val defaultWeight = ((edges.size * 2) % 9) + 1
+                                    val newEdge = GraphEdgeState(
+                                        from = startNode.id,
+                                        to = targetId,
+                                        weight = defaultWeight,
+                                        isHighlighted = true
+                                    )
+                                    val updatedEdges = edges + newEdge
+                                    currentOnEdgesChanged.value(updatedEdges)
+                                    currentOnGraphModified.value?.invoke(nodes, updatedEdges)
+                                }
+                            }
+                        }
+                        isPanningViewport = false
+                        activeDragSource = null
+                        activeHoverTargetId = null
+                        currentOnDragStartNodeChanged.value(null)
+                        currentOnCurrentDragPosChanged.value(null)
+                        currentOnHoveredTargetNodeIdChanged.value(null)
+                    },
+                    onDragCancel = {
+                        isPanningViewport = false
+                        activeDragSource = null
+                        activeHoverTargetId = null
+                        currentOnDragStartNodeChanged.value(null)
+                        currentOnCurrentDragPosChanged.value(null)
+                        currentOnHoveredTargetNodeIdChanged.value(null)
                     }
-                },
-                onDragEnd = {
-                    val startNode = dragStartNode
-                    val targetId = hoveredTargetNodeId
-                    if (startNode != null && targetId != null && startNode.id != targetId) {
-                        val edgeExists = dynamicEdges.any {
-                            (it.from == startNode.id && it.to == targetId) || (it.from == targetId && it.to == startNode.id)
-                        }
-                        if (!edgeExists) {
-                            val defaultWeight = ((dynamicEdges.size * 2) % 9) + 1
-                            val newEdge = GraphEdgeState(
-                                from = startNode.id,
-                                to = targetId,
-                                weight = defaultWeight,
-                                isHighlighted = true
-                            )
-                            val updatedEdges = dynamicEdges + newEdge
-                            onEdgesChanged(updatedEdges)
-                            onGraphModified?.invoke(dynamicNodes, updatedEdges)
-                        }
-                    }
-                    onDragStartNodeChanged(null)
-                    onCurrentDragPosChanged(null)
-                    onHoveredTargetNodeIdChanged(null)
-                },
-                onDragCancel = {
-                    onDragStartNodeChanged(null)
-                    onCurrentDragPosChanged(null)
-                    onHoveredTargetNodeIdChanged(null)
-                }
-            )
-        }
+                )
+            }
     )
 }
 
@@ -372,7 +487,7 @@ fun GraphBuilderBanner(
             .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
             .background(DarkBackground.copy(alpha = 0.85f))
             .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXxs))
-            .padding(horizontal = AlgoTokens.space4, vertical = 3.dp)
+            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
     ) {
         Text(
             text = "💡 Tap empty space to add node • Drag between nodes to connect",

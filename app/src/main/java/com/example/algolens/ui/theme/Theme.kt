@@ -148,7 +148,7 @@ object AlgoTokens {
     val minTouchTarget: Dp = 44.dp
 
     object Spacing {
-        val minTouchTarget: Dp = 44.dp
+        val minTouchTarget: Dp get() = AlgoTokens.minTouchTarget
     }
     /** Extra-small icon button (cell key-card glyphs, smaller than the 30dp rail icons). */
     val iconButtonXs: Dp = 26.dp
@@ -163,6 +163,8 @@ object AlgoTokens {
 
     /** Cold-start boot mark canvas (used by `BootOverlay` to mirror the OS splash drawable). */
     val bootMarkSize: Dp = 32.dp
+    /** Profile hero avatar container size. */
+    val avatarHeroSize: Dp = 56.dp
 
     // ── Corner Radii ──
     /** Tightest radius for chips / small badges (between 4dp xs and 8dp sm). */

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -89,12 +90,15 @@ import com.example.algolens.ui.components.pressPhysics
 fun BufferVisualizer(
     step: VisualizerStep,
     isStack: Boolean = true,
+    tailSize: Int = step.buffer.size,
+    canAppend: Boolean = tailSize < step.bufferCapacity,
+    canRemove: Boolean = tailSize > 0,
     onStackOp: ((BufferOp) -> Unit)? = null,
     onQueueOp: ((QueueOp) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var nextInputValue by remember(isStack, step.buffer.size) {
-        val seed = ((step.buffer.size + 1) * 14 + 18) % 89 + 10
+    var nextInputValue by remember(isStack, tailSize) {
+        val seed = ((tailSize + 1) * 14 + 18) % 89 + 10
         mutableIntStateOf(seed)
     }
 
@@ -105,24 +109,7 @@ fun BufferVisualizer(
         contentPadding = PaddingValues(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawBehind {
-                    val stepPx = 22.dp.toPx()
-                    var x = stepPx
-                    while (x < size.width) {
-                        var y = stepPx
-                        while (y < size.height) {
-                            drawCircle(
-                                color = BorderSubtle.copy(alpha = 0.35f),
-                                radius = 1.2f,
-                                center = Offset(x, y)
-                            )
-                            y += stepPx
-                        }
-                        x += stepPx
-                    }
-                },
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -156,7 +143,7 @@ fun BufferVisualizer(
                         )
                     }
                     Text(
-                        text = "Size: ${step.buffer.size} / ${step.bufferCapacity}",
+                        text = "Frame: ${step.buffer.size}/${step.bufferCapacity} · Tail: $tailSize/${step.bufferCapacity}",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextMuted,
                         fontSize = AlgoType.microSize
@@ -178,14 +165,16 @@ fun BufferVisualizer(
                 }
             }
 
-            // ── Inline Interactive Stage Operations Bar ──
+            // ── Inline Interactive Stage Operations Bar (Appends to Sequence Tail) ──
             if (onStackOp != null || onQueueOp != null) {
                 BufferStageControls(
                     isStack = isStack,
                     nextValue = nextInputValue,
+                    tailSize = tailSize,
+                    capacity = step.bufferCapacity,
                     onCycleValue = { nextInputValue = ((nextInputValue + 13) % 89) + 10 },
-                    canRemove = step.buffer.isNotEmpty(),
-                    isFull = step.buffer.size >= step.bufferCapacity,
+                    canRemove = canRemove,
+                    isFull = !canAppend,
                     onPushOrEnqueue = {
                         if (isStack) {
                             onStackOp?.invoke(BufferOp.Push(nextInputValue))
@@ -213,6 +202,8 @@ fun BufferVisualizer(
 private fun BufferStageControls(
     isStack: Boolean,
     nextValue: Int,
+    tailSize: Int,
+    capacity: Int,
     onCycleValue: () -> Unit,
     canRemove: Boolean,
     isFull: Boolean,
@@ -227,13 +218,17 @@ private fun BufferStageControls(
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
             .background(CardBackground)
             .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
-            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2),
+            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Value chip (tap to cycle next value)
+        // Value chip (tap to cycle next value, 44dp minimum touch target)
         Row(
             modifier = Modifier
+                .sizeIn(
+                    minWidth = AlgoTokens.minTouchTarget,
+                    minHeight = AlgoTokens.minTouchTarget
+                )
                 .clip(pillShape)
                 .background(DarkBackground)
                 .pressPhysics(shape = pillShape, accent = PrimaryCyan)
@@ -243,7 +238,7 @@ private fun BufferStageControls(
             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
         ) {
             Text(
-                text = "VAL:",
+                text = "TAIL($tailSize/$capacity) VAL:",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextMuted,
                 fontSize = AlgoType.microSize
@@ -257,7 +252,7 @@ private fun BufferStageControls(
             )
         }
 
-        // Action pills
+        // Action pills (44dp minimum touch targets)
         Row(
             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
             verticalAlignment = Alignment.CenterVertically
@@ -265,11 +260,16 @@ private fun BufferStageControls(
             // + PUSH / + ENQUEUE
             Box(
                 modifier = Modifier
+                    .sizeIn(
+                        minWidth = AlgoTokens.minTouchTarget,
+                        minHeight = AlgoTokens.minTouchTarget
+                    )
                     .clip(pillShape)
                     .background(if (!isFull) CyanSubtle else DarkBackground)
                     .pressPhysics(shape = pillShape, accent = PrimaryCyan, enabled = !isFull)
                     .clickable(enabled = !isFull) { onPushOrEnqueue() }
-                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = if (isStack) "+ PUSH($nextValue)" else "+ ENQUEUE($nextValue)",
@@ -283,11 +283,16 @@ private fun BufferStageControls(
             // - POP / - DEQUEUE
             Box(
                 modifier = Modifier
+                    .sizeIn(
+                        minWidth = AlgoTokens.minTouchTarget,
+                        minHeight = AlgoTokens.minTouchTarget
+                    )
                     .clip(pillShape)
                     .background(if (canRemove) RedSubtle else DarkBackground)
                     .pressPhysics(shape = pillShape, accent = AccentRed, enabled = canRemove)
                     .clickable(enabled = canRemove) { onPopOrDequeue() }
-                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = if (isStack) "− POP()" else "− DEQUEUE()",
@@ -302,11 +307,16 @@ private fun BufferStageControls(
             if (onPeek != null) {
                 Box(
                     modifier = Modifier
+                        .sizeIn(
+                            minWidth = AlgoTokens.minTouchTarget,
+                            minHeight = AlgoTokens.minTouchTarget
+                        )
                         .clip(pillShape)
                         .background(if (canRemove) PurpleSubtle else DarkBackground)
                         .pressPhysics(shape = pillShape, accent = SecondaryPurple, enabled = canRemove)
                         .clickable(enabled = canRemove) { onPeek() }
-                        .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
+                        .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "PEEK()",

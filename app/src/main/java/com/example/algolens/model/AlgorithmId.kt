@@ -69,6 +69,18 @@ enum class InputKind {
 }
 
 /**
+ * Typed telemetry strip mode for 2D Graph / Tree visualizers so renderers
+ * never inspect raw algorithm names or substrings.
+ */
+enum class GraphTelemetryMode(val frontierLabel: String) {
+    NONE("QUEUE"),
+    HEAP_ARRAY("ARRAY"),
+    BST_TARGET("TARGET"),
+    BFS_QUEUE("QUEUE"),
+    DFS_STACK("STACK"),
+}
+
+/**
  * Typed declarative metadata shared by the dashboard, the visualizer host,
  * the theory sheet, the code registry, and the step generator.
  *
@@ -82,10 +94,14 @@ data class AlgorithmSpec(
     val defaultInput: List<Int>,
     /** How the Customize Input sheet should treat the algorithm. */
     val supportsCustomInput: Boolean,
+    /** Whether the algorithm accepts an explicit search target in the input sheet. */
+    val acceptsSearchTarget: Boolean = false,
     /** Whether the algorithm is a stack (true) or queue (false). Derived for [VisualizerFamily.BUFFER]. */
     val isStack: Boolean = false,
     /** Whether the builder overlay (tap-to-add-node) is exposed. */
     val builderEnabled: Boolean = false,
+    /** Typed telemetry strip mode for [VisualizerFamily.GRAPH_2D]. */
+    val graphTelemetryMode: GraphTelemetryMode = GraphTelemetryMode.NONE,
     /**
      * Per-algorithm visuals that float above the family renderer
      * (recursion tree for Merge Sort, weight badges for graph

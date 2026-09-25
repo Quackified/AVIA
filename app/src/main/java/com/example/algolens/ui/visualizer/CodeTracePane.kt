@@ -59,6 +59,7 @@ private val EXPANDED_HEIGHT = 285.dp
 fun CodeTracePane(
     step: VisualizerStep,
     algorithmName: String = "Bubble Sort",
+    algorithmId: com.example.algolens.model.AlgorithmId? = null,
     syncPulse: State<Float> = mutableStateOf(0f),
     modifier: Modifier = Modifier,
     fillsAvailableHeight: Boolean = false,
@@ -72,8 +73,12 @@ fun CodeTracePane(
 
     val expanded = isExpandedOverride ?: isExpanded
 
-    val codeData = remember(algorithmName, selectedLanguage) {
-        AlgorithmCodeRegistry.getCode(algorithmName, selectedLanguage)
+    val codeData = remember(algorithmId, algorithmName, selectedLanguage) {
+        if (algorithmId != null) {
+            AlgorithmCodeRegistry.getCode(algorithmId, selectedLanguage)
+        } else {
+            AlgorithmCodeRegistry.getCode(algorithmName, selectedLanguage)
+        }
     }
 
     // Map active code lines from VisualizerStep to the current selected language

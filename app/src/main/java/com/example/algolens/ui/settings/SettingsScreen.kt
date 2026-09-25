@@ -102,25 +102,14 @@ fun SettingsScreen(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(AlgoTokens.Spacing.minTouchTarget)
-                        .pressPhysics(shape = backShape, accent = PrimaryCyan)
-                        .clip(backShape)
-                        .background(CardBackground)
-                        .border(1.dp, BorderSubtle, backShape)
-                        .clickable { onBack() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Back,
-                        contentDescription = "Back",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+                com.example.algolens.ui.components.CompactIconButton(
+                    icon = AlgoGlyphs.Back,
+                    contentDescription = "Back",
+                    onClick = onBack,
+                    container = CardBackground
+                )
 
                 Text(
                     text = "Settings",
@@ -229,7 +218,7 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                listOf("Slow (800ms)", "Normal (480ms)", "Fast (220ms)").forEach {
+                listOf("Slow (1000ms)", "Normal (600ms)", "Fast (300ms)").forEach {
                     Text(text = it, style = MaterialTheme.typography.labelSmall, color = TextNavy, fontSize = AlgoType.microSize)
                 }
             }

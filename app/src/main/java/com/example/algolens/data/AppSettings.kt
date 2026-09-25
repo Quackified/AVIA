@@ -119,12 +119,20 @@ object AppSettings {
             prefs?.edit()?.putBoolean(KEY_SHOW_COMPLEXITY, value)?.apply()
         }
 
+    private var currentOwnerId: String = "guest"
+    private val inMemoryOwnerBookmarks = mutableMapOf<String, Set<String>>()
+
+    private fun bookmarkKeyFor(ownerId: String): String {
+        return if (ownerId == "guest") KEY_BOOKMARKS else "${KEY_BOOKMARKS}_$ownerId"
+    }
+
     private var _bookmarkedAlgorithmIds by mutableStateOf<Set<String>>(emptySet())
     var bookmarkedAlgorithmIds: Set<String>
         get() = _bookmarkedAlgorithmIds
         set(value) {
             _bookmarkedAlgorithmIds = value
-            prefs?.edit()?.putStringSet(KEY_BOOKMARKS, value.toSet())?.apply()
+            inMemoryOwnerBookmarks[currentOwnerId] = value.toSet()
+            prefs?.edit()?.putStringSet(bookmarkKeyFor(currentOwnerId), value.toSet())?.apply()
         }
 
     fun isBookmarked(algorithmId: String): Boolean =
@@ -139,12 +147,69 @@ object AppSettings {
         bookmarkedAlgorithmIds = updated
     }
 
+    fun switchOwner(ownerId: String, migrateGuestBookmarks: Boolean = false) {
+        val normalized = ownerId.ifBlank { "guest" }
+        val guestBookmarks = inMemoryOwnerBookmarks["guest"]
+            ?: prefs?.getStringSet(KEY_BOOKMARKS, emptySet())?.toSet()
+            ?: emptySet()
+
+        currentOwnerId = normalized
+        val existingForOwner = inMemoryOwnerBookmarks[normalized]
+            ?: prefs?.getStringSet(bookmarkKeyFor(normalized), emptySet())?.toSet()
+            ?: emptySet()
+
+        val merged = if (migrateGuestBookmarks && normalized != "guest") {
+            existingForOwner + guestBookmarks
+        } else {
+            existingForOwner
+        }
+        bookmarkedAlgorithmIds = merged
+    }
+
+    private const val KEY_GUEST_NAME = "guest_display_name"
+    private const val KEY_GUEST_HANDLE = "guest_handle"
+    private const val KEY_GUEST_ROLE = "guest_role_title"
+    private const val KEY_GUEST_AVATAR_URI = "guest_avatar_uri"
+
+    private var _guestDisplayName by mutableStateOf("Duke Ducky")
+    var guestDisplayName: String
+        get() = _guestDisplayName
+        set(value) {
+            _guestDisplayName = value
+            prefs?.edit()?.putString(KEY_GUEST_NAME, value)?.apply()
+        }
+
+    private var _guestHandle by mutableStateOf("@quacky")
+    var guestHandle: String
+        get() = _guestHandle
+        set(value) {
+            _guestHandle = value
+            prefs?.edit()?.putString(KEY_GUEST_HANDLE, value)?.apply()
+        }
+
+    private var _guestRoleTitle by mutableStateOf("CS Student · AVIA Workspace")
+    var guestRoleTitle: String
+        get() = _guestRoleTitle
+        set(value) {
+            _guestRoleTitle = value
+            prefs?.edit()?.putString(KEY_GUEST_ROLE, value)?.apply()
+        }
+
+    private var _guestAvatarUri by mutableStateOf<String?>(null)
+    var guestAvatarUri: String?
+        get() = _guestAvatarUri
+        set(value) {
+            _guestAvatarUri = value
+            prefs?.edit()?.putString(KEY_GUEST_AVATAR_URI, value)?.apply()
+        }
+
     fun init(context: Context) {
         init(context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE))
     }
 
     fun init(sharedPrefs: SharedPreferences) {
         prefs = sharedPrefs
+        currentOwnerId = "guest"
         val langName = sharedPrefs.getString(KEY_LANGUAGE, TraceLanguage.KOTLIN.name)
         _preferredLanguage = TraceLanguage.entries.find { it.name == langName } ?: TraceLanguage.KOTLIN
         _defaultCellScale = sharedPrefs.getFloat(KEY_CELL_SCALE, 0.7f)
@@ -154,11 +219,19 @@ object AppSettings {
         _highContrastNodeOutlines = sharedPrefs.getBoolean(KEY_HIGH_CONTRAST, false)
         _autoOpenDeckOnPlay = sharedPrefs.getBoolean(KEY_AUTO_OPEN_DECK, false)
         _showComplexityBadges = sharedPrefs.getBoolean(KEY_SHOW_COMPLEXITY, true)
-        _bookmarkedAlgorithmIds = sharedPrefs.getStringSet(KEY_BOOKMARKS, emptySet())?.toSet() ?: emptySet()
+        _guestDisplayName = sharedPrefs.getString(KEY_GUEST_NAME, "Duke Ducky") ?: "Duke Ducky"
+        _guestHandle = sharedPrefs.getString(KEY_GUEST_HANDLE, "@quacky") ?: "@quacky"
+        _guestRoleTitle = sharedPrefs.getString(KEY_GUEST_ROLE, "CS Student · AVIA Workspace") ?: "CS Student · AVIA Workspace"
+        _guestAvatarUri = sharedPrefs.getString(KEY_GUEST_AVATAR_URI, null)
+        val loaded = sharedPrefs.getStringSet(KEY_BOOKMARKS, emptySet())?.toSet() ?: emptySet()
+        inMemoryOwnerBookmarks["guest"] = loaded
+        _bookmarkedAlgorithmIds = loaded
     }
 
     fun clearAllSavedData() {
         prefs?.edit()?.clear()?.apply()
+        inMemoryOwnerBookmarks.clear()
+        currentOwnerId = "guest"
         _preferredLanguage = TraceLanguage.KOTLIN
         _defaultCellScale = 0.7f
         _hapticsEnabled = true
@@ -167,6 +240,10 @@ object AppSettings {
         _highContrastNodeOutlines = false
         _autoOpenDeckOnPlay = false
         _showComplexityBadges = true
+        _guestDisplayName = "Duke Ducky"
+        _guestHandle = "@quacky"
+        _guestRoleTitle = "CS Student · AVIA Workspace"
+        _guestAvatarUri = null
         _bookmarkedAlgorithmIds = emptySet()
     }
 }

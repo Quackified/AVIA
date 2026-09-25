@@ -1,5 +1,7 @@
 package com.example.algolens.data
 
+import com.example.algolens.model.AlgorithmId
+
 /**
  * Supported programming languages for the code trace inspector.
  * Lives in `data/` because it is part of the multi-language data model and
@@ -28,17 +30,34 @@ object AlgorithmCodeRegistry {
         val lineMapping: Map<Int, List<Int>>
     )
 
-    fun getCode(algorithmName: String, language: TraceLanguage): MultiLangCode {
-        return when (algorithmName.lowercase().trim()) {
-            "bubble sort" -> getBubbleSortCode(language)
-            "quick sort" -> getQuickSortCode(language)
-            "insertion sort" -> getInsertionSortCode(language)
-            "selection sort" -> getSelectionSortCode(language)
-            "merge sort" -> getMergeSortCode(language)
-            "binary search" -> getBinarySearchCode(language)
-            "linear search" -> getLinearSearchCode(language)
-            else -> getBubbleSortCode(language)
+    fun getCode(id: AlgorithmId, language: TraceLanguage): MultiLangCode {
+        return when (id) {
+            AlgorithmId.BUBBLE_SORT -> getBubbleSortCode(language)
+            AlgorithmId.QUICK_SORT -> getQuickSortCode(language)
+            AlgorithmId.INSERTION_SORT -> getInsertionSortCode(language)
+            AlgorithmId.SELECTION_SORT -> getSelectionSortCode(language)
+            AlgorithmId.MERGE_SORT -> getMergeSortCode(language)
+            AlgorithmId.BINARY_SEARCH -> getBinarySearchCode(language)
+            AlgorithmId.LINEAR_SEARCH -> getLinearSearchCode(language)
+            AlgorithmId.STACK -> getStackCode(language)
+            AlgorithmId.QUEUE -> getQueueCode(language)
+            AlgorithmId.BINARY_SEARCH_TREE -> getBstCode(language)
+            AlgorithmId.HEAP -> getHeapCode(language)
+            AlgorithmId.BFS -> getBfsCode(language)
+            AlgorithmId.DFS -> getDfsCode(language)
         }
+    }
+
+    fun getCode(algorithmName: String, language: TraceLanguage): MultiLangCode {
+        val normalized = algorithmName.lowercase().trim()
+        val id = AlgorithmId.fromDisplayName(normalized) ?: when (normalized) {
+            "bst", "binary search tree (bst)" -> AlgorithmId.BINARY_SEARCH_TREE
+            "bfs", "breadth-first search" -> AlgorithmId.BFS
+            "dfs", "depth-first search" -> AlgorithmId.DFS
+            "max-heap", "min-heap", "binary heap" -> AlgorithmId.HEAP
+            else -> AlgorithmId.entries.firstOrNull { it.name.equals(normalized, ignoreCase = true) }
+        } ?: throw IllegalArgumentException("Unsupported algorithm for source trace: '$algorithmName'")
+        return getCode(id, language)
     }
 
     private fun getBubbleSortCode(language: TraceLanguage): MultiLangCode {
@@ -610,6 +629,462 @@ object AlgorithmCodeRegistry {
                     "}"
                 ),
                 lineMapping = (1..5).associateWith { listOf(it) }
+            )
+        }
+    }
+
+    private fun getStackCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "class LifoStack<T>(private val cap: Int = 8) {",
+                    "    private val items = ArrayDeque<T>()",
+                    "    fun push(value: T) { if (items.size < cap) items.addLast(value) }",
+                    "    fun pop(): T? {",
+                    "        if (items.isEmpty()) return null",
+                    "        return items.removeLast()",
+                    "    }",
+                    "    fun peek(): T? = items.lastOrNull()",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1, 2),
+                    2 to listOf(3),
+                    3 to listOf(4, 5),
+                    4 to listOf(5, 6),
+                    5 to listOf(6),
+                    6 to listOf(8)
+                )
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "public class LifoStack<T> {",
+                    "    private final Deque<T> items = new ArrayDeque<>();",
+                    "    public void push(T value) { items.addLast(value); }",
+                    "    public T pop() {",
+                    "        if (items.isEmpty()) return null;",
+                    "        return items.removeLast();",
+                    "    }",
+                    "    public T peek() { return items.peekLast(); }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1, 2),
+                    2 to listOf(3),
+                    3 to listOf(4, 5),
+                    4 to listOf(5, 6),
+                    5 to listOf(6),
+                    6 to listOf(8)
+                )
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "class LifoStack:",
+                    "    def push(self, value): self.items.append(value)",
+                    "    def pop(self):",
+                    "        return self.items.pop() if self.items else None",
+                    "    def is_empty(self): return len(self.items) == 0",
+                    "    def peek(self): return self.items[-1] if self.items else None"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "template <typename T> class LifoStack {",
+                    "    vector<T> items;",
+                    "public:",
+                    "    void push(T value) { items.push_back(value); }",
+                    "    T pop() {",
+                    "        if (items.empty()) return T{};",
+                    "        T top = items.back(); items.pop_back(); return top;",
+                    "    }",
+                    "    T peek() const { return items.empty() ? T{} : items.back(); }",
+                    "};"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1, 2),
+                    2 to listOf(4),
+                    3 to listOf(5, 6),
+                    4 to listOf(6, 7),
+                    5 to listOf(7),
+                    6 to listOf(9)
+                )
+            )
+        }
+    }
+
+    private fun getQueueCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "class FifoQueue<T>(private val cap: Int = 8) {",
+                    "    private val items = ArrayDeque<T>()",
+                    "    fun enqueue(value: T) { if (items.size < cap) items.addLast(value) }",
+                    "    fun dequeue(): T? {",
+                    "        if (items.isEmpty()) return null",
+                    "        return items.removeFirst()",
+                    "    }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1, 2),
+                    2 to listOf(3),
+                    3 to listOf(4, 5),
+                    4 to listOf(5, 6)
+                )
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "public class FifoQueue<T> {",
+                    "    private final Deque<T> items = new ArrayDeque<>();",
+                    "    public void enqueue(T value) { items.addLast(value); }",
+                    "    public T dequeue() {",
+                    "        if (items.isEmpty()) return null;",
+                    "        return items.removeFirst();",
+                    "    }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1, 2),
+                    2 to listOf(3),
+                    3 to listOf(4, 5),
+                    4 to listOf(5, 6)
+                )
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "class FifoQueue:",
+                    "    def enqueue(self, value): self.items.append(value)",
+                    "    def dequeue(self):",
+                    "        return self.items.popleft() if self.items else None"
+                ),
+                lineMapping = (1..4).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "template <typename T> class FifoQueue {",
+                    "    deque<T> items;",
+                    "public:",
+                    "    void enqueue(T value) { items.push_back(value); }",
+                    "    T dequeue() {",
+                    "        if (items.empty()) return T{};",
+                    "        T front = items.front(); items.pop_front(); return front;",
+                    "    }",
+                    "};"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1, 2),
+                    2 to listOf(4),
+                    3 to listOf(5, 6),
+                    4 to listOf(6, 7)
+                )
+            )
+        }
+    }
+
+    private fun getBstCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "fun insertBst(root: TreeNode?, v: Int): TreeNode =",
+                    "    if (root == null) TreeNode(v) else if (v < root.key) root.apply { left = insertBst(left, v) } else root.apply { right = insertBst(right, v) }",
+                    "fun searchBst(node: TreeNode?, key: Int): TreeNode? {",
+                    "    if (node == null) return null",
+                    "    if (node.key == key) return node",
+                    "    return if (key < node.key) searchBst(node.left, key)",
+                    "    else searchBst(node.right, key)",
+                    "}"
+                ),
+                lineMapping = (1..7).associateWith { listOf(it) }
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "TreeNode insertBst(TreeNode root, int v) {",
+                    "    if (root == null) return new TreeNode(v); if (v < root.key) root.left = insertBst(root.left, v); else root.right = insertBst(root.right, v); return root; }",
+                    "TreeNode searchBst(TreeNode node, int key) {",
+                    "    if (node == null) return null;",
+                    "    if (node.key == key) return node;",
+                    "    return (key < node.key) ? searchBst(node.left, key)",
+                    "                            : searchBst(node.right, key);",
+                    "}"
+                ),
+                lineMapping = (1..7).associateWith { listOf(it) }
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "def insert_bst(root, v):",
+                    "    if not root: return Node(v)",
+                    "def search_bst(node, key):",
+                    "    if node is None: return None",
+                    "    if node.key == key: return node",
+                    "    if key < node.key: return search_bst(node.left, key)",
+                    "    return search_bst(node.right, key)"
+                ),
+                lineMapping = (1..7).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "TreeNode* insertBst(TreeNode* root, int v) {",
+                    "    if (!root) return new TreeNode(v); if (v < root->key) root->left = insertBst(root->left, v); else root->right = insertBst(root->right, v); return root; }",
+                    "TreeNode* searchBst(TreeNode* node, int key) {",
+                    "    if (!node) return nullptr;",
+                    "    if (node->key == key) return node;",
+                    "    return (key < node->key) ? searchBst(node->left, key)",
+                    "                             : searchBst(node->right, key);",
+                    "}"
+                ),
+                lineMapping = (1..7).associateWith { listOf(it) }
+            )
+        }
+    }
+
+    private fun getHeapCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "fun buildAndExtractHeap(arr: IntArray) {",
+                    "    for (i in arr.size / 2 - 1 downTo 0) siftDown(arr, i, arr.size)",
+                    "    // siftDown: compare parent with left(2i+1) & right(2i+2)",
+                    "    val left = 2 * i + 1; val right = 2 * i + 2",
+                    "    val target = selectDominantChild(arr, i, left, right, heapBound)",
+                    "    if (target != i) {",
+                    "        arr.swap(i, target); siftDown(arr, target, heapBound)",
+                    "    }",
+                    "    arr.swap(0, arr.lastIndex); siftDown(arr, 0, arr.size - 1)",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3),
+                    4 to listOf(4),
+                    5 to listOf(5),
+                    6 to listOf(6),
+                    7 to listOf(7),
+                    8 to listOf(9)
+                )
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "void buildAndExtractHeap(int[] arr) {",
+                    "    for (int i = arr.length / 2 - 1; i >= 0; i--) siftDown(arr, i, arr.length);",
+                    "    // siftDown: compare parent with left(2i+1) & right(2i+2)",
+                    "    int left = 2 * i + 1, right = 2 * i + 2;",
+                    "    int target = selectDominantChild(arr, i, left, right, heapBound);",
+                    "    if (target != i) {",
+                    "        swap(arr, i, target); siftDown(arr, target, heapBound);",
+                    "    }",
+                    "    swap(arr, 0, arr.length - 1); siftDown(arr, 0, arr.length - 1);",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3),
+                    4 to listOf(4),
+                    5 to listOf(5),
+                    6 to listOf(6),
+                    7 to listOf(7),
+                    8 to listOf(9)
+                )
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "def build_and_extract_heap(arr):",
+                    "    for i in range(len(arr) // 2 - 1, -1, -1): sift_down(arr, i, len(arr))",
+                    "def sift_down(arr, i, heap_bound):",
+                    "    left, right = 2 * i + 1, 2 * i + 2",
+                    "    target = select_dominant_child(arr, i, left, right, heap_bound)",
+                    "    if target != i:",
+                    "        arr[i], arr[target] = arr[target], arr[i]; sift_down(arr, target, heap_bound)",
+                    "def extract_root(arr): arr[0], arr[-1] = arr[-1], arr[0]; sift_down(arr, 0, len(arr) - 1)"
+                ),
+                lineMapping = (1..8).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "void buildAndExtractHeap(vector<int>& arr) {",
+                    "    for (int i = (int)arr.size() / 2 - 1; i >= 0; --i) siftDown(arr, i, arr.size());",
+                    "    // siftDown: compare parent with left(2i+1) & right(2i+2)",
+                    "    int left = 2 * i + 1, right = 2 * i + 2;",
+                    "    int target = selectDominantChild(arr, i, left, right, heapBound);",
+                    "    if (target != i) {",
+                    "        swap(arr[i], arr[target]); siftDown(arr, target, heapBound);",
+                    "    }",
+                    "    swap(arr[0], arr.back()); siftDown(arr, 0, arr.size() - 1);",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3),
+                    4 to listOf(4),
+                    5 to listOf(5),
+                    6 to listOf(6),
+                    7 to listOf(7),
+                    8 to listOf(9)
+                )
+            )
+        }
+    }
+
+    private fun getBfsCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "fun bfs(adj: Map<String, List<Edge>>, start: String) {",
+                    "    val visited = linkedSetOf(start); val queue = ArrayDeque(listOf(start))",
+                    "    while (queue.isNotEmpty()) {",
+                    "        val curr = queue.removeFirst()",
+                    "        for ((next, w) in adj[curr].orEmpty()) {",
+                    "            if (visited.add(next)) {",
+                    "                queue.addLast(next)",
+                    "            }",
+                    "        }",
+                    "    }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3),
+                    4 to listOf(4),
+                    5 to listOf(5),
+                    6 to listOf(6),
+                    7 to listOf(7)
+                )
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "void bfs(Map<String, List<Edge>> adj, String start) {",
+                    "    Set<String> visited = new LinkedHashSet<>(List.of(start)); Queue<String> queue = new ArrayDeque<>(List.of(start));",
+                    "    while (!queue.isEmpty()) {",
+                    "        String curr = queue.remove();",
+                    "        for (Edge e : adj.getOrDefault(curr, List.of())) {",
+                    "            if (visited.add(e.to)) {",
+                    "                queue.add(e.to);",
+                    "            }",
+                    "        }",
+                    "    }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3),
+                    4 to listOf(4),
+                    5 to listOf(5),
+                    6 to listOf(6),
+                    7 to listOf(7)
+                )
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "def bfs(adj, start):",
+                    "    visited, queue = {start}, deque([start])",
+                    "    while queue:",
+                    "        curr = queue.popleft()",
+                    "        for nxt, weight in adj.get(curr, []):",
+                    "            if nxt not in visited:",
+                    "                visited.add(nxt); queue.append(nxt)"
+                ),
+                lineMapping = (1..7).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "void bfs(const map<string, vector<Edge>>& adj, const string& start) {",
+                    "    set<string> visited{start}; deque<string> queue{start};",
+                    "    while (!queue.empty()) {",
+                    "        string curr = queue.front(); queue.pop_front();",
+                    "        for (const auto& e : adj.at(curr)) {",
+                    "            if (visited.insert(e.to).second) {",
+                    "                queue.push_back(e.to);",
+                    "            }",
+                    "        }",
+                    "    }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3),
+                    4 to listOf(4),
+                    5 to listOf(5),
+                    6 to listOf(6),
+                    7 to listOf(7)
+                )
+            )
+        }
+    }
+
+    private fun getDfsCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "fun dfs(u: String, adj: Map<String, List<Edge>>, visited: MutableSet<String>) {",
+                    "    visited.add(u)",
+                    "    for ((v, weight) in adj[u].orEmpty()) {",
+                    "        if (v !in visited) {",
+                    "            dfs(v, adj, visited)",
+                    "        }",
+                    "    }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3),
+                    4 to listOf(4),
+                    5 to listOf(5, 7)
+                )
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "void dfs(String u, Map<String, List<Edge>> adj, Set<String> visited) {",
+                    "    visited.add(u);",
+                    "    for (Edge e : adj.getOrDefault(u, List.of())) {",
+                    "        if (!visited.contains(e.to)) {",
+                    "            dfs(e.to, adj, visited);",
+                    "        }",
+                    "    }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3),
+                    4 to listOf(4),
+                    5 to listOf(5, 7)
+                )
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "def dfs(u, adj, visited):",
+                    "    visited.add(u)",
+                    "    for v, weight in adj.get(u, []):",
+                    "        if v not in visited:",
+                    "            dfs(v, adj, visited)"
+                ),
+                lineMapping = (1..5).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "void dfs(const string& u, const map<string, vector<Edge>>& adj, set<string>& visited) {",
+                    "    visited.insert(u);",
+                    "    for (const auto& e : adj.at(u)) {",
+                    "        if (!visited.count(e.to)) {",
+                    "            dfs(e.to, adj, visited);",
+                    "        }",
+                    "    }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3),
+                    4 to listOf(4),
+                    5 to listOf(5, 7)
+                )
             )
         }
     }

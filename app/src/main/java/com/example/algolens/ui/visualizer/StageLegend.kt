@@ -38,16 +38,16 @@ import com.example.algolens.ui.theme.TextSecondary
  * with no re-entry path would be a dead end, and the legibility it buys is
  * worth more than the pixels it covers.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun StageLegend(modifier: Modifier = Modifier) {
-    Row(
+    androidx.compose.foundation.layout.FlowRow(
         modifier = modifier
-            .horizontalScroll(rememberScrollState())
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-            .background(AlgoTokens.surfaceSunken.copy(alpha = 0.78f))
+            .background(AlgoTokens.surfaceSunken.copy(alpha = 0.85f))
             .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
     ) {
         // Order mirrors UI_GUIDELINES §14: inspect → mutate → anchor → lock → travel.
         LegendEntry(color = AlgoTokens.accentYellow, label = "compare")

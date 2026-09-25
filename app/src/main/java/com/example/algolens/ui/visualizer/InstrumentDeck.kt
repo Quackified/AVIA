@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,7 +56,8 @@ import com.example.algolens.ui.theme.TextPrimary
  */
 internal val TERMINAL_PEEK_HEIGHT = 126.dp
 internal val TERMINAL_EXPANDED_HEIGHT = 285.dp
-internal val ATTACHED_TABS_HEIGHT = 26.dp
+internal val ATTACHED_TAB_VISUAL_HEIGHT = 26.dp
+internal val ATTACHED_TABS_HEIGHT = ATTACHED_TAB_VISUAL_HEIGHT + AlgoTokens.space1
 internal val DOCK_PEEK_TOTAL_HEIGHT = TERMINAL_PEEK_HEIGHT + ATTACHED_TABS_HEIGHT + 8.dp
 internal val DOCK_EXPANDED_TOTAL_HEIGHT = TERMINAL_EXPANDED_HEIGHT + ATTACHED_TABS_HEIGHT + 8.dp
 
@@ -67,10 +69,10 @@ internal val DOCK_EXPANDED_TOTAL_HEIGHT = TERMINAL_EXPANDED_HEIGHT + ATTACHED_TA
  *   terminal titlebar + 3 lines of code or live state) and expands to
  *   [TERMINAL_EXPANDED_HEIGHT] (285.dp) when `state.deckExpanded` is true.
  * - **Attached window tabs**: `Trace` and `State` sit directly on top of the
- *   terminal frame with no background bar behind them.
- * - **Unified Terminal UI**: both [DeckPage.TRACE] and [DeckPage.STATE] retain
- *   the terminal titlebar (`Traffic-Light Dots | filename | Language/State badge | Expand ^ / Collapse v`)
- *   and share the [CanvasBackground] terminal body.
+ *   terminal frame (`26.dp` visual height inside a `44.dp` touch target) and
+ *   serve as the sole explicit expand/collapse affordance.
+ * - **Measured stage reservation**: reports its actual rendered height via
+ *   [onMeasuredHeightChanged] so `VisualizerScreen` adapts accurately to font scaling.
  */
 @Composable
 fun InstrumentDeck(
@@ -78,8 +80,10 @@ fun InstrumentDeck(
     algorithm: Algorithm,
     currentStep: VisualizerStep,
     syncPulse: State<Float>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onMeasuredHeightChanged: ((androidx.compose.ui.unit.Dp) -> Unit)? = null
 ) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
     val terminalHeight by animateDpAsState(
         targetValue = if (state.deckExpanded) TERMINAL_EXPANDED_HEIGHT else TERMINAL_PEEK_HEIGHT,
         animationSpec = spring(
@@ -92,9 +96,17 @@ fun InstrumentDeck(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .onSizeChanged { size ->
+                if (size.height > 0 && onMeasuredHeightChanged != null) {
+                    with(density) {
+                        onMeasuredHeightChanged(size.height.toDp())
+                    }
+                }
+            }
             .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
     ) {
-        // Attached window tabs sitting flush on top of the terminal frame
+        // Attached window tabs sitting flush on top of the terminal frame,
+        // with unified vertical heights and a matching tab-style Expand/Collapse button.
         AttachedDeckTabs(
             selected = state.deckPage,
             isExpanded = state.deckExpanded,
@@ -137,6 +149,7 @@ fun InstrumentDeck(
                 DeckPage.TRACE -> CodeTracePane(
                     step = currentStep,
                     algorithmName = algorithm.name,
+                    algorithmId = algorithm.id,
                     syncPulse = syncPulse,
                     fillsAvailableHeight = true,
                     isExpandedOverride = state.deckExpanded,
@@ -159,10 +172,9 @@ fun InstrumentDeck(
 
 /**
  * Window tabs (`Trace` | `State`) attached directly to the top-left edge of
- * the terminal frame, with no background bar behind them.
- *
- * The active tab uses [CardBackgroundElevated] so it connects directly into the
- * terminal titlebar directly below it.
+ * the terminal frame, plus a matching tab-style `Expand` / `Collapse` button
+ * on the top-right edge. All window tabs share an identical [ATTACHED_TAB_VISUAL_HEIGHT]
+ * (`26.dp`) visual height inside a `44.dp` accessible hit box.
  */
 @Composable
 private fun AttachedDeckTabs(
@@ -171,123 +183,101 @@ private fun AttachedDeckTabs(
     onToggleExpand: () -> Unit,
     onSelect: (DeckPage) -> Unit
 ) {
+    val tabShape = RoundedCornerShape(
+        topStart = AlgoTokens.radiusSm,
+        topEnd = AlgoTokens.radiusSm
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = AlgoTokens.space2),
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
+            .padding(horizontal = AlgoTokens.space2),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Bottom
     ) {
-        for (page in DeckPage.entries) {
-            val isSelected = page == selected
-            val shape = RoundedCornerShape(
-                topStart = AlgoTokens.radiusSm,
-                topEnd = AlgoTokens.radiusSm
-            )
+        // Left: Trace & State Window Tabs (identical 26dp height)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            for (page in DeckPage.entries) {
+                val isSelected = page == selected
 
-            Row(
-                modifier = Modifier
-                    .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                    .pressPhysics(shape = shape, accent = PrimaryCyan)
-                    .clip(shape)
-                    .background(if (isSelected) CardBackgroundElevated else CanvasBackground.copy(alpha = 0.85f))
-                    .border(
-                        width = AlgoTokens.strokeThin,
-                        color = if (isSelected) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
-                        shape = shape
-                    )
-                    .clickable { onSelect(page) }
-                    .padding(
-                        horizontal = AlgoTokens.space4,
-                        vertical = AlgoTokens.space1
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-            ) {
                 Box(
                     modifier = Modifier
-                        .size(AlgoTokens.space3)
-                        .clip(CircleShape)
-                        .background(
-                            if (isSelected) PrimaryCyan else TextMuted.copy(alpha = 0.45f)
+                        .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                        .clickable { onSelect(page) },
+                    contentAlignment = Alignment.BottomStart
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .height(ATTACHED_TAB_VISUAL_HEIGHT)
+                            .pressPhysics(shape = tabShape, accent = PrimaryCyan)
+                            .clip(tabShape)
+                            .background(if (isSelected) CardBackgroundElevated else CanvasBackground.copy(alpha = 0.85f))
+                            .border(
+                                width = AlgoTokens.strokeThin,
+                                color = if (isSelected) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
+                                shape = tabShape
+                            )
+                            .padding(horizontal = AlgoTokens.space4),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(AlgoTokens.space3)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) PrimaryCyan else TextMuted.copy(alpha = 0.45f)
+                                )
                         )
-                )
-                Text(
-                    text = page.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = if (isSelected) TextPrimary else TextMuted,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                )
+                        Text(
+                            text = page.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) TextPrimary else TextMuted,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
+                }
             }
         }
 
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
-
-        // Inline language switcher tab (Kotlin / Java / Python / C++)
-        val langShape = RoundedCornerShape(
-            topStart = AlgoTokens.radiusSm,
-            topEnd = AlgoTokens.radiusSm
-        )
-        val currentLang = com.example.algolens.data.AppSettings.preferredLanguage
-        Row(
-            modifier = Modifier
-                .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                .padding(end = AlgoTokens.space1)
-                .pressPhysics(shape = langShape, accent = SecondaryPurple)
-                .clip(langShape)
-                .background(SecondaryPurple.copy(alpha = 0.16f))
-                .border(
-                    width = AlgoTokens.strokeThin,
-                    color = SecondaryPurple.copy(alpha = 0.4f),
-                    shape = langShape
-                )
-                .clickable {
-                    val entries = com.example.algolens.data.TraceLanguage.entries
-                    val next = entries[(currentLang.ordinal + 1) % entries.size]
-                    com.example.algolens.data.AppSettings.preferredLanguage = next
-                }
-                .padding(
-                    horizontal = AlgoTokens.space3,
-                    vertical = AlgoTokens.space1
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "${currentLang.label.uppercase()} ↻",
-                style = MaterialTheme.typography.labelSmall,
-                fontFamily = FontFamily.Monospace,
-                color = PurpleGlow,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        // Collapse / Expand Deck Icon Button (44.dp minTouchTarget)
-        val collapseShape = RoundedCornerShape(
-            topStart = AlgoTokens.radiusSm,
-            topEnd = AlgoTokens.radiusSm
-        )
+        // Right: Expand / Collapse Window Tab Button (same tab style & 26dp height)
         Box(
             modifier = Modifier
-                .size(AlgoTokens.Spacing.minTouchTarget)
-                .padding(end = AlgoTokens.space2)
-                .pressPhysics(shape = collapseShape, accent = PrimaryCyan)
-                .clip(collapseShape)
-                .background(if (isExpanded) CyanSubtle else CardBackgroundElevated)
-                .border(
-                    width = AlgoTokens.strokeThin,
-                    color = if (isExpanded) PrimaryCyan.copy(alpha = 0.45f) else BorderSubtle,
-                    shape = collapseShape
-                )
+                .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
                 .clickable { onToggleExpand() },
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.BottomEnd
         ) {
-            Icon(
-                imageVector = if (isExpanded) AlgoGlyphs.ChevronDown else AlgoGlyphs.ChevronUp,
-                contentDescription = if (isExpanded) "Collapse deck" else "Expand deck",
-                tint = PrimaryCyan,
-                modifier = Modifier.size(AlgoTokens.inlineIconMd)
-            )
+            Row(
+                modifier = Modifier
+                    .height(ATTACHED_TAB_VISUAL_HEIGHT)
+                    .pressPhysics(shape = tabShape, accent = PrimaryCyan)
+                    .clip(tabShape)
+                    .background(if (isExpanded) CyanSubtle else CardBackgroundElevated)
+                    .border(
+                        width = AlgoTokens.strokeThin,
+                        color = if (isExpanded) PrimaryCyan.copy(alpha = 0.45f) else BorderSubtle,
+                        shape = tabShape
+                    )
+                    .padding(horizontal = AlgoTokens.space4),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+            ) {
+                Text(
+                    text = if (isExpanded) "Collapse" else "Expand",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PrimaryCyan,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = if (isExpanded) AlgoGlyphs.ChevronDown else AlgoGlyphs.ChevronUp,
+                    contentDescription = if (isExpanded) "Collapse deck" else "Expand deck",
+                    tint = PrimaryCyan,
+                    modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                )
+            }
         }
     }
 }

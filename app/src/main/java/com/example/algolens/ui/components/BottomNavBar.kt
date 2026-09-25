@@ -76,7 +76,6 @@ fun BottomNavBar(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                    .pressPhysics(shape = tabShape, accent = PrimaryCyan)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null

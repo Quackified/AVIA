@@ -58,52 +58,58 @@ colors:
 
 typography:
   display:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
+    fontFamily: "AlgoSans (FontFamily.SansSerif)"
     fontWeight: 700
     fontSize: "28sp"
     lineHeight: "34sp"
-    letterSpacing: "-0.03sp"
-  headline:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
-    fontWeight: 600
-    fontSize: "16sp"
-    lineHeight: "21sp"
-    letterSpacing: "-0.01sp"
+    letterSpacing: "-0.84sp"
   title:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
+    fontFamily: "AlgoSans (FontFamily.SansSerif)"
     fontWeight: 600
     fontSize: "16sp"
     lineHeight: "21sp"
-    letterSpacing: "-0.01sp"
-  title-small:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
+    letterSpacing: "-0.16sp"
+  body:
+    fontFamily: "AlgoSans (FontFamily.SansSerif)"
+    fontWeight: 400
+    fontSize: "13sp"
+    lineHeight: "19sp"
+    letterSpacing: "0sp"
+  label:
+    fontFamily: "AlgoSans (FontFamily.SansSerif)"
+    fontWeight: 600
+    fontSize: "11sp"
+    lineHeight: "15sp"
+    letterSpacing: "0.1sp"
+  micro:
+    fontFamily: "JetBrains Mono (R.font.jetbrains_mono_variable, tnum)"
+    fontWeight: 600
+    fontSize: "11sp"
+    lineHeight: "15sp"
+    letterSpacing: "0sp"
+  telemetry-mono:
+    fontFamily: "JetBrains Mono (R.font.jetbrains_mono_variable, tnum)"
+    fontWeight: 500
+    fontSize: "11sp"
+    lineHeight: "15sp"
+    letterSpacing: "0sp"
+  reading-body:
+    fontFamily: "AlgoSans (FontFamily.SansSerif — long-form Chat & Theory reading text)"
+    fontWeight: 400
+    fontSize: "13.5sp"
+    lineHeight: "20sp"
+    letterSpacing: "0sp"
+  reading-small:
+    fontFamily: "AlgoSans (FontFamily.SansSerif — secondary reading rationale/notes)"
+    fontWeight: 400
+    fontSize: "12sp"
+    lineHeight: "17sp"
+    letterSpacing: "0sp"
+  code-trace:
+    fontFamily: "JetBrains Mono (R.font.jetbrains_mono_variable, tnum)"
     fontWeight: 500
     fontSize: "12sp"
     lineHeight: "17sp"
-    letterSpacing: "0sp"
-  body:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
-    fontWeight: 400
-    fontSize: "12sp"
-    lineHeight: "17sp"
-    letterSpacing: "0sp"
-  body-small:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
-    fontWeight: 400
-    fontSize: "10sp"
-    lineHeight: "14sp"
-    letterSpacing: "0sp"
-  label:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
-    fontWeight: 600
-    fontSize: "10sp"
-    lineHeight: "14sp"
-    letterSpacing: "0.08sp"
-  micro:
-    fontFamily: "JetBrains Mono, ui-monospace, monospace"
-    fontWeight: 400
-    fontSize: "9.5sp"
-    lineHeight: "13sp"
     letterSpacing: "0sp"
 
 rounded:
@@ -179,10 +185,10 @@ The entire app—from the orbital harmonic-wave boot sequence (`BootOverlay`) an
 **Key Characteristics:**
 
 - **Dark-only tech-noir palette:** `DarkColorScheme` is the sole theme. No light mode, no warm-sepia mode, and no dynamic OS wallpaper color overrides.
-- **Monospace everywhere:** `JetBrains Mono` (`R.font.jetbrains_mono_variable`) governs every text step from 28sp hero displays down to the 9.5sp persistent-text floor (`AlgoType.microSize`), with tabular numerals (`tnum`) on all live counters.
-- **Double-bezel instrument architecture:** Premium surfaces (`AlgoCard`, `DoubleBezelShell`, practice cards, AI assistant bubbles, profile bento cells) use a sunken outer tray (`#080D1B`, 12dp radius) with a 2dp gap around an inset core plate (`#0C1526`, 11dp radius).
+- **Dual-typeface hierarchy (`AlgoSans` + `JetBrains Mono`):** Proportional `AlgoSans` (`FontFamily.SansSerif`) governs UI chrome, headings, navigation labels, buttons, form controls, and reading prose (`11sp` label floor, natural tracking), while bundled `JetBrains Mono` (`R.font.jetbrains_mono_variable`) with tabular numerals (`tnum`) is reserved for source code listings, complexity expressions (`O(n log n)`), step counters (`01/65`), and live variable/state readouts (`AlgoType.codeTrace`, `AlgoType.telemetryMono`, `AlgoType.micro`).
+- **Double-bezel instrument architecture:** Premium surfaces (`AlgoCard`, `DoubleBezelShell`, practice cards, complexity/code attachments, profile bento cells) use a sunken outer tray (`#080D1B`, 12dp radius) with a 2dp gap around an inset core plate (`#0C1526`, 11dp radius).
 - **Five semantic accents + two functional escapes:** Color is strictly behavioral (`Traversal Cyan`, `Tracking Purple`, `Mutation Pink`, `Verified Green`, `Pivot Yellow`, plus `Warn Red` for errors/hard difficulty and `Data Orange` for data structures/streaks/offline status).
-- **Bespoke 1.5dp stroke iconography (`AlgoGlyphs`):** Hand-authored Lucide-style 24dp vectors with 1.5dp round-cap/round-join strokes and zero fills.
+- **Bespoke 1.5dp stroke iconography (`AlgoGlyphs`):** Hand-authored Lucide-style 24dp vectors with 1.5dp round-cap/round-join strokes and zero fills, housed inside `CompactIconButton` (`32dp` visual button inside a `44dp` touch target) or `RailIconButton`.
 - **Tactile press physics & one-shot entry cascade:** `Modifier.pressPhysics` provides spring-driven compression + border bloom without idle `graphicsLayer` overhead; `EntryCascadeProvider` choreographs only the first 6 visible list items on initial screen mount (`540ms` window) and becomes a zero-allocation no-op during scrolling.
 - **Unified Live Narrative Stage + Docked Terminal:** The visualizer stage lifts its canvas smoothly (`160dp` peek ↔ `319dp` expanded) above a docked terminal with attached `Trace` | `State` window tabs while burying the stationary `StageLegend` underneath on expansion.
 
@@ -238,42 +244,28 @@ The palette is a high-contrast, low-glare tech-noir workspace where five neutral
 
 ## Typography
 
-**Display Font:** `JetBrains Mono` (`R.font.jetbrains_mono_variable` — weights `400 Normal`, `500 Medium`, `600 SemiBold`, `700 Bold`).
+**UI & Prose Font (`AlgoSans`):** `FontFamily.SansSerif` — clean proportional typography for screen headings, navigation labels, button text, form fields, and long-form Chat / Theory reading prose.
 
-**Body Font:** `JetBrains Mono` (identical family across all prose, markdown chat responses, theory sheets, and code listings).
-
-**Label / Mono Font:** `JetBrains Mono`.
-
-**Character:** Crisp, technical, fixed-width instrument typography. Because every character shares the same advance width, code listings, complexity tables, variable readouts, and zero-padded step counters align mechanically without layout jitter.
+**Code & Telemetry Font (`JetBrains Mono`):** `R.font.jetbrains_mono_variable` (`weights 400 Normal`, `500 Medium`, `600 SemiBold`, `700 Bold`) with `fontFeatureSettings = "tnum"` — used strictly for source code listings, live variable/state readouts, step counters (`01/65`), and complexity formulas (`O(n log n)`).
 
 ### Hierarchy
 
-The type system (`AlgoLensTypography` + `AlgoType` in `ui/theme/Type.kt`) defines five primary steps plus two intermediate Material sub-steps:
+The type system (`AlgoLensTypography` + `AlgoType` in `ui/theme/Type.kt`) defines proportional UI/prose steps alongside dedicated monospace instrument styles:
 
-- **Display** (`AlgoType.display` / `displayLarge`–`Small`: **Bold 700**, `28sp` size, `34sp` line-height, `-0.03sp` letter-spacing): Screen hero titles, large metric numerals on `ProfileScreen`, and the `AVIA` cold-start wordmark.
-- **Title / Headline** (`AlgoType.title` / `headlineLarge`–`Small`, `titleLarge`–`Medium`: **SemiBold 600**, `16sp` size, `21sp` line-height, `-0.01sp` letter-spacing): Workspace region headers (`VisualizerHeader` algorithm title in `Bold` with `trackHeader = 1.sp`), modal sheet titles, and onboarding slide headings.
-- **Title Small** (`titleSmall`: **Medium 500**, `12sp` size, `17sp` line-height, `0sp` letter-spacing): Primary row titles inside `AlgoCard` (`DashboardScreen` and `ProfileScreen`) and compact toolbar titles (`Explore: Practice`).
-- **Body** (`AlgoType.body` / `bodyLarge`–`Medium`: **Normal 400**, `12sp` size, `17sp` line-height, `0sp` letter-spacing): Step narrative descriptions, `ChatScreen` markdown prose, `AlgorithmTheorySheet` explanations, and code-trace source lines.
-- **Body Small** (`bodySmall`: **Normal 400**, `10sp` size, `14sp` line-height, `0sp` letter-spacing): Secondary card metadata (time complexity sub-labels in `AlgoCard`, `ComplexityCard` row labels).
-- **Label** (`AlgoType.label` / `labelLarge`–`Small`: **SemiBold 600**, `10sp` size, `14sp` line-height, `+0.08sp` letter-spacing): `SectionLabel` headers, `BottomNavBar` tab labels, `PlaybackRail` speed chip (`1.0x`) and step counters (`01/65`), and `AttachedDeckTabs` (`Trace`, `State`).
-- **Micro** (`AlgoType.micro` / `AlgoType.microSize`: **Normal 400** or **Bold 700**, `9.5sp` size, `13sp` line-height, `0sp` letter-spacing): The hard persistent-text floor. Used for `IconPillButton` labels (`TIME O(n log n)`), `SegmentedToggle` options, `OfflineBadge`, category filter pills, and canvas-internal index/weight numerals via `TextMeasurer`.
-
-**Tracking & Leading Tokens (`AlgoType`):**
-- Explicit tracking constants: `trackTight` (`0.6sp`), `trackSection` (`0.8sp`), `trackHeader` (`1.0sp`), `trackBrand` (`4.0sp`).
-- Explicit leading scale: `leadingMicroTight` (`11sp`), `leadingMicro` (`12sp`), `leadingMicroRelaxed` (`13sp`), `leadingLabel` (`14sp`), `leadingBodyTight` (`15sp`), `leadingBody` (`16sp`), `leadingBodyDefault` (`17sp`), `leadingBodyRelaxed` (`18sp`), `leadingTitle` (`21sp`), `leadingDisplay` (`34sp`).
+- **Display** (`AlgoType.display` / `displayLarge`–`Small`: **AlgoSans Bold 700**, `28sp` size, `34sp` line-height, `-0.03sp` letter-spacing): Screen hero titles and the `AVIA` cold-start wordmark.
+- **Title / Headline** (`AlgoType.title` / `headlineLarge`–`Small`, `titleLarge`–`Medium`: **AlgoSans SemiBold 600**, `16sp` size, `21sp` line-height, `-0.01sp` letter-spacing): Workspace region headers (`Explore`, `AlgoLens Assistant`, `Operator Profile`, `Edit Profile`), modal sheet titles, and onboarding slide headings.
+- **Title Small** (`titleSmall`: **AlgoSans SemiBold 600**, `13sp` size, `18sp` line-height): Primary row titles inside `AlgoCard` and compact section headings.
+- **Body** (`AlgoType.body` / `bodyLarge`–`Medium`: **AlgoSans Normal 400**, `13sp`–`14sp` size, `19sp`–`20sp` line-height): Step narrative descriptions, `ChatScreen` prose (`AlgoType.readingBody`), `AlgorithmTheorySheet` explanations, and input fields.
+- **Label** (`AlgoType.label` / `labelLarge`–`Small`: **AlgoSans SemiBold 600**, `11sp`–`12sp` size, `15sp`–`16sp` line-height, `0.1sp` letter-spacing): `SectionLabel` headers, `BottomNavBar` tab labels, button labels, and `AttachedDeckTabs` (`Trace`, `State`).
+- **Telemetry Mono & Micro** (`AlgoType.telemetryMono`, `AlgoType.micro`, `AlgoType.codeTrace`: **JetBrains Mono 500/600**, `11sp`–`12sp` size, `15sp`–`17sp` line-height, `fontFeatureSettings = "tnum"`): Code trace lines, `O(...)` complexity readouts, `01/65` step counters, speed chips (`1.0x`), and variable state values.
 
 ### Named Rules
 
-**The Monospace-Everywhere Rule.** `JetBrains Mono` is the sole font family in the application. Never substitute Roboto, Inter, or system sans-serif for prose or UI chrome. When hierarchy or scannability needs adjustment, vary `FontWeight` (`Normal` → `SemiBold` → `Bold`), step size (`9.5sp` → `10sp` → `12sp` → `16sp`), or text token (`TextMuted` → `TextPrimary`)—never the typeface.
+**The Dual-Typeface Discipline Rule.** Proportional `AlgoSans` handles UI chrome, headings, navigation, buttons, form controls, and narrative prose so screens read cleanly without wide monospace tracking clutter. `JetBrains Mono` (`R.font.jetbrains_mono_variable`, `tnum`) is reserved for code listings, complexity expressions, step counters, and live variable/state telemetry.
 
-**The 9.5sp Persistent-Text Floor Rule.** `AlgoType.microSize` (`9.5sp`) is the minimum permitted text size anywhere in persistent chrome or canvas callouts. Nothing in the app renders below `9.5sp`.
+**The 11sp Minimum Floor Rule.** `AlgoType.microSize` (`11sp`) is the minimum permitted text size across UI chrome, labels, and telemetry badges.
 
-**The Case-Signal Rule.** Case carries structural meaning:
-- `SectionLabel` (`ui/components/CommonComponents.kt`) uses **Sentence case** (`Preferred Language`, `Connectivity`) at `10sp` (`labelSmall`, `TextDark`)—never all-caps.
-- Inline status pills (`IconPillButton`), header algorithm names (`BUBBLE SORT`), and telemetry badges (`2x STREAK`, `10 PTS`, `OPERATOR PROFILE`, `SKIP`) use **UPPERCASE** with explicit positive tracking (`0.08sp` to `1.0sp`).
-- Card titles (`AlgoCard`) and navigation labels (`Home`, `Explore`, `Chat`, `Profile`) use **Title Case**.
-
-**The Tabular-Numeral Rule.** Any text element displaying live-updating step indices, percentages, or timers (`Step 01 of 65`, `01/65`, `42%`) must set `fontFeatureSettings = "tnum"` so digits never shift horizontal layout width during playback or scrubbing.
+**The Tabular-Numeral Rule.** Any text element displaying live-updating step indices, percentages, timers, or complexity formulas (`Step 01 of 65`, `01/65`, `O(n log n)`) must use `JetBrainsMono` with `fontFeatureSettings = "tnum"` (`AlgoType.telemetryMono` or `AlgoType.micro`) so digits never shift horizontal layout width during playback or scrubbing.
 
 ## Layout
 

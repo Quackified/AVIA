@@ -1,45 +1,73 @@
-# TASK.md — Active Task Specification
+# Task: Restore AVIA's visual identity and simplify Chat and Profile
 
-> **Workflow Owner:** ChatGPT (Planner) → Antigravity (Executor) → Codex/Astra (Reviewer)
-> **Status:** ✅ COMPLETED (Logged in [`docs/IMPLEMENTATION.md`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/docs/IMPLEMENTATION.md))
+Status: **Implementation plan only (2026-09-25).** This task changes only this document. The worktree already contains uncommitted application and documentation changes; the implementer must preserve and review them before editing code.
 
----
+## Goal
 
-## Current Handover Task: UI Critique Completion & Data Structure / Graph Algorithm Logic Fixes
+Restore the earlier AVIA typography and compact, precise dark UI; remove the redundant Back control from the root Explore tab; redesign Chat as a comfortable conversation screen; and turn the profile editor into a focused, native-feeling Edit Profile flow. Keep account infrastructure ready for eventual Firebase Authentication, including Google Sign-In, without showing speculative Firebase, cloud-sync, email/password, or security forms in the current app. Preserve the app's offline guest workflow.
 
-Finish the remaining UI critique items and broken/semi-functional data structure & graph algorithm logic in AVIA (`AlgoLens`) while strictly adhering to [`docs/DESIGN.md`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/docs/DESIGN.md) ("Atmospheric Minimalism & High-Craft Dark UI", `#080D14` deep slate, `#38BDF8` cyan, `#10B981` emerald, `DoubleBezelShell`, `AlgoGlyphs`, and `Modifier.pressPhysics`):
+Success is visible on a phone: text has the intended face and density, controls have compact visual shapes with accessible hit areas, Chat spends its space on messages and the composer, Explore reads as a bottom-nav destination, and profile editing is short and understandable. Account copy never claims a service or sync feature that this build does not provide.
 
-### 1. Wire `SettingsScreen.kt` to `AppSettings` (`ui/settings/SettingsScreen.kt` & `data/AppSettings.kt`)
-- Replace dead local `remember` state (`selectedLanguage`, `speedSlider`, `highContrast`, `autoPlay`, `showComplexity`) with two-way reactive bindings in `AppSettings` (backed by `SharedPreferences` so preferences persist across cold launches).
-- Replace non-functional mock toggles with real workspace settings (`Default Trace Language`, `Default Playback Speed`, `High-Contrast Node Outlines`, `Auto-Open Deck on Play`, `Inline Complexity Readouts`, `Default Cell Size`, `Tactile Haptic Feedback`, and `Clear Saved Data`).
+## Relevant existing implementation
 
-### 2. Wire Real Bookmarks in `VisualizerHeader.kt` & `ProfileScreen.kt`
-- Add `bookmarkedAlgorithmIds: Set<String>` and `toggleBookmark(algorithmId: String)` to `AppSettings`.
-- Add a `Bookmark` (`AlgoGlyphs.Bookmark` / `AlgoGlyphs.BookmarkFilled`) toggle button in `VisualizerHeader.kt`.
-- Update `ProfileScreen.kt` to render the real bookmarked algorithms from `AppSettings.bookmarkedAlgorithmIds` (replacing the hardcoded `MERGE_SORT, QUICK_SORT, BFS` list) with a clean `DoubleBezelShell` empty state CTA (`BROWSE CATALOG`) when none are bookmarked.
+- `AlgoLensApp.kt` hosts `HOME | EXPLORE | CHAT | PROFILE` under `BottomNavBar`. `NavTab.EXPLORE` composes `PracticeScreen(onBack = { onTabSelected(HOME) })`, although Explore is a root tab. Full-screen Visualizer and Settings are separate routes where Back remains appropriate.
+- `PracticeScreen.kt` draws a filled 44dp Back button in its root header. `AlgoTokens.minTouchTarget` is 44dp, while the theme already provides 26/30/32/36dp visible icon tiers. The implementation and design rules have conflated touch bounds with visible control size in some screens.
+- Current `Type.kt` maps nearly every Material text role to `JetBrainsMono`, which now resolves to `FontFamily.Monospace`. Git `HEAD` and `app/src/main/res/font/jetbrains_mono_variable.ttf` show that the previous implementation bundled the actual JetBrains Mono font. The current diff also changes tracking and type tokens. `docs/PROJECT.md` and `docs/ARCHITECTURE.md` describe proportional `AlgoSans` for UI/prose and mono for telemetry/code, while `docs/DESIGN.md` still says monospace everywhere and permits 9.5sp persistent labels. These authorities must be reconciled before a broad type pass; a blind file revert would restore the bundled mono but also restore the old mono-everywhere rule.
+- `ChatScreen.kt` has a hoisted `ChatSessionManager`, persistent local conversation history, a slide-over history sidebar, project planner, rich assistant blocks, and an offline catalog provider. Its header displays three filled 44dp action boxes plus a title/status row; prompt starters are always shown above the message stream. `ChatInputDock` has a single-line 10sp monospace field and a 32dp send button. The screen applies `imePadding()` while the dock also applies `navigationBarsPadding()` even though `BottomNavBar` sits below Chat; this is a likely source of excess space, to confirm on device. Chat responses are from a deterministic offline provider, not a general AI service.
+- `ProfileScreen.kt` opens `EditProfileAndAccountSheet` from the avatar/pencil. The editor is implemented in the untracked `ui/profile/AccountTemplateCard.kt`: one full-screen scrolling column contains avatar and three profile fields, then an `ACCOUNT & CLOUD SYNC` section, guest migration choices, Sign In/Create Account/Email & Password tabs, and credential forms. The long composable name reflects those combined concerns. `AuthRepository.kt` defines credential-oriented methods plus `UnavailableFirebaseAuthRepository` and `FakeAuthRepository`; `AppShell` instantiates the unavailable repository. No Firebase or Google sign-in dependency/configuration is present, and unavailable sign-in cannot complete. The profile hero currently renders initials even when `avatarUri` exists.
+- The product documents describe a dark, tokenized instrument aesthetic: semantic colors in `Color.kt`, `AlgoTokens`, `AlgoGlyphs`, `DoubleBezelShell`, and `pressPhysics`. `PROJECT.md` still says offline/no account; that remains the runtime truth until a real provider ships. No `AGENTS.md` was found in the repository or checked ancestor directories.
 
-### 3. Enforce `44.dp` Minimum Touch Targets & `AlgoGlyphs` Consistency
-- Expand all sub-44dp interactive hit areas (`OnboardingScreen.kt` SKIP button, `SettingsScreen.kt` back button, `PracticeScreen.kt` back button, `ProfileScreen.kt` settings button, and `InstrumentDeck.kt` / `CodeListing.kt` / `StateDeckPage.kt` collapse/expand icons) to `AlgoTokens.Spacing.minTouchTarget` (`44.dp`).
-- Replace remaining `Icons.Default.*` Material icons in `BottomNavBar.kt` and `SettingsScreen.kt` with `1.5.dp` stroke `AlgoGlyphs` (`StrokeCap.Round`) and ensure `Modifier.pressPhysics` is applied across interactive cards/buttons.
+### Documentation-direction audit
 
-### 4. Fix Broken & Semi-Functional Stack, Queue, BST, Heap, BFS, and DFS Logic
-- **Stack & Queue:**
-  - Fix `VisualizerScreenState` initializing `bufferOps` and `queueOps` to `emptyList()` (which overrode `defaultStackOps()` / `defaultQueueOps()` and caused Stack and Queue to open empty with 0 operations).
-  - Emit a pre-removal `ElementState.SWAPPING` highlight step before removing elements on `Pop` and `Dequeue`.
-  - Fix live stage buttons (`+ PUSH`, `POP`, `PEEK`, `+ ENQ`, `DEQ`) so they jump directly to the newly appended operation step.
-  - Populate `comparisonExpr`, `variables`, and `callStack` on every Stack and Queue step.
-- **Binary Search Tree (BST):**
-  - Emit incremental tree construction (`INSERTING`) steps followed by `SEARCHING` steps for `searchKey`.
-  - Normalize custom BST layout coordinates in `buildBstFromValues` using in-order rank (`x`) and depth (`y`) so custom or skewed trees never clip or overlap.
-  - Populate `visitedNodeIds`, `buffer` (`BST SEARCH PATH`), `variables`, and `callStack` on every BST step.
-  - Pass the BST's actual values (`defaultBstValues` or `ForBst.values`) to `CustomizeGraphSheet` instead of `state.arrayData`.
-- **Heap:**
-  - Read `GraphCustomization.ForHeap.values` in `rememberVisualizerScreenState` and `VisualizerScreen.kt` so custom Heap inputs are applied instead of ignored.
-  - Dynamically calculate level/slot `(x, y)` coordinates in `generateHeapSteps` for any heap size (`1..15`) and populate `variables` and `callStack`.
-- **BFS & DFS:**
-  - Add node `"F"` to `StartNodeDropdown` in `CustomizeGraphSheet.kt`.
-  - Wire `onGraphModified` in `VisualizerHost.kt` and `GraphTreeVisualizer.kt` to `state.customGraph` so interactive Graph Builder edits regenerate real BFS/DFS traversal steps on the modified graph.
-  - Populate `variables` and `callStack` on every BFS and DFS step.
+- **`docs/DESIGN.md` is an active design culprit.** Its prose explicitly says JetBrains Mono is the body font even for Chat markdown and theory, makes mono the sole font family (`The Monospace-Everywhere Rule`), and permits 9.5sp text in persistent chrome (lines 241–269). Those instructions conflict with `PROJECT.md`'s proportional UI/prose hierarchy and can reproduce the cramped/wide-feeling typography. The current YAML typography diff also changes display/title/label tracking while the prose beneath it retains different values, so even this file disagrees with itself.
+- The same file directs `DoubleBezelShell` around AI assistant message blocks, prescribes an always-circular `RailIconButton`, strongly paired icon sizes, accent-bordered pills, and a monospace `Chat Terminal Dock` (components and Do rules near lines 398–480). These rules are useful for the visualizer's instruments but overconstrain a conversational screen and encourage repetitive chrome. Its strict grid rule should guide spacing without dictating one button silhouette across unrelated contexts. Its 44dp accessibility intent is a hit-area rule, not a requirement for a 44dp visible fill.
+- `DESIGN.md` names Explore as a bottom-nav destination and reserves a Back button for `VisualizerHeader` (lines 452–458); it does **not** require a Back button on Explore. That mistake is in `PracticeScreen`/`AppShell`, not in the design document. Likewise, it does not require the current profile credential form; the account UI is an implementation/product-scope error.
+- **`docs/ARCHITECTURE.md` reinforces drift rather than directly specifying the bad shapes.** Its updated shell map calls `ProfileScreen` an `AccountTemplateCard` host and `AuthRepository` a Firebase-ready state machine, which can legitimize the premature account surface. It also describes `AlgoSans` for UI/prose and an 11sp floor (line 39), whereas current `Type.kt` maps Material roles to mono and `DESIGN.md` permits 9.5sp. Treat this as an inaccurate architecture description to correct alongside implementation, while retaining its valid state-ownership and navigation map.
 
-### 5. Verification
-- Run `.\gradlew.bat testDebugUnitTest` and verify all unit tests compile and pass with zero regressions.
+## Files/components likely affected during implementation
+
+| Area | Likely files/components |
+| --- | --- |
+| Typography and control geometry | `ui/theme/Type.kt`, `Theme.kt`, `res/font/jetbrains_mono_variable.ttf`, `ui/components/WorkspaceControls.kt`, `Instrument.kt`, and call sites that set 44dp visible controls or micro text |
+| Explore navigation | `ui/AlgoLensApp.kt`, `ui/practice/PracticeScreen.kt`, relevant navigation tests |
+| Chat surface | `ui/chat/ChatScreen.kt` (`ChatHeader`, prompt starters, message rows, `ChatInputDock`), sidebar and planner composables in the same file, `ChatMarkdownRenderer.kt`, `ChatSessionState.kt` only if interaction state must change |
+| Profile/account | `ui/profile/ProfileScreen.kt`, `ui/profile/AccountTemplateCard.kt` (rename/split the `EditProfileAndAccountSheet` implementation), `data/auth/AuthRepository.kt`, focused fake-auth tests, photo-picker/avatar rendering |
+| Documentation | `docs/PROJECT.md`, `docs/ARCHITECTURE.md`, `docs/DESIGN.md`, and implementation/review records after code actually changes |
+
+## Step-by-step implementation plan
+
+1. **Capture the current and prior visual baseline and resolve documentation authority.** Review the uncommitted diff, the committed `Type.kt`, bundled font asset, and any valid earlier screenshots/goldens. Run the current app on a representative phone or emulator and capture Home, Explore, Chat empty/active with keyboard closed/open, Profile, and editor at normal and enlarged font scales. Record concrete dimensions/insets before deciding exact values. Mark `DESIGN.md`'s mono-everywhere, 9.5sp persistent text, mandatory Chat bezel, and terminal-composer prescriptions for replacement; reconcile `ARCHITECTURE.md`'s 11sp/dual-face claim and account-template description with the desired behavior. Treat Git history as evidence, not a whole-tree rollback.
+2. **Set the type contract.** Restore the actual bundled JetBrains Mono where mono is needed; use a proportional UI face for headings, navigation, buttons, input, and prose in line with `PROJECT.md`/`ARCHITECTURE.md`. Keep tabular mono for source traces, variable/state readouts, counters, and complexity expressions. Compare line height and tracking with the earlier look, remove broad positive letter spacing and persistent 9.5/10sp overrides where they harm reading, and use the same semantic styles across screens. Update `DESIGN.md` to resolve its mono-everywhere contradiction and document the final roles. Do not infer a new branded font without evidence.
+3. **Fix control sizing at the source and at call sites.** Keep the 44dp effective hit target for primary actions, but allow smaller visible icon/button geometry through outer hit boxes, padding, or semantics where Compose layout permits. Establish compact toolbar, icon, chip, and primary-action treatments rather than one universal filled rounded button. Use existing radii, tokens, glyphs, and press feedback; review headers, Chat, Explore, and Profile for excessive identical accent borders and redundant actions.
+4. **Correct Explore's root navigation.** Remove the header Back control and its unused callback from `PracticeScreen`/`AppShell`, give the page a clear Explore/Practice title, and leave bottom-tab navigation as the way to switch root screens. Keep Back on true child routes such as Visualizer and Settings; check Android system Back behavior from Explore.
+5. **Redesign Chat around the conversation.** Simplify the toolbar to a clear conversation title, one history affordance, and a restrained new-chat action; place destructive clear/reset in a menu or history flow with confirmation. Let prompt starters support the empty state or collapse after a conversation begins. Reduce repeated card/bezel/pill chrome around ordinary messages while preserving readable user/assistant distinction, markdown, code, complexity cards, planner results, and visualizer links. Give messages useful width and spacing on narrow screens and at large font scale.
+6. **Rebuild the composer and insets.** Use a readable proportional text field with multiline growth, sensible maximum height/scrolling, an accessible compact send target, disabled/busy state, and IME send behavior. Trace the actual Scaffold/shell, bottom bar, window insets, `imePadding`, and `navigationBarsPadding` ownership; apply each inset once so no blank band appears above the navigation bar or keyboard. Confirm focus, draft retention, scrolling to the latest response, history switching, and keyboard dismissal. Keep the provider label honest about offline capabilities.
+7. **Separate profile editing from account status.** Rename/split `EditProfileAndAccountSheet` into a concise Edit Profile surface plus, if useful, a small Account entry/status surface. Make the editor feel like a mobile settings/profile flow: avatar preview/change action, display name, handle, optional short bio/role, clear Save/Cancel, validation, and unsaved-change handling. Render the picked avatar or an honest placeholder, and verify URI access after reopening. Keep local guest editing usable without sign-in.
+8. **Correct the account boundary.** Remove the current Firebase/cloud-sync claims, migration selector, email/password tabs, and credential fields from the shipped editor. Retain or refactor provider-neutral profile/auth and owner-isolation contracts only where they are genuinely useful; make future Google Sign-In through Firebase Authentication an explicit supported path in the contract/architecture. Defer actual Firebase SDK wiring, OAuth configuration, cloud storage, data migration UI, and any email/password provider until those features are deliberately scoped and configured. Do not display a working sign-in action until it can work. If a future account entry is visible before integration, it must clearly say unavailable/coming later and do no credential collection.
+9. **Review affected screens for consistency and update docs.** Check Home, Explore, Chat, Profile, Settings, and visualizer chrome after type and control changes. Rewrite the conflicting `DESIGN.md` rules as role- and surface-specific guidance: proportional reading/UI text, compact visual controls with accessible hit areas, Chat conversation layout, composer/inset ownership, and restrained use of instrument bezels. Correct `ARCHITECTURE.md`'s type-floor, account, and route descriptions to match the code; keep it descriptive rather than prescribing screen styling. Update `PROJECT.md` for the actual offline runtime and record real changes and remaining limits in `IMPLEMENTATION.md`/`REVIEW.md`. Keep unrelated visualizer fixes separate from this task.
+
+## Things that must NOT change
+
+- No application source changes as part of writing this plan. Preserve all pre-existing uncommitted work, especially the untracked account editor; do not reset or overwrite it wholesale.
+- Preserve AVIA's dark palette, semantic color roles, token discipline, `AlgoGlyphs`, and useful `DoubleBezelShell` instrument surfaces. Avoid a generic light, pastel, oversized-pill, or web-form look.
+- Preserve the 13-algorithm catalog, four-language traces, single `AlgorithmStepRepository` generator switch, `VisualizerHost` family dispatcher, playback/graph interactions, Practice functionality, bookmarks, Settings, local Chat history, planner, and guest/offline access.
+- Preserve genuinely useful accessibility targets and semantics while reducing visible button bulk. Do not solve the size problem by making tap targets tiny.
+- Do not imply Firebase, cloud sync, Google Sign-In, general AI, or remote persistence works before it actually does. Do not store passwords locally or require authentication to learn offline.
+
+## Potential risks or edge cases
+
+- `PROJECT.md` and `DESIGN.md` disagree on typography; Git `HEAD` is also mono-heavy. Resolve the intended earlier appearance with committed assets and rendered comparison instead of choosing one document or commit blindly.
+- Touch-target expansion can overlap adjacent controls in a tight toolbar; verify hit ownership, focus order, TalkBack labels, and small-width wrapping.
+- Chat IME, bottom navigation, edge-to-edge, and Android navigation modes can each contribute insets. Test gesture and three-button navigation, portrait/narrow layouts, and font scaling before attributing all whitespace to one modifier.
+- Multiline input, long code/markdown, long conversation titles, empty threads, late responses, and sidebar overlays can displace controls or restore the wrong scroll/draft state.
+- Photo-picker URIs may not remain usable after process death without appropriate access handling; a selected URI currently does not render as an image in the profile hero.
+- Guest profile state and future signed-in ownership must not leak bookmarks/chat between owners. Removing visible credential forms must not silently change or delete existing local data.
+- Google Sign-In requires future Firebase/provider configuration and account-linking decisions. No provider-specific credentials or fake success state should be introduced by this UI repair.
+
+## Verification/testing requirements
+
+- Before implementation, save baseline screenshots and current build/test/lint results, distinguishing existing failures from introduced failures. After changes run `.\gradlew.bat assembleDebug`, `.\gradlew.bat testDebugUnitTest`, and `.\gradlew.bat lintDebug`; report environment/toolchain blocks precisely.
+- Add only focused tests for changed behavior: root Explore has no Back action; Chat composer/send/empty/history interactions and stable message routing; profile Save/Cancel/validation/avatar and unavailable account semantics; auth boundary/provider-neutral contract where changed. Keep existing backend tests passing.
+- Visually inspect real device/emulator captures for Home, Explore, Chat, Profile, and editor at compact and standard widths, normal and enlarged font scale, empty and populated states, keyboard closed/open, gesture and three-button navigation. Compare typography and density with the baseline; confirm no blank composer band, clipping, or redundant Back control.
+- Verify 44dp effective hit regions, TalkBack names, focus order, text contrast, horizontal overflow, and scroll reachability. Confirm destructive Chat actions require confirmation and guest data/history remain intact across tab switches and app restart.
+- Confirm docs accurately describe the final implementation. Run `graphify update .` after code changes as required by `DESIGN.md`; it is unnecessary for this plan-only edit.

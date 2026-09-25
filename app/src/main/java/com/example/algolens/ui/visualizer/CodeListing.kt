@@ -94,80 +94,75 @@ fun CodeListing(
             .fillMaxSize()
             .background(CanvasBackground)
     ) {
-        // Hidden inside the Focus Deck: its attached tabs replace this titlebar.
+        // Trace titlebar: traffic-light dots + filename on the left, sole language selector on the right.
         if (showHeader) {
             Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                .background(com.example.algolens.ui.theme.CardBackgroundElevated)
-                .clickable { onToggleExpand() }
-                .padding(horizontal = 12.dp, vertical = 7.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left: Terminal Window Traffic-Light Dots + File Name
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(AlgoTokens.iconButtonMd + AlgoTokens.space1)
+                    .background(com.example.algolens.ui.theme.CardBackgroundElevated)
+                    .padding(horizontal = AlgoTokens.space5),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(AlgoTokens.space3)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(com.example.algolens.ui.theme.AccentRed.copy(alpha = 0.85f))
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(AlgoTokens.space3)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(com.example.algolens.ui.theme.AccentYellow.copy(alpha = 0.85f))
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(AlgoTokens.space3)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(com.example.algolens.ui.theme.AccentGreen.copy(alpha = 0.85f))
-                    )
-                }
-
+                // Left: Terminal Window Traffic-Light Dots + File Name
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Terminal,
-                        contentDescription = null,
-                        tint = PurpleGlow,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Text(
-                        text = fileName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = AlgoType.microSize
-                    )
-                }
-            }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(AlgoTokens.space3)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(com.example.algolens.ui.theme.AccentRed.copy(alpha = 0.85f))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(AlgoTokens.space3)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(com.example.algolens.ui.theme.AccentYellow.copy(alpha = 0.85f))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(AlgoTokens.space3)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(com.example.algolens.ui.theme.AccentGreen.copy(alpha = 0.85f))
+                        )
+                    }
 
-            // Right: Interactive Language Switcher Badge + Peek/Expand Toggle
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                    ) {
+                        Icon(
+                            imageVector = AlgoGlyphs.Terminal,
+                            contentDescription = null,
+                            tint = PurpleGlow,
+                            modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                        )
+                        Text(
+                            text = fileName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = AlgoType.microSize
+                        )
+                    }
+                }
+
+                // Right: Interactive Language Switcher Badge (fits inside unified 34.dp titlebar)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                        .background(SecondaryPurple.copy(alpha = 0.18f))
+                        .background(SecondaryPurple.copy(alpha = 0.16f))
                         .border(
                             AlgoTokens.strokeHairline,
-                            SecondaryPurple.copy(alpha = 0.45f),
+                            BorderSubtle,
                             RoundedCornerShape(AlgoTokens.radiusXxs)
                         )
                         .clickable {
@@ -175,7 +170,7 @@ fun CodeListing(
                             val nextLang = entries[(selectedLanguage.ordinal + 1) % entries.size]
                             com.example.algolens.data.AppSettings.preferredLanguage = nextLang
                         }
-                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -187,47 +182,11 @@ fun CodeListing(
                         ),
                         color = PurpleGlow,
                         fontSize = AlgoType.microSize,
-                        lineHeight = AlgoType.microSize,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(com.example.algolens.ui.theme.CyanSubtle)
-                        .border(
-                            AlgoTokens.strokeHairline,
-                            com.example.algolens.ui.theme.PrimaryCyan.copy(alpha = 0.4f),
-                            RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 7.dp, vertical = 2.5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = if (isExpanded) "Collapse" else "Expand",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            platformStyle = androidx.compose.ui.text.PlatformTextStyle(
-                                includeFontPadding = false
-                            )
-                        ),
-                        color = com.example.algolens.ui.theme.PrimaryCyan,
-                        fontSize = 8.5.sp,
-                        lineHeight = 8.5.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Icon(
-                        imageVector = if (isExpanded) AlgoGlyphs.ChevronDown else AlgoGlyphs.ChevronUp,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = com.example.algolens.ui.theme.PrimaryCyan,
-                        modifier = Modifier.size(10.dp)
                     )
                 }
             }
-        }
         } // end if (showHeader)
 
         // Terminal Header Separator Hairline
@@ -251,7 +210,7 @@ fun CodeListing(
                 state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(vertical = 6.dp)
+                    .padding(vertical = AlgoTokens.space2)
             ) {
                 itemsIndexed(highlightedLines) { index, lineAnnotated ->
                     val lineNum = index + 1
@@ -280,7 +239,7 @@ fun CodeListing(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(start = 34.dp, top = 2.dp, bottom = 1.dp),
+                                    .padding(start = AlgoTokens.space6, top = AlgoTokens.space1, bottom = AlgoTokens.space1),
                                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                             ) {
                                 for ((label, value) in lineVars) {
@@ -300,7 +259,7 @@ fun CodeListing(
                                     if (isActive) lineAccent.copy(alpha = 0.13f)
                                     else Color.Transparent
                                 )
-                                .padding(horizontal = 10.dp, vertical = 2.5.dp),
+                                .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
@@ -345,9 +304,9 @@ private fun InlineVarChip(
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
             .background(accent.copy(alpha = 0.14f))
             .border(AlgoTokens.strokeThin, accent.copy(alpha = 0.35f), RoundedCornerShape(AlgoTokens.radiusXs))
-            .padding(horizontal = 5.dp, vertical = 1.dp),
+            .padding(horizontal = AlgoTokens.space1, vertical = AlgoTokens.space1),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
     ) {
         Text(
             text = label,

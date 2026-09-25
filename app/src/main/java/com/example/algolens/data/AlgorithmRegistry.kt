@@ -61,6 +61,7 @@ object AlgorithmRegistry {
             id = AlgorithmId.LINEAR_SEARCH,
             defaultInput = AlgorithmStepRepository.DEFAULT_INPUT,
             supportsCustomInput = true,
+            acceptsSearchTarget = true,
         ),
         AlgorithmId.BINARY_SEARCH to AlgorithmSpec(
             id = AlgorithmId.BINARY_SEARCH,
@@ -68,6 +69,7 @@ object AlgorithmRegistry {
             // mixed DEFAULT_INPUT are valid starting points.
             defaultInput = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9),
             supportsCustomInput = true,
+            acceptsSearchTarget = true,
             dimOutOfRangeCells = true,
         ),
 
@@ -86,13 +88,15 @@ object AlgorithmRegistry {
         ),
         AlgorithmId.BINARY_SEARCH_TREE to AlgorithmSpec(
             id = AlgorithmId.BINARY_SEARCH_TREE,
-            defaultInput = emptyList(),
+            defaultInput = AlgorithmStepRepository.defaultBstValues,
             supportsCustomInput = true,
+            graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.BST_TARGET,
         ),
         AlgorithmId.HEAP to AlgorithmSpec(
             id = AlgorithmId.HEAP,
-            defaultInput = AlgorithmStepRepository.DEFAULT_INPUT.take(7),
+            defaultInput = AlgorithmStepRepository.DEFAULT_HEAP_INPUT,
             supportsCustomInput = true,
+            graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.HEAP_ARRAY,
         ),
 
         // ── Graph Traversal (2) ──
@@ -100,12 +104,16 @@ object AlgorithmRegistry {
             id = AlgorithmId.BFS,
             defaultInput = emptyList(),
             supportsCustomInput = true,
+            builderEnabled = true,
+            graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.BFS_QUEUE,
             overlays = listOf(WeightBadgeOverlay),
         ),
         AlgorithmId.DFS to AlgorithmSpec(
             id = AlgorithmId.DFS,
             defaultInput = emptyList(),
             supportsCustomInput = true,
+            builderEnabled = true,
+            graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.DFS_STACK,
             overlays = listOf(WeightBadgeOverlay),
         ),
     )

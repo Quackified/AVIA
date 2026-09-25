@@ -38,6 +38,12 @@ object AlgorithmStepRepository {
     val DEFAULT_INPUT: List<Int> = listOf(3, 8, 9, 2, 6, 1, 5, 4, 7)
 
     /**
+     * Canonical 7-element default input for [AlgorithmId.HEAP], shared by
+     * [AlgorithmRegistry], [CustomizeGraphSheet], and [generateHeapSteps].
+     */
+    val DEFAULT_HEAP_INPUT: List<Int> = listOf(40, 80, 70, 90, 50, 30, 60)
+
+    /**
      * Generate the step stream for an algorithm.
      *
      * Falls back to an empty list (and logs a warning) for unknown
@@ -47,7 +53,7 @@ object AlgorithmStepRepository {
      */
     fun generateStepsForAlgorithm(
         algorithm: Algorithm,
-        inputArray: List<Int> = DEFAULT_INPUT,
+        inputArray: List<Int> = emptyList(),
         sortOrder: SortOrder = SortOrder.ASC,
         searchTarget: Int? = null,
         bufferOps: List<BufferOp> = defaultStackOps(),
@@ -57,27 +63,31 @@ object AlgorithmStepRepository {
         traversalStartNodeId: String = "A",
         customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
     ): List<VisualizerStep> {
-        if (AlgorithmRegistry.specFor(algorithm.id) == null) {
+        val spec = AlgorithmRegistry.specFor(algorithm.id)
+        if (spec == null) {
             Log.w(TAG, "No spec registered for ${algorithm.id} -- returning empty steps.")
             return emptyList()
         }
+        val effectiveArray = inputArray.ifEmpty {
+            spec.defaultInput.ifEmpty { DEFAULT_INPUT }
+        }
 
         return when (algorithm.id) {
-            AlgorithmId.BUBBLE_SORT -> generateBubbleSort(inputArray, sortOrder)
-            AlgorithmId.SELECTION_SORT -> generateSelectionSort(inputArray, sortOrder)
-            AlgorithmId.INSERTION_SORT -> generateInsertionSort(inputArray, sortOrder)
-            AlgorithmId.MERGE_SORT -> generateMergeSort(inputArray, sortOrder)
-            AlgorithmId.QUICK_SORT -> generateQuickSort(inputArray, sortOrder)
-            AlgorithmId.LINEAR_SEARCH -> generateLinearSearch(inputArray, target = searchTarget ?: 6, sortOrder)
+            AlgorithmId.BUBBLE_SORT -> generateBubbleSort(effectiveArray, sortOrder)
+            AlgorithmId.SELECTION_SORT -> generateSelectionSort(effectiveArray, sortOrder)
+            AlgorithmId.INSERTION_SORT -> generateInsertionSort(effectiveArray, sortOrder)
+            AlgorithmId.MERGE_SORT -> generateMergeSort(effectiveArray, sortOrder)
+            AlgorithmId.QUICK_SORT -> generateQuickSort(effectiveArray, sortOrder)
+            AlgorithmId.LINEAR_SEARCH -> generateLinearSearch(effectiveArray, target = searchTarget ?: 6, sortOrder)
             AlgorithmId.BINARY_SEARCH -> generateBinarySearch(
-                sortedInput = if (sortOrder == SortOrder.ASC) inputArray.sorted() else inputArray.sortedDescending(),
+                sortedInput = if (sortOrder == SortOrder.ASC) effectiveArray.sorted() else effectiveArray.sortedDescending(),
                 target = searchTarget ?: 6,
                 sortOrder = sortOrder
             )
             AlgorithmId.STACK -> generateStackSteps(bufferOps.ifEmpty { defaultStackOps() })
             AlgorithmId.QUEUE -> generateQueueSteps(queueOps.ifEmpty { defaultQueueOps() })
             AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps(bstValues.ifEmpty { defaultBstValues }, bstSearchKey)
-            AlgorithmId.HEAP -> generateHeapSteps(inputArray, sortOrder)
+            AlgorithmId.HEAP -> generateHeapSteps(inputArray.ifEmpty { DEFAULT_HEAP_INPUT }, sortOrder)
             AlgorithmId.BFS -> generateBFSSteps(traversalStartNodeId, customGraph)
             AlgorithmId.DFS -> generateDFSSteps(traversalStartNodeId, customGraph)
         }
@@ -90,7 +100,7 @@ object AlgorithmStepRepository {
      */
     fun generateStepsForId(
         id: AlgorithmId,
-        inputArray: List<Int> = DEFAULT_INPUT,
+        inputArray: List<Int> = emptyList(),
         sortOrder: SortOrder = SortOrder.ASC,
     ): List<VisualizerStep> = generateStepsForAlgorithm(Algorithm(id = id), inputArray, sortOrder)
 
@@ -1101,16 +1111,20 @@ object AlgorithmStepRepository {
         ops.forEach { op ->
             when (op) {
                 is BufferOp.Push -> {
-                    val id = (nextId++).toString()
-                    items.add(BufferItem(id, op.value.toString(), ElementState.ACTIVE))
-                    addStep(
-                        desc = "push(${op.value}) -> Pushed ${op.value} onto stack top (index ${items.size - 1})",
-                        codeLine = 2,
-                        label = "PUSH",
-                        expr = "PUSH(${op.value}) -> top = ${op.value}",
-                        callFrame = "push(${op.value})"
-                    )
-                    items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
+                    if (items.size < 8) {
+                        val id = (nextId++).toString()
+                        items.add(BufferItem(id, op.value.toString(), ElementState.ACTIVE))
+                        addStep(
+                            desc = "push(${op.value}) -> Pushed ${op.value} onto stack top (index ${items.size - 1})",
+                            codeLine = 2,
+                            label = "PUSH",
+                            expr = "PUSH(${op.value}) -> top = ${op.value}",
+                            callFrame = "push(${op.value})"
+                        )
+                        items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
+                    } else {
+                        addStep("push(${op.value}) -> Stack overflow (capacity 8 reached). No-op.", 2, "OVERFLOW", "PUSH: overflow (size=8)", "push(${op.value})")
+                    }
                 }
                 BufferOp.Pop -> {
                     if (items.isNotEmpty()) {
@@ -1209,16 +1223,20 @@ object AlgorithmStepRepository {
         ops.forEach { op ->
             when (op) {
                 is QueueOp.Enqueue -> {
-                    val id = (nextId++).toString()
-                    items.add(BufferItem(id, op.value.toString(), ElementState.ACTIVE))
-                    addStep(
-                        desc = "enqueue(${op.value}) -> Added ${op.value} to rear of queue (index ${items.size - 1})",
-                        codeLine = 2,
-                        label = "ENQUEUE",
-                        expr = "ENQUEUE(${op.value}) -> rear = ${op.value}",
-                        callFrame = "enqueue(${op.value})"
-                    )
-                    items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
+                    if (items.size < 8) {
+                        val id = (nextId++).toString()
+                        items.add(BufferItem(id, op.value.toString(), ElementState.ACTIVE))
+                        addStep(
+                            desc = "enqueue(${op.value}) -> Added ${op.value} to rear of queue (index ${items.size - 1})",
+                            codeLine = 2,
+                            label = "ENQUEUE",
+                            expr = "ENQUEUE(${op.value}) -> rear = ${op.value}",
+                            callFrame = "enqueue(${op.value})"
+                        )
+                        items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
+                    } else {
+                        addStep("enqueue(${op.value}) -> Queue overflow (capacity 8 reached). No-op.", 2, "OVERFLOW", "ENQUEUE: overflow (size=8)", "enqueue(${op.value})")
+                    }
                 }
                 QueueOp.Dequeue -> {
                     if (items.isNotEmpty()) {
@@ -1265,9 +1283,9 @@ object AlgorithmStepRepository {
     val defaultBstSearchKey = 40
 
     /**
-     * Build a BST imperatively from [values], laying the resulting tree
-     * out with normalized in-order X rank (`20f..180f`) and depth Y (`18f..108f`)
-     * so custom or skewed trees never clip or overlap nodes.
+     * Build a BST imperatively from [values], ordering the returned node list
+     * strictly by insertion position (`0 until values.size`) so prefix frame `i`
+     * always highlights the `i`-th inserted node (`nodes[i]`), including duplicates.
      */
     private fun buildBstFromValues(values: List<Int>): Pair<List<GraphNodeState>, List<GraphEdgeState>> {
         if (values.isEmpty()) return emptyList<GraphNodeState>() to emptyList()
@@ -1276,6 +1294,7 @@ object AlgorithmStepRepository {
 
         val root = Node(values[0], values[0].toString())
         val seen = mutableSetOf(root.id)
+        val insertionOrderIds = mutableListOf(root.id)
         for (i in 1 until values.size) {
             val v = values[i]
             var cur: Node = root
@@ -1284,6 +1303,7 @@ object AlgorithmStepRepository {
             var k = 1
             while (id in seen) { id = "$baseId#$k"; k++ }
             seen.add(id)
+            insertionOrderIds.add(id)
             val newNode = Node(v, id)
             while (true) {
                 if (v < cur.value) {
@@ -1312,24 +1332,18 @@ object AlgorithmStepRepository {
         val maxDepth = (depths.values.maxOrNull() ?: 0).coerceAtLeast(1)
         val total = inOrderList.size
         val rankMap = inOrderList.mapIndexed { idx, node -> node.id to idx }.toMap()
-
-        // Preserve canonical order (insertion order) for nodes list
         val nodesById = inOrderList.associateBy { it.id }
-        val orderedIds = mutableListOf<String>()
-        fun collectPreOrder(n: Node?) {
-            if (n == null) return
-            orderedIds.add(n.id)
-            collectPreOrder(n.left)
-            collectPreOrder(n.right)
-        }
-        collectPreOrder(root)
 
-        val nodes = orderedIds.mapNotNull { id ->
+        val spanX = maxOf(160f, (total - 1) * 28f)
+        val spanY = maxOf(86f, maxDepth * 26f)
+
+        // Preserve insertion order so nodes[i] is always the i-th inserted element
+        val nodes = insertionOrderIds.mapNotNull { id ->
             val n = nodesById[id] ?: return@mapNotNull null
             val rank = rankMap[id] ?: 0
             val depth = depths[id] ?: 0
-            val x = if (total <= 1) 100f else 20f + (rank.toFloat() / (total - 1).toFloat()) * 160f
-            val y = if (maxDepth == 0) 50f else 18f + (depth.toFloat() / maxDepth.toFloat()) * 86f
+            val x = if (total <= 1) 100f else 20f + (rank.toFloat() / (total - 1).toFloat()) * spanX
+            val y = if (maxDepth == 0) 50f else 18f + (depth.toFloat() / maxDepth.toFloat()) * spanY
             GraphNodeState(n.id, n.value.toString(), x, y)
         }
 
@@ -1342,7 +1356,7 @@ object AlgorithmStepRepository {
     ): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
-        val cleanValues = values.ifEmpty { defaultBstValues }
+        val cleanValues = values.ifEmpty { defaultBstValues }.take(15)
 
         val (nodes, edges) = if (cleanValues == defaultBstValues) {
             listOf(
@@ -1368,18 +1382,13 @@ object AlgorithmStepRepository {
         val byId = nodes.associateBy { it.id }
         val childrenById = edges.groupBy { it.from }.mapValues { (_, es) -> es.map { it.to } }
 
-        // Emit incremental BST insertion steps so the user sees how the BST is constructed
+        // Emit incremental BST insertion steps from the exact input prefix (0..i)
         val insertedIds = linkedSetOf<String>()
-        for (i in cleanValues.indices) {
-            val subValues = cleanValues.subList(0, i + 1)
-            val (subNodes, _) = if (cleanValues == defaultBstValues) {
-                nodes.take(i + 1) to edges
-            } else {
-                buildBstFromValues(subValues)
-            }
-            val latestId = subNodes.lastOrNull()?.id ?: cleanValues[i].toString()
+        for (i in nodes.indices) {
+            val insertedNode = nodes[i]
+            val latestId = insertedNode.id
             insertedIds.add(latestId)
-            val visibleNodes = nodes.filter { it.id in insertedIds }.map {
+            val visibleNodes = nodes.subList(0, i + 1).map {
                 if (it.id == latestId) it.copy(state = ElementState.ACTIVE)
                 else it.copy(state = ElementState.VISITED)
             }
@@ -1397,7 +1406,12 @@ object AlgorithmStepRepository {
                     nodes = visibleNodes,
                     edges = visibleEdges,
                     buffer = insertedIds.mapIndexed { idx, id ->
-                        BufferItem("ins_$idx", byId[id]?.label ?: id, if (id == latestId) ElementState.ACTIVE else ElementState.IDLE)
+                        BufferItem(
+                            id = "ins_$idx",
+                            value = byId[id]?.label ?: id,
+                            state = if (id == latestId) ElementState.ACTIVE else ElementState.IDLE,
+                            nodeId = id
+                        )
                     },
                     bufferLabel = "BST INSERTION ORDER",
                     activeNodeId = latestId,
@@ -1422,7 +1436,7 @@ object AlgorithmStepRepository {
                     renderMode = VisualizerRenderMode.GRAPH_TREE,
                     nodes = nodes,
                     edges = edges,
-                    activeCodeLines = listOf(1)
+                    activeCodeLines = listOf(3, 4)
                 )
             )
             return steps
@@ -1437,11 +1451,11 @@ object AlgorithmStepRepository {
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = nodes.map { if (it.id == rootId) it.copy(state = ElementState.ACTIVE) else it },
                 edges = edges,
-                buffer = listOf(BufferItem("path_0", byId[rootId]?.label ?: rootId, ElementState.ACTIVE)),
+                buffer = listOf(BufferItem("path_0", byId[rootId]?.label ?: rootId, ElementState.ACTIVE, nodeId = rootId)),
                 bufferLabel = "BST SEARCH PATH",
                 activeNodeId = rootId,
                 visitedNodeIds = setOf(rootId),
-                activeCodeLines = listOf(1, 2),
+                activeCodeLines = listOf(3),
                 variables = mapOf(
                     "root" to (byId[rootId]?.label ?: rootId),
                     "searchKey" to searchKey.toString()
@@ -1459,7 +1473,12 @@ object AlgorithmStepRepository {
             visited.add(current)
             searchStack.add("search(node=$nodeVal, key=$searchKey)")
             val pathBuffer = visited.mapIndexed { idx, id ->
-                BufferItem("p_$idx", byId[id]?.label ?: id, if (id == current) ElementState.ACTIVE else ElementState.IDLE)
+                BufferItem(
+                    id = "p_$idx",
+                    value = byId[id]?.label ?: id,
+                    state = if (id == current) ElementState.ACTIVE else ElementState.IDLE,
+                    nodeId = id
+                )
             }
             if (nodeVal == searchKey) {
                 steps.add(
@@ -1479,11 +1498,11 @@ object AlgorithmStepRepository {
                         edges = edges.map { e ->
                             if (e.from in visited && e.to in visited) e.copy(isHighlighted = true) else e
                         },
-                        buffer = pathBuffer.map { if (it.value == nodeVal.toString()) it.copy(state = ElementState.FOUND) else it },
+                        buffer = pathBuffer.map { if (it.nodeId == current) it.copy(state = ElementState.FOUND) else it },
                         bufferLabel = "BST SEARCH PATH",
                         activeNodeId = current,
                         visitedNodeIds = visited.toSet(),
-                        activeCodeLines = listOf(2, 3),
+                        activeCodeLines = listOf(5),
                         variables = mapOf(
                             "current" to nodeVal.toString(),
                             "searchKey" to searchKey.toString(),
@@ -1527,7 +1546,7 @@ object AlgorithmStepRepository {
                     bufferLabel = "BST SEARCH PATH",
                     activeNodeId = current,
                     visitedNodeIds = visited.toSet(),
-                    activeCodeLines = listOf(4, 5, 6, 7),
+                    activeCodeLines = if (searchKey < nodeVal) listOf(6) else listOf(7),
                     variables = mapOf(
                         "current" to nodeVal.toString(),
                         "searchKey" to searchKey.toString(),
@@ -1554,12 +1573,12 @@ object AlgorithmStepRepository {
                         if (e.from in visited && e.to in visited) e.copy(isHighlighted = true) else e
                     },
                     buffer = visited.mapIndexed { idx, id ->
-                        BufferItem("p_$idx", byId[id]?.label ?: id, ElementState.VISITED)
+                        BufferItem("p_$idx", byId[id]?.label ?: id, ElementState.VISITED, nodeId = id)
                     },
                     bufferLabel = "BST SEARCH PATH",
                     activeNodeId = visited.lastOrNull(),
                     visitedNodeIds = visited.toSet(),
-                    activeCodeLines = listOf(2, 3),
+                    activeCodeLines = listOf(4),
                     variables = mapOf(
                         "searchKey" to searchKey.toString(),
                         "comparisons" to visited.size.toString(),
@@ -1582,11 +1601,7 @@ object AlgorithmStepRepository {
         val heapKind = if (isDesc) "Min-Heap" else "Max-Heap"
         val op = if (isDesc) "<" else ">"
 
-        val initial = if (input.isNotEmpty() && input != DEFAULT_INPUT) {
-            input.take(15)
-        } else {
-            listOf(40, 80, 70, 90, 50, 30, 60)
-        }
+        val initial = input.ifEmpty { DEFAULT_HEAP_INPUT }.take(15)
         val arr = initial.toMutableList()
         val n = arr.size
 
@@ -1635,7 +1650,7 @@ object AlgorithmStepRepository {
         ) {
             val (nodes, edges) = buildTreeNodes(arr, states, heapBound)
             val topPtrs = mutableMapOf<String, Int>()
-            if (activeIdx != null && activeIdx in 0 until n) {
+            if (activeIdx != null && activeIdx in 0 until heapBound) {
                 topPtrs["P"] = activeIdx
                 val l = 2 * activeIdx + 1
                 val r = 2 * activeIdx + 2
@@ -1661,7 +1676,7 @@ object AlgorithmStepRepository {
                         put("heapType", heapKind)
                         put("heapSize", heapBound.toString())
                         put("rootVal", (arr.firstOrNull() ?: 0).toString())
-                        if (activeIdx != null && activeIdx in 0 until n) {
+                        if (activeIdx != null && activeIdx in 0 until heapBound) {
                             put("parentIdx", activeIdx.toString())
                             put("parentVal", arr[activeIdx].toString())
                         }
@@ -1757,6 +1772,7 @@ object AlgorithmStepRepository {
         )
 
         // Demonstrate extracting the root element and re-heapifying
+        val finalBound = if (n > 1) n - 1 else n
         if (n > 1) {
             val extracted = arr[0]
             val lastVal = arr[n - 1]
@@ -1768,20 +1784,27 @@ object AlgorithmStepRepository {
                 phase = "EXTRACTING",
                 states = mapOf(0 to ElementState.ACTIVE, (n - 1) to ElementState.SORTED),
                 activeIdx = 0,
-                codeLines = listOf(6, 7),
-                heapBound = n - 1,
+                codeLines = listOf(8),
+                heapBound = finalBound,
                 callFrame = "extractRoot() -> $extracted"
             )
-            siftDown(0, n - 1)
+            siftDown(0, finalBound)
         }
 
         emitHeapStep(
             desc = "$heapKind operations complete! Current root is ${arr[0]}.",
             expr = "COMPLETE: root = ${arr[0]}",
             phase = "SORTED",
-            states = (0 until n).associateWith { if (it == 0) ElementState.FOUND else ElementState.VISITED },
+            states = (0 until n).associateWith { idx ->
+                when {
+                    idx == 0 -> ElementState.FOUND
+                    idx >= finalBound -> ElementState.SORTED
+                    else -> ElementState.VISITED
+                }
+            },
             activeIdx = 0,
             codeLines = listOf(8),
+            heapBound = finalBound,
             callFrame = "Heap.done()"
         )
 
@@ -1853,7 +1876,8 @@ object AlgorithmStepRepository {
                 BufferItem(
                     id = "q_${idx}_$id",
                     value = "$id(d=${distMap[id] ?: 0})",
-                    state = if (id == highlightId) ElementState.ACTIVE else ElementState.IDLE
+                    state = if (id == highlightId) ElementState.ACTIVE else ElementState.IDLE,
+                    nodeId = id
                 )
             }
 
@@ -2010,7 +2034,8 @@ object AlgorithmStepRepository {
                 BufferItem(
                     id = "dfs_${idx}_$id",
                     value = "dfs($id)",
-                    state = if (idx == callStack.lastIndex) ElementState.ACTIVE else ElementState.IDLE
+                    state = if (idx == callStack.lastIndex) ElementState.ACTIVE else ElementState.IDLE,
+                    nodeId = id
                 )
             }
 

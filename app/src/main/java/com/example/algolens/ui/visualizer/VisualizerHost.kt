@@ -67,7 +67,7 @@ fun VisualizerHost(
             )
 
             VisualizerFamily.GRAPH_2D -> {
-                if (spec.id == AlgorithmId.HEAP && arrayViewMode == ArrayViewMode.BARS) {
+                if (spec.graphTelemetryMode == com.example.algolens.model.GraphTelemetryMode.HEAP_ARRAY && arrayViewMode == ArrayViewMode.BARS) {
                     Linear1DCanvas(
                         spec = spec,
                         currentStep = currentStep,
@@ -81,7 +81,7 @@ fun VisualizerHost(
                 } else {
                     GraphTreeCanvas(
                         currentStep = currentStep,
-                        algorithmId = spec.id,
+                        spec = spec,
                         state = state
                     )
                 }
@@ -193,9 +193,10 @@ private fun Linear1DCanvas(
 @Composable
 private fun GraphTreeCanvas(
     currentStep: VisualizerStep,
-    algorithmId: AlgorithmId,
+    spec: AlgorithmSpec,
     state: VisualizerScreenState
 ) {
+    val algorithmId = spec.id
     val challengeNodeIds = if (state.challengeInFlight) {
         currentStep.nodes.map { it.id }.toSet()
     } else {
@@ -215,11 +216,13 @@ private fun GraphTreeCanvas(
         GraphTreeVisualizer(
             step = currentStep,
             algorithmKey = algorithmId.name,
+            telemetryMode = spec.graphTelemetryMode,
+            isCustomGraph = state.customGraph != null,
             challengeTargetNodeIds = challengeNodeIds,
             onNodeClick = { nodeId ->
                 state.submitNodePrediction(nodeId, algorithmId)
             },
-            onGraphModified = if (algorithmId == AlgorithmId.BFS || algorithmId == AlgorithmId.DFS) {
+            onGraphModified = if (spec.builderEnabled) {
                 { nodes, edges ->
                     state.customGraph = if (nodes.isEmpty()) null else (nodes to edges)
                 }
@@ -240,6 +243,7 @@ private fun BufferCanvas(
     spec: AlgorithmSpec,
     state: VisualizerScreenState
 ) {
+    val isStack = spec.isStack
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
@@ -252,7 +256,10 @@ private fun BufferCanvas(
         )
         BufferVisualizer(
             step = currentStep,
-            isStack = spec.isStack,
+            isStack = isStack,
+            tailSize = state.tailBufferSize(isStack),
+            canAppend = state.canAppendToBuffer(isStack, currentStep.bufferCapacity),
+            canRemove = state.canRemoveFromBuffer(isStack),
             onStackOp = { op -> state.appendLiveStackOp(op) },
             onQueueOp = { op -> state.appendLiveQueueOp(op) },
             modifier = Modifier

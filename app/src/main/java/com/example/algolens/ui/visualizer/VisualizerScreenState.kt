@@ -89,6 +89,9 @@ class VisualizerScreenState(
     /** Whether the Focus Deck is expanded over the stage. */
     var deckExpanded: Boolean by mutableStateOf(false)
 
+    /** Actual measured height of the docked terminal (including attached tabs and font scale). */
+    var measuredDockHeight: androidx.compose.ui.unit.Dp by mutableStateOf(androidx.compose.ui.unit.Dp(0f))
+
     /**
      * Transient scrub preview. Non-null only while a finger is on the timeline:
      * [currentStep] renders from it, so the canvas, the narrative strip and the
@@ -319,14 +322,100 @@ class VisualizerScreenState(
     internal var pendingStepAfterRegen: Int? = null
 
     /**
-     * Appends a live Stack operation directly from the stage controls and jumps
-     * the playhead to the newly executed step.
+     * Effective Stack values at the end of the stored operation sequence (`bufferOps`),
+     * bounded by `bufferCapacity` (8). Used by live controls so availability and
+     * capacity validation match the sequence tail where new operations are appended.
+     */
+    val tailStackValues: List<Int>
+        get() {
+            val ops = bufferOps.ifEmpty { AlgorithmStepRepository.defaultStackOps() }
+            val stack = mutableListOf<Int>()
+            for (op in ops) {
+                when (op) {
+                    is BufferOp.Push -> if (stack.size < 8) stack.add(op.value)
+                    BufferOp.Pop -> if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex)
+                    BufferOp.Peek -> Unit
+                }
+            }
+            return stack
+        }
+
+    /**
+     * Effective Queue values at the end of the stored operation sequence (`queueOps`),
+     * bounded by `bufferCapacity` (8).
+     */
+    val tailQueueValues: List<Int>
+        get() {
+            val ops = queueOps.ifEmpty { AlgorithmStepRepository.defaultQueueOps() }
+            val queue = mutableListOf<Int>()
+            for (op in ops) {
+                when (op) {
+                    is QueueOp.Enqueue -> if (queue.size < 8) queue.add(op.value)
+                    QueueOp.Dequeue -> if (queue.isNotEmpty()) queue.removeAt(0)
+                }
+            }
+            return queue
+        }
+
+    fun tailBufferSize(isStack: Boolean): Int =
+        if (isStack) tailStackValues.size else tailQueueValues.size
+
+    fun canAppendToBuffer(isStack: Boolean, capacity: Int = 8): Boolean =
+        tailBufferSize(isStack) < capacity
+
+    fun canRemoveFromBuffer(isStack: Boolean): Boolean =
+        tailBufferSize(isStack) > 0
+
+    /**
+     * Available node IDs for BFS/DFS traversal start selection, derived from
+     * the live edited graph (`customGraph`) when present or the canonical graph.
+     */
+    val effectiveTraversalNodeIds: List<String>
+        get() = (customGraph?.first?.takeIf { it.isNotEmpty() }
+            ?: AlgorithmStepRepository.canonicalWeightedGraph().first)
+            .map { it.id }
+
+    /**
+     * Validated traversal start node ID that automatically resets to the first
+     * available node if a previously selected start node was deleted.
+     */
+    val effectiveTraversalStartNodeId: String
+        get() {
+            val ids = effectiveTraversalNodeIds
+            val configured = (graphConfig as? GraphCustomization.ForTraversal)?.startNodeId
+            return if (configured != null && configured in ids) configured else (ids.firstOrNull() ?: "A")
+        }
+
+    /**
+     * Typed initial value list for [CustomizeGraphSheet] driven by [com.example.algolens.model.AlgorithmSpec]
+     * so `VisualizerScreen.kt` never branches on individual [AlgorithmId] constants.
+     */
+    fun initialGraphSheetValues(spec: com.example.algolens.model.AlgorithmSpec): List<Int> =
+        when (spec.graphTelemetryMode) {
+            com.example.algolens.model.GraphTelemetryMode.BST_TARGET ->
+                (graphConfig as? GraphCustomization.ForBst)?.values ?: spec.defaultInput
+            com.example.algolens.model.GraphTelemetryMode.HEAP_ARRAY ->
+                (graphConfig as? GraphCustomization.ForHeap)?.values ?: spec.defaultInput
+            else -> arrayData.ifEmpty { spec.defaultInput }
+        }
+
+    val initialGraphSearchKey: Int
+        get() = (graphConfig as? GraphCustomization.ForBst)?.searchKey
+            ?: AlgorithmStepRepository.defaultBstSearchKey
+
+    /**
+     * Appends a live Stack operation directly from the stage controls after validating
+     * against the sequence tail (`tailStackValues`), then jumps the playhead to the new step.
      */
     fun appendLiveStackOp(op: BufferOp) {
+        when (op) {
+            is BufferOp.Push -> if (!canAppendToBuffer(isStack = true)) return
+            BufferOp.Pop, BufferOp.Peek -> if (!canRemoveFromBuffer(isStack = true)) return
+        }
         val baseOps = if (bufferOps.isNotEmpty()) {
             bufferOps
         } else {
-            currentStep.buffer.mapNotNull { it.value.toIntOrNull()?.let { v -> BufferOp.Push(v) } }
+            AlgorithmStepRepository.defaultStackOps()
         }
         val updated = baseOps + op
         pendingStepAfterRegen = -1 // sentinel: jump to the last operation step before DONE
@@ -334,14 +423,18 @@ class VisualizerScreenState(
     }
 
     /**
-     * Appends a live Queue operation directly from the stage controls and jumps
-     * the playhead to the newly executed step.
+     * Appends a live Queue operation directly from the stage controls after validating
+     * against the sequence tail (`tailQueueValues`), then jumps the playhead to the new step.
      */
     fun appendLiveQueueOp(op: QueueOp) {
+        when (op) {
+            is QueueOp.Enqueue -> if (!canAppendToBuffer(isStack = false)) return
+            QueueOp.Dequeue -> if (!canRemoveFromBuffer(isStack = false)) return
+        }
         val baseOps = if (queueOps.isNotEmpty()) {
             queueOps
         } else {
-            currentStep.buffer.mapNotNull { it.value.toIntOrNull()?.let { v -> QueueOp.Enqueue(v) } }
+            AlgorithmStepRepository.defaultQueueOps()
         }
         val updated = baseOps + op
         pendingStepAfterRegen = -1
@@ -383,7 +476,7 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             ?: AlgorithmStepRepository.defaultBstValues
         val bstSearchKey = (state.graphConfig as? GraphCustomization.ForBst)?.searchKey
             ?: AlgorithmStepRepository.defaultBstSearchKey
-        val traversalStart = (state.graphConfig as? GraphCustomization.ForTraversal)?.startNodeId ?: "A"
+        val traversalStart = state.effectiveTraversalStartNodeId
 
         state.steps = AlgorithmStepRepository.generateStepsForAlgorithm(
             algorithm,

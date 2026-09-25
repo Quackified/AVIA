@@ -123,8 +123,9 @@ fun VisualizerScreen(
                 .fillMaxSize()
                 .blur(backdropBlur)
         ) {
+            val fallbackDockHeight = if (state.deckExpanded) DOCK_EXPANDED_TOTAL_HEIGHT else DOCK_PEEK_TOTAL_HEIGHT
             val animatedDockHeight by animateDpAsState(
-                targetValue = if (state.deckExpanded) DOCK_EXPANDED_TOTAL_HEIGHT else DOCK_PEEK_TOTAL_HEIGHT,
+                targetValue = state.measuredDockHeight.takeIf { it > 0.dp } ?: fallbackDockHeight,
                 animationSpec = androidx.compose.animation.core.spring(
                     dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
                     stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
@@ -146,13 +147,15 @@ fun VisualizerScreen(
                     onBack = onBack
                 )
 
+                // StageLegend placed directly below the top info bar (VisualizerHeader) in normal flow
+                // so it remains visible in both peek and expanded dock states and never overlaps the stage.
+                StageLegend(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
+                )
+
                 // ── Unified Live Narrative Stage + Docked Terminal ──
-                //  1. VisualizerHost (Cell Array / Bars / Graph) uses bottom padding = animatedDockHeight,
-                //     so the cell visualizer moves UP smoothly when the dock expands (no cells covered).
-                //  2. StageLegend (Compare, Swap, Pivot, etc.) uses static bottom padding = DOCK_PEEK_TOTAL_HEIGHT,
-                //     so it NEVER moves up when the dock expands and stays buried underneath InstrumentDeck.
-                //  3. InstrumentDeck sits at Alignment.BottomCenter (3-line peek at 126.dp <-> expanded at 285.dp),
-                //     replacing the removed 1-line TraceStrip.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -182,17 +185,6 @@ fun VisualizerScreen(
                             EmptyCanvas(algorithm)
                         }
                     }
-
-                    // Static Stage Legend — anchored above the resting dock height so it stays
-                    // completely stationary and gets buried beneath InstrumentDeck when expanded.
-                    StageLegend(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(
-                                start = AlgoTokens.space5,
-                                bottom = DOCK_PEEK_TOTAL_HEIGHT + AlgoTokens.space2
-                            )
-                    )
 
                     // Docked 3-Line Peek / Expand Terminal (with attached Trace | State window tabs)
                     // plus optional Challenge prompt above it.
@@ -224,6 +216,9 @@ fun VisualizerScreen(
                             algorithm = algorithm,
                             currentStep = state.currentStep,
                             syncPulse = syncPulseState,
+                            onMeasuredHeightChanged = { measured ->
+                                state.measuredDockHeight = measured
+                            },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -242,8 +237,8 @@ fun VisualizerScreen(
                 VisualizerFamily.LINEAR_1D -> CustomizeInputSheet(
                     initialArray = state.arrayData,
                     initialSortOrder = state.lastAppliedSortOrder,
-                    initialSearchTarget = if (spec.id == com.example.algolens.model.AlgorithmId.LINEAR_SEARCH || spec.id == com.example.algolens.model.AlgorithmId.BINARY_SEARCH) state.searchTarget else null,
-                    showSearchTarget = spec.id == com.example.algolens.model.AlgorithmId.LINEAR_SEARCH || spec.id == com.example.algolens.model.AlgorithmId.BINARY_SEARCH,
+                    initialSearchTarget = if (spec.acceptsSearchTarget) state.searchTarget else null,
+                    showSearchTarget = spec.acceptsSearchTarget,
                     onApply = { values, order, target ->
                         state.arrayData = values
                         state.lastAppliedSortOrder = order
@@ -255,7 +250,7 @@ fun VisualizerScreen(
                     onDismiss = { state.showInputSheet = false }
                 )
                 VisualizerFamily.BUFFER -> {
-                    if (spec.id == com.example.algolens.model.AlgorithmId.STACK) {
+                    if (spec.isStack) {
                         CustomizeBufferSheet(
                             initialOps = state.bufferOps,
                             onApply = { ops ->
@@ -281,18 +276,10 @@ fun VisualizerScreen(
                 }
                 VisualizerFamily.GRAPH_2D -> CustomizeGraphSheet(
                     algorithmId = spec.id,
-                    initialValues = when (spec.id) {
-                        com.example.algolens.model.AlgorithmId.BINARY_SEARCH_TREE ->
-                            (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForBst)?.values
-                                ?: com.example.algolens.data.AlgorithmStepRepository.defaultBstValues
-                        com.example.algolens.model.AlgorithmId.HEAP ->
-                            (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForHeap)?.values
-                                ?: listOf(40, 80, 70, 90, 50, 30, 60)
-                        else -> state.arrayData
-                    },
-                    initialSearchKey = (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForBst)?.searchKey
-                        ?: com.example.algolens.data.AlgorithmStepRepository.defaultBstSearchKey,
-                    initialStartNodeId = (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForTraversal)?.startNodeId,
+                    initialValues = state.initialGraphSheetValues(spec),
+                    initialSearchKey = state.initialGraphSearchKey,
+                    initialStartNodeId = state.effectiveTraversalStartNodeId,
+                    availableNodeIds = state.effectiveTraversalNodeIds,
                     onApply = { config ->
                         state.graphConfig = config
                         state.currentStepIdx = 0

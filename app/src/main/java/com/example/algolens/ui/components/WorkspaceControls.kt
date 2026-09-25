@@ -78,6 +78,54 @@ fun RailIconButton(
 }
 
 /**
+ * Compact toolbar/header icon button that separates the 44dp accessible hit area
+ * ([touchSize]) from the compact visible button geometry ([visualSize], default 32dp).
+ *
+ * Prevents oversized 44dp filled boxes in screen toolbars while preserving full
+ * touch target compliance and TalkBack semantics.
+ */
+@Composable
+fun CompactIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    visualSize: androidx.compose.ui.unit.Dp = AlgoTokens.iconButtonMd,
+    touchSize: androidx.compose.ui.unit.Dp = AlgoTokens.Spacing.minTouchTarget,
+    iconSize: androidx.compose.ui.unit.Dp = AlgoTokens.inlineIconMd,
+    tint: Color = com.example.algolens.ui.theme.TextSecondary,
+    container: Color = com.example.algolens.ui.theme.CardBackgroundElevated,
+    borderColor: Color = BorderSubtle,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(AlgoTokens.radiusSm),
+    enabled: Boolean = true
+) {
+    Box(
+        modifier = modifier
+            .alpha(if (enabled) 1f else AlgoTokens.disabledAlpha)
+            .size(touchSize)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(visualSize)
+                .clip(shape)
+                .background(container)
+                .border(AlgoTokens.strokeThin, borderColor, shape)
+                .pressPhysics(shape = shape, accent = borderColor, enabled = enabled),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(iconSize)
+            )
+        }
+    }
+}
+
+/**
  * Inline pill combining a small label and an optional leading icon
  * (e.g. `TIME O(n log n)`, `SPACE O(1)`, `CUSTOMIZE`). Tokenized
  * surface; the *meaning* of the chip is set by [accent] and the

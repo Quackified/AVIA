@@ -57,14 +57,15 @@ fun AlgoLensApp(
     var selectedAlgorithm by remember { mutableStateOf<Algorithm?>(null) }
     var showingSettings by remember { mutableStateOf(false) }
 
-    // System back press handling
-    BackHandler(enabled = replayingOnboarding || selectedAlgorithm != null || showingSettings) {
-        if (replayingOnboarding) {
-            replayingOnboarding = false
-        } else if (selectedAlgorithm != null) {
-            selectedAlgorithm = null
-        } else if (showingSettings) {
-            showingSettings = false
+    // System back press handling: child routes first, then non-Home root tabs -> HOME
+    BackHandler(
+        enabled = replayingOnboarding || selectedAlgorithm != null || showingSettings || activeTab != NavTab.HOME
+    ) {
+        when {
+            replayingOnboarding -> replayingOnboarding = false
+            selectedAlgorithm != null -> selectedAlgorithm = null
+            showingSettings -> showingSettings = false
+            activeTab != NavTab.HOME -> activeTab = NavTab.HOME
         }
     }
 
@@ -135,6 +136,9 @@ private fun AppShell(
     onReplayOnboarding: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val chatManager = com.example.algolens.ui.chat.rememberChatSessionManager()
+    val authRepository = remember { com.example.algolens.data.auth.UnavailableFirebaseAuthRepository() }
+
     Box(modifier = modifier.fillMaxSize().background(CanvasBackground)) {
         if (selectedAlgorithm != null) {
             VisualizerScreen(
@@ -160,13 +164,12 @@ private fun AppShell(
                             )
                         }
                         NavTab.EXPLORE -> {
-                            PracticeScreen(
-                                onBack = { onTabSelected(NavTab.HOME) },
-                            )
+                            PracticeScreen()
                         }
                         NavTab.CHAT -> {
                             ChatScreen(
                                 onAlgorithmClick = onAlgorithmSelected,
+                                manager = chatManager,
                             )
                         }
                         NavTab.PROFILE -> {
@@ -174,6 +177,7 @@ private fun AppShell(
                                 onAlgorithmClick = onAlgorithmSelected,
                                 onSettingsClick = onOpenSettings,
                                 onNavigateToCatalog = { onTabSelected(NavTab.HOME) },
+                                authRepository = authRepository,
                             )
                         }
                     }

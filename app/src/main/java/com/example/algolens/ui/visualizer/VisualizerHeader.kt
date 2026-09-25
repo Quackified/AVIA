@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,6 +42,7 @@ import com.example.algolens.ui.components.IconPillButton
 import com.example.algolens.ui.components.RailIconButton
 import com.example.algolens.ui.components.SegmentedToggle
 import com.example.algolens.ui.components.AlgoHairline
+import com.example.algolens.ui.components.pressPhysics
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CardBackground
@@ -349,12 +351,13 @@ private fun CompactHeaderPill(
     val shape = RoundedCornerShape(AlgoTokens.radiusXs)
     Box(
         modifier = Modifier
-            .height(20.dp)
+            .heightIn(min = 24.dp)
             .clip(shape)
             .background(accentContainer)
             .border(AlgoTokens.strokeHairline, borderColor, shape)
+            .pressPhysics(shape = shape, accent = accent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp),
+            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -366,8 +369,8 @@ private fun CompactHeaderPill(
             ),
             color = accent,
             fontWeight = FontWeight.Bold,
-            fontSize = 7.5.sp,
-            lineHeight = 7.5.sp,
+            fontSize = AlgoType.microSize,
+            lineHeight = AlgoType.microSize,
             maxLines = 1
         )
     }
