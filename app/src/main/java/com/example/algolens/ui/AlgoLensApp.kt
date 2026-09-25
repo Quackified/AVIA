@@ -173,6 +173,7 @@ private fun AppShell(
                             ProfileScreen(
                                 onAlgorithmClick = onAlgorithmSelected,
                                 onSettingsClick = onOpenSettings,
+                                onNavigateToCatalog = { onTabSelected(NavTab.HOME) },
                             )
                         }
                     }

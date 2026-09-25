@@ -113,11 +113,14 @@ fun OnboardingScreen(
                 )
             }
 
+            val skipShape = RoundedCornerShape(AlgoTokens.radiusXs)
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                    .height(AlgoTokens.Spacing.minTouchTarget)
+                    .pressPhysics(shape = skipShape, accent = PrimaryCyan)
+                    .clip(skipShape)
                     .clickable { onComplete() }
-                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2),
+                    .padding(horizontal = AlgoTokens.space4),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

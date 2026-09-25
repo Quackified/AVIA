@@ -51,6 +51,10 @@ import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextSecondary
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.sizeIn
+import com.example.algolens.ui.components.pressPhysics
+
 /**
  * The Focus Deck's **State** page: uses the exact same Terminal UI titlebar
  * (`Traffic-Light Dots | >_ state_inspector | STATE | Expand ^ / Collapse v`)
@@ -78,9 +82,10 @@ fun StateDeckPage(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
                 .background(CardBackgroundElevated)
                 .clickable { onToggleExpand() }
-                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -134,10 +139,10 @@ fun StateDeckPage(
                 }
             }
 
-            // Right: STATE Badge + Peek/Expand Toggle
+            // Right: STATE Badge + 44dp Peek/Expand Toggle
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
             ) {
                 Box(
                     modifier = Modifier
@@ -165,26 +170,44 @@ fun StateDeckPage(
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                        .background(CyanSubtle)
-                        .border(
-                            AlgoTokens.strokeHairline,
-                            PrimaryCyan.copy(alpha = 0.4f),
-                            RoundedCornerShape(AlgoTokens.radiusXs)
+                        .sizeIn(
+                            minWidth = AlgoTokens.Spacing.minTouchTarget,
+                            minHeight = AlgoTokens.Spacing.minTouchTarget
                         )
-                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                        .pressPhysics()
+                        .clickable { onToggleExpand() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (isExpanded) "Collapse v" else "Expand ^",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            platformStyle = PlatformTextStyle(includeFontPadding = false)
-                        ),
-                        color = PrimaryCyan,
-                        fontSize = AlgoType.microSize,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                            .background(CyanSubtle)
+                            .border(
+                                AlgoTokens.strokeHairline,
+                                PrimaryCyan.copy(alpha = 0.4f),
+                                RoundedCornerShape(AlgoTokens.radiusXs)
+                            )
+                            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                    ) {
+                        Text(
+                            text = if (isExpanded) "Collapse" else "Expand",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                            ),
+                            color = PrimaryCyan,
+                            fontSize = AlgoType.microSize,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Icon(
+                            imageVector = if (isExpanded) AlgoGlyphs.ChevronDown else AlgoGlyphs.ChevronUp,
+                            contentDescription = if (isExpanded) "Collapse deck" else "Expand deck",
+                            tint = PrimaryCyan,
+                            modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                        )
+                    }
                 }
             }
         }
@@ -282,8 +305,14 @@ private fun MemoryCallStackReadout(
             .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space2),
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
     ) {
+        val frameSummary = if (step.callStack.isNotEmpty()) {
+            step.callStack.joinToString(" → ")
+        } else {
+            val count = step.array.size.takeIf { it > 0 } ?: step.nodes.size.takeIf { it > 0 } ?: step.buffer.size
+            "$algorithmName(size=$count)"
+        }
         Text(
-            text = "$algorithmName(size=${step.array.size})",
+            text = frameSummary,
             style = MaterialTheme.typography.labelSmall,
             color = PurpleGlow,
             fontFamily = FontFamily.Monospace,
@@ -297,7 +326,8 @@ private fun MemoryCallStackReadout(
             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            StackInfoBadge(label = "DEPTH", value = "${step.recursionDepth + 1}")
+            val depthVal = if (step.callStack.isNotEmpty()) step.callStack.size else (step.recursionDepth + 1)
+            StackInfoBadge(label = "DEPTH", value = "$depthVal")
             StackInfoBadge(label = "MODE", value = step.renderMode.name.lowercase())
             StackInfoBadge(
                 label = "LINE",

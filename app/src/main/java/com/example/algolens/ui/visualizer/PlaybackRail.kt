@@ -116,7 +116,8 @@ fun PlaybackRail(
 
             Slider(
                 value = state.displayStepIdx.toFloat(),
-                onValueChange = { state.scrubTo(it.toInt()) },
+                onValueChange = { state.previewScrub(it.toInt()) },
+                onValueChangeFinished = { state.commitScrub() },
                 valueRange = 0f..(state.totalSteps - 1).coerceAtLeast(1).toFloat(),
                 steps = (state.totalSteps - 2).coerceAtLeast(0),
                 enabled = !challengeLocked,

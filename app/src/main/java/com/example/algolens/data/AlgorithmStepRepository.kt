@@ -52,9 +52,10 @@ object AlgorithmStepRepository {
         searchTarget: Int? = null,
         bufferOps: List<BufferOp> = defaultStackOps(),
         queueOps: List<QueueOp> = defaultQueueOps(),
-        bstValues: List<Int> = listOf(50, 30, 70, 20, 40, 60, 80),
-        bstSearchKey: Int = 40,
+        bstValues: List<Int> = defaultBstValues,
+        bstSearchKey: Int = defaultBstSearchKey,
         traversalStartNodeId: String = "A",
+        customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
     ): List<VisualizerStep> {
         if (AlgorithmRegistry.specFor(algorithm.id) == null) {
             Log.w(TAG, "No spec registered for ${algorithm.id} -- returning empty steps.")
@@ -73,12 +74,12 @@ object AlgorithmStepRepository {
                 target = searchTarget ?: 6,
                 sortOrder = sortOrder
             )
-            AlgorithmId.STACK -> generateStackSteps(bufferOps)
-            AlgorithmId.QUEUE -> generateQueueSteps(queueOps)
-            AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps(bstValues, bstSearchKey)
-            AlgorithmId.HEAP -> generateHeapSteps(inputArray.take(7), sortOrder)
-            AlgorithmId.BFS -> generateBFSSteps(traversalStartNodeId)
-            AlgorithmId.DFS -> generateDFSSteps(traversalStartNodeId)
+            AlgorithmId.STACK -> generateStackSteps(bufferOps.ifEmpty { defaultStackOps() })
+            AlgorithmId.QUEUE -> generateQueueSteps(queueOps.ifEmpty { defaultQueueOps() })
+            AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps(bstValues.ifEmpty { defaultBstValues }, bstSearchKey)
+            AlgorithmId.HEAP -> generateHeapSteps(inputArray, sortOrder)
+            AlgorithmId.BFS -> generateBFSSteps(traversalStartNodeId, customGraph)
+            AlgorithmId.DFS -> generateDFSSteps(traversalStartNodeId, customGraph)
         }
     }
 
@@ -1043,7 +1044,7 @@ object AlgorithmStepRepository {
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
     // 8. Stack
     // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun defaultStackOps(): List<BufferOp> = listOf(
+    fun defaultStackOps(): List<BufferOp> = listOf(
         BufferOp.Push(10),
         BufferOp.Push(25),
         BufferOp.Push(42),
@@ -1052,7 +1053,7 @@ object AlgorithmStepRepository {
         BufferOp.Push(88),
     )
 
-    private fun defaultQueueOps(): List<QueueOp> = listOf(
+    fun defaultQueueOps(): List<QueueOp> = listOf(
         QueueOp.Enqueue(15),
         QueueOp.Enqueue(30),
         QueueOp.Enqueue(45),
@@ -1061,124 +1062,212 @@ object AlgorithmStepRepository {
     )
 
     private fun generateStackSteps(operations: List<BufferOp> = defaultStackOps()): List<VisualizerStep> {
+        val ops = operations.ifEmpty { defaultStackOps() }
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
         val items = mutableListOf<BufferItem>()
         var nextId = 1
 
-        fun addStep(desc: String, codeLine: Int, label: String = "PROCESSING") {
+        fun addStep(
+            desc: String,
+            codeLine: Int,
+            label: String = "PROCESSING",
+            expr: String? = null,
+            callFrame: String = "Stack.main()"
+        ) {
+            val topVal = items.lastOrNull()?.value ?: "∅"
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
                     description = desc,
+                    comparisonExpr = expr ?: "TOP: $topVal · SIZE: ${items.size}",
                     phaseLabel = label,
                     renderMode = VisualizerRenderMode.BUFFER,
                     buffer = items.toList(),
                     bufferLabel = "STACK - LIFO (Last In, First Out)",
-                    activeCodeLines = listOf(codeLine)
+                    activeCodeLines = listOf(codeLine),
+                    variables = mapOf(
+                        "size" to items.size.toString(),
+                        "top" to topVal,
+                        "topIdx" to (items.size - 1).toString()
+                    ),
+                    callStack = listOf("Stack.main()", callFrame).distinct()
                 )
             )
         }
 
-        addStep("Created empty Stack", 1, "INITIALIZING")
+        addStep("Created empty Stack (LIFO capacity ready)", 1, "INITIALIZING", "STACK READY (size=0)")
 
-        operations.forEach { op ->
+        ops.forEach { op ->
             when (op) {
                 is BufferOp.Push -> {
                     val id = (nextId++).toString()
                     items.add(BufferItem(id, op.value.toString(), ElementState.ACTIVE))
-                    addStep("push(${op.value}) -> Pushed ${op.value} onto stack top", 2, "PUSH")
+                    addStep(
+                        desc = "push(${op.value}) -> Pushed ${op.value} onto stack top (index ${items.size - 1})",
+                        codeLine = 2,
+                        label = "PUSH",
+                        expr = "PUSH(${op.value}) -> top = ${op.value}",
+                        callFrame = "push(${op.value})"
+                    )
                     items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
                 }
                 BufferOp.Pop -> {
                     if (items.isNotEmpty()) {
-                        items[items.size - 1] = items[items.size - 1].copy(state = ElementState.SWAPPING)
+                        val topItem = items.last()
+                        items[items.size - 1] = topItem.copy(state = ElementState.SWAPPING)
+                        addStep(
+                            desc = "pop() -> Targeting top element ${topItem.value} at index ${items.size - 1} for removal",
+                            codeLine = 3,
+                            label = "POPPING",
+                            expr = "POP: targeting top = ${topItem.value}",
+                            callFrame = "pop()"
+                        )
                         val popped = items.removeAt(items.size - 1)
-                        addStep("pop() -> Popped ${popped.value} from stack top. " +
-                            if (items.isNotEmpty()) "New top is ${items[items.size - 1].value}"
-                            else "Stack is now empty", 4, "POP")
+                        if (items.isNotEmpty()) {
+                            items[items.size - 1] = items[items.size - 1].copy(state = ElementState.ACTIVE)
+                        }
+                        addStep(
+                            desc = "pop() -> Popped ${popped.value} from stack top. " +
+                                if (items.isNotEmpty()) "New top is ${items.last().value}"
+                                else "Stack is now empty",
+                            codeLine = 4,
+                            label = "POP",
+                            expr = "POPPED: ${popped.value} -> new top = ${items.lastOrNull()?.value ?: "∅"}",
+                            callFrame = "pop() -> ${popped.value}"
+                        )
+                        if (items.isNotEmpty()) {
+                            items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
+                        }
                     } else {
-                        addStep("pop() -> Stack is empty. No-op.", 4, "POP")
+                        addStep("pop() -> Stack underflow (empty). No-op.", 4, "UNDERFLOW", "POP: underflow (size=0)", "pop()")
                     }
                 }
                 BufferOp.Peek -> {
                     if (items.isNotEmpty()) {
                         items[items.size - 1] = items[items.size - 1].copy(state = ElementState.FOUND)
-                        addStep("peek() -> Top element is ${items[items.size - 1].value}", 6, "PEEK")
+                        addStep(
+                            desc = "peek() -> Inspected top element ${items.last().value} without removing",
+                            codeLine = 6,
+                            label = "PEEK",
+                            expr = "PEEK() == ${items.last().value}",
+                            callFrame = "peek() -> ${items.last().value}"
+                        )
                         items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
                     } else {
-                        addStep("peek() -> Stack is empty. No-op.", 6, "PEEK")
+                        addStep("peek() -> Stack is empty. Returns null.", 6, "PEEK", "PEEK() == null", "peek()")
                     }
                 }
             }
         }
 
-        addStep("Stack sequence complete (${operations.size} operations).", 1, "DONE")
+        addStep("Stack sequence complete (${ops.size} operations).", 1, "DONE", "COMPLETE (${items.size} items)")
         return steps
     }
 
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    // ─────────────────────────────────────────────────────────────
     // 9. Queue
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    // ─────────────────────────────────────────────────────────────
     private fun generateQueueSteps(operations: List<QueueOp> = defaultQueueOps()): List<VisualizerStep> {
+        val ops = operations.ifEmpty { defaultQueueOps() }
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
         val items = mutableListOf<BufferItem>()
         var nextId = 1
 
-        fun addStep(desc: String, codeLine: Int, label: String = "PROCESSING") {
+        fun addStep(
+            desc: String,
+            codeLine: Int,
+            label: String = "PROCESSING",
+            expr: String? = null,
+            callFrame: String = "Queue.main()"
+        ) {
+            val frontVal = items.firstOrNull()?.value ?: "∅"
+            val rearVal = items.lastOrNull()?.value ?: "∅"
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
                     description = desc,
+                    comparisonExpr = expr ?: "FRONT: $frontVal · REAR: $rearVal · SIZE: ${items.size}",
                     phaseLabel = label,
                     renderMode = VisualizerRenderMode.BUFFER,
                     buffer = items.toList(),
                     bufferLabel = "QUEUE - FIFO (First In, First Out)",
-                    activeCodeLines = listOf(codeLine)
+                    activeCodeLines = listOf(codeLine),
+                    variables = mapOf(
+                        "size" to items.size.toString(),
+                        "front" to frontVal,
+                        "rear" to rearVal
+                    ),
+                    callStack = listOf("Queue.main()", callFrame).distinct()
                 )
             )
         }
 
-        addStep("Created empty Queue", 1, "INITIALIZING")
+        addStep("Created empty Queue (FIFO capacity ready)", 1, "INITIALIZING", "QUEUE READY (size=0)")
 
-        operations.forEach { op ->
+        ops.forEach { op ->
             when (op) {
                 is QueueOp.Enqueue -> {
                     val id = (nextId++).toString()
                     items.add(BufferItem(id, op.value.toString(), ElementState.ACTIVE))
-                    addStep("enqueue(${op.value}) -> Added ${op.value} to rear of queue", 2, "ENQUEUE")
+                    addStep(
+                        desc = "enqueue(${op.value}) -> Added ${op.value} to rear of queue (index ${items.size - 1})",
+                        codeLine = 2,
+                        label = "ENQUEUE",
+                        expr = "ENQUEUE(${op.value}) -> rear = ${op.value}",
+                        callFrame = "enqueue(${op.value})"
+                    )
                     items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
                 }
                 QueueOp.Dequeue -> {
                     if (items.isNotEmpty()) {
-                        items[0] = items[0].copy(state = ElementState.SWAPPING)
+                        val frontItem = items.first()
+                        items[0] = frontItem.copy(state = ElementState.SWAPPING)
+                        addStep(
+                            desc = "dequeue() -> Targeting front element ${frontItem.value} at head of queue",
+                            codeLine = 3,
+                            label = "DEQUEUING",
+                            expr = "DEQUEUE: targeting front = ${frontItem.value}",
+                            callFrame = "dequeue()"
+                        )
                         val removed = items.removeAt(0)
-                        addStep("dequeue() -> Removed ${removed.value} from front. " +
-                            if (items.isNotEmpty()) "New front is ${items[0].value}"
-                            else "Queue is now empty", 4, "DEQUEUE")
+                        if (items.isNotEmpty()) {
+                            items[0] = items[0].copy(state = ElementState.ACTIVE)
+                        }
+                        addStep(
+                            desc = "dequeue() -> Removed ${removed.value} from front. " +
+                                if (items.isNotEmpty()) "New front is ${items[0].value}"
+                                else "Queue is now empty",
+                            codeLine = 4,
+                            label = "DEQUEUE",
+                            expr = "DEQUEUED: ${removed.value} -> new front = ${items.firstOrNull()?.value ?: "∅"}",
+                            callFrame = "dequeue() -> ${removed.value}"
+                        )
+                        if (items.isNotEmpty()) {
+                            items[0] = items[0].copy(state = ElementState.IDLE)
+                        }
                     } else {
-                        addStep("dequeue() -> Queue is empty. No-op.", 4, "DEQUEUE")
+                        addStep("dequeue() -> Queue underflow (empty). No-op.", 4, "UNDERFLOW", "DEQUEUE: underflow (size=0)", "dequeue()")
                     }
                 }
             }
         }
 
-        addStep("Queue sequence complete (${operations.size} operations).", 1, "DONE")
+        addStep("Queue sequence complete (${ops.size} operations).", 1, "DONE", "COMPLETE (${items.size} items)")
         return steps
     }
 
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    // ─────────────────────────────────────────────────────────────
     // 10. Binary Search Tree (BST)
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private val defaultBstValues = listOf(50, 30, 70, 20, 40, 60, 80)
-    private val defaultBstSearchKey = 40
+    // ─────────────────────────────────────────────────────────────
+    val defaultBstValues = listOf(50, 30, 70, 20, 40, 60, 80)
+    val defaultBstSearchKey = 40
 
     /**
      * Build a BST imperatively from [values], laying the resulting tree
-     * out with a simple BFS x/y scheme. Used when the user provides a
-     * custom list — gives acceptable visual fidelity for a teaching app
-     * without re-deriving the hand-tuned default layout.
+     * out with normalized in-order X rank (`20f..180f`) and depth Y (`18f..108f`)
+     * so custom or skewed trees never clip or overlap nodes.
      */
     private fun buildBstFromValues(values: List<Int>): Pair<List<GraphNodeState>, List<GraphEdgeState>> {
         if (values.isEmpty()) return emptyList<GraphNodeState>() to emptyList()
@@ -1186,22 +1275,12 @@ object AlgorithmStepRepository {
         data class Node(val value: Int, val id: String, var left: Node? = null, var right: Node? = null)
 
         val root = Node(values[0], values[0].toString())
-        var counter = 1
+        val seen = mutableSetOf(root.id)
         for (i in 1 until values.size) {
             val v = values[i]
             var cur: Node = root
-            // Unique id per value: "value" if first, else "value#k".
             val baseId = v.toString()
             var id = baseId
-            val existing = mutableSetOf(root.id)
-            var n: Node? = root
-            val seen = mutableSetOf<String>()
-            fun collectIds(n: Node?) {
-                if (n == null) return
-                seen.add(n.id)
-                collectIds(n.left); collectIds(n.right)
-            }
-            collectIds(root)
             var k = 1
             while (id in seen) { id = "$baseId#$k"; k++ }
             seen.add(id)
@@ -1213,61 +1292,49 @@ object AlgorithmStepRepository {
                     if (cur.right == null) { cur.right = newNode; break } else cur = cur.right!!
                 }
             }
-            counter++
         }
 
-        // BFS layout: root at (100, 15); each level y += 35; x's evenly spaced.
-        val nodes = mutableListOf<GraphNodeState>()
+        val depths = mutableMapOf<String, Int>()
+        val inOrderList = mutableListOf<Node>()
         val edges = mutableListOf<GraphEdgeState>()
-        val rowWidths = mutableMapOf<Int, Int>()
-        // Count nodes per level
-        fun countLevel(n: Node?, level: Int) {
-            if (n == null) return
-            rowWidths[level] = (rowWidths[level] ?: 0) + 1
-            countLevel(n.left, level + 1)
-            countLevel(n.right, level + 1)
-        }
-        countLevel(root, 0)
-        val totalLevels = rowWidths.size.coerceAtLeast(1)
-        // x positions per level: even spacing in [25, 175]
-        val levelStepX = if (totalLevels > 0) 150f / (1 shl (totalLevels - 1)) else 75f
-        val slotByLevel = mutableMapOf<Pair<Int, Int>, Int>()  // (level, index in level) → x slot
-        fun assignSlots(n: Node?, level: Int, slotLeft: Int, slotRight: Int) {
-            if (n == null) return
-            val mid = (slotLeft + slotRight) / 2
-            slotByLevel[level to (mid)] = mid
-            // BFS position tracking is simpler with an index list
-            assignSlots(n.left, level + 1, slotLeft, (slotLeft + slotRight) / 2 - 1)
-            assignSlots(n.right, level + 1, (slotLeft + slotRight) / 2 + 1, slotRight)
-        }
-        val maxSlots = (1 shl totalLevels)
-        assignSlots(root, 0, 0, maxSlots - 1)
 
-        val placedX = mutableMapOf<String, Float>()
-        val placedY = mutableMapOf<String, Float>()
-        val levelCounters = mutableMapOf<Int, Int>()
-        fun place(n: Node?, level: Int, slotLeft: Int, slotRight: Int) {
+        fun traverse(n: Node?, depth: Int) {
             if (n == null) return
-            val mid = (slotLeft + slotRight) / 2
-            val y = 15f + level * 35f
-            val x = 25f + (mid.toFloat() / maxSlots.coerceAtLeast(1)) * 150f
-            placedX[n.id] = x
-            placedY[n.id] = y
-            nodes.add(GraphNodeState(n.id, n.value.toString(), x, y))
-            place(n.left, level + 1, slotLeft, mid - 1)
-            place(n.right, level + 1, mid + 1, slotRight)
+            depths[n.id] = depth
+            traverse(n.left, depth + 1)
+            inOrderList.add(n)
+            traverse(n.right, depth + 1)
             n.left?.let { edges.add(GraphEdgeState(n.id, it.id, isDirected = true)) }
             n.right?.let { edges.add(GraphEdgeState(n.id, it.id, isDirected = true)) }
         }
-        place(root, 0, 0, maxSlots - 1)
+        traverse(root, 0)
+
+        val maxDepth = (depths.values.maxOrNull() ?: 0).coerceAtLeast(1)
+        val total = inOrderList.size
+        val rankMap = inOrderList.mapIndexed { idx, node -> node.id to idx }.toMap()
+
+        // Preserve canonical order (insertion order) for nodes list
+        val nodesById = inOrderList.associateBy { it.id }
+        val orderedIds = mutableListOf<String>()
+        fun collectPreOrder(n: Node?) {
+            if (n == null) return
+            orderedIds.add(n.id)
+            collectPreOrder(n.left)
+            collectPreOrder(n.right)
+        }
+        collectPreOrder(root)
+
+        val nodes = orderedIds.mapNotNull { id ->
+            val n = nodesById[id] ?: return@mapNotNull null
+            val rank = rankMap[id] ?: 0
+            val depth = depths[id] ?: 0
+            val x = if (total <= 1) 100f else 20f + (rank.toFloat() / (total - 1).toFloat()) * 160f
+            val y = if (maxDepth == 0) 50f else 18f + (depth.toFloat() / maxDepth.toFloat()) * 86f
+            GraphNodeState(n.id, n.value.toString(), x, y)
+        }
+
         return nodes to edges
     }
-
-    /**
-     * Search [searchKey] in a BST. Returns the sequence of visited node ids
-     * (each compared node) plus the final found id (or null if not present).
-     * Pure data — does not emit any [VisualizerStep].
-     */
 
     private fun generateBSTSteps(
         values: List<Int> = defaultBstValues,
@@ -1275,9 +1342,9 @@ object AlgorithmStepRepository {
     ): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
+        val cleanValues = values.ifEmpty { defaultBstValues }
 
-        // Use hand-tuned layout for the canonical default; BFS layout otherwise.
-        val (nodes, edges) = if (values == defaultBstValues) {
+        val (nodes, edges) = if (cleanValues == defaultBstValues) {
             listOf(
                 GraphNodeState("50", "50", 100f, 15f),
                 GraphNodeState("30", "30", 50f, 50f),
@@ -1295,32 +1362,58 @@ object AlgorithmStepRepository {
                 GraphEdgeState("70", "80", isDirected = true)
             )
         } else {
-            buildBstFromValues(values)
+            buildBstFromValues(cleanValues)
         }
 
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "Binary Search Tree: Searching for key = $searchKey",
-                comparisonExpr = "SEARCH: target = $searchKey",
-                phaseLabel = "INITIALIZING",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes,
-                edges = edges,
-                activeCodeLines = listOf(1, 2)
-            )
-        )
-
-        // Walk the BST to find the search key. Each comparison emits a step.
-        // We rely on the first value as the root (matches the visualization
-        // tree built by buildBstFromValues) — for the hand-tuned default
-        // the root is 50.
         val byId = nodes.associateBy { it.id }
         val childrenById = edges.groupBy { it.from }.mapValues { (_, es) -> es.map { it.to } }
-        val rootId = values.firstOrNull()?.toString()?.let { id ->
-            // If the default demo, prefer the known root.
-            if (values == defaultBstValues) "50" else id
+
+        // Emit incremental BST insertion steps so the user sees how the BST is constructed
+        val insertedIds = linkedSetOf<String>()
+        for (i in cleanValues.indices) {
+            val subValues = cleanValues.subList(0, i + 1)
+            val (subNodes, _) = if (cleanValues == defaultBstValues) {
+                nodes.take(i + 1) to edges
+            } else {
+                buildBstFromValues(subValues)
+            }
+            val latestId = subNodes.lastOrNull()?.id ?: cleanValues[i].toString()
+            insertedIds.add(latestId)
+            val visibleNodes = nodes.filter { it.id in insertedIds }.map {
+                if (it.id == latestId) it.copy(state = ElementState.ACTIVE)
+                else it.copy(state = ElementState.VISITED)
+            }
+            val visibleEdges = edges.filter { it.from in insertedIds && it.to in insertedIds }.map {
+                if (it.to == latestId) it.copy(isHighlighted = true) else it
+            }
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = if (i == 0) "BST Insert: Placed root node ${cleanValues[i]}."
+                    else "BST Insert: Inserted ${cleanValues[i]} into binary search tree (${insertedIds.size}/${cleanValues.size} nodes).",
+                    comparisonExpr = "INSERT(${cleanValues[i]}) · target = $searchKey",
+                    phaseLabel = "INSERTING",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = visibleNodes,
+                    edges = visibleEdges,
+                    buffer = insertedIds.mapIndexed { idx, id ->
+                        BufferItem("ins_$idx", byId[id]?.label ?: id, if (id == latestId) ElementState.ACTIVE else ElementState.IDLE)
+                    },
+                    bufferLabel = "BST INSERTION ORDER",
+                    activeNodeId = latestId,
+                    visitedNodeIds = insertedIds.toSet(),
+                    activeCodeLines = listOf(1, 2),
+                    variables = mapOf(
+                        "inserted" to cleanValues[i].toString(),
+                        "treeSize" to insertedIds.size.toString(),
+                        "searchKey" to searchKey.toString()
+                    ),
+                    callStack = listOf("BST.build()", "insert(${cleanValues[i]})")
+                )
+            )
         }
+
+        val rootId = nodes.firstOrNull()?.id
         if (rootId == null) {
             steps.add(
                 VisualizerStep(
@@ -1335,18 +1428,45 @@ object AlgorithmStepRepository {
             return steps
         }
 
+        steps.add(
+            VisualizerStep(
+                stepIndex = sIdx++,
+                description = "BST constructed (${nodes.size} nodes). Starting search from root ${byId[rootId]?.label} for target key = $searchKey.",
+                comparisonExpr = "SEARCH: target = $searchKey",
+                phaseLabel = "SEARCHING",
+                renderMode = VisualizerRenderMode.GRAPH_TREE,
+                nodes = nodes.map { if (it.id == rootId) it.copy(state = ElementState.ACTIVE) else it },
+                edges = edges,
+                buffer = listOf(BufferItem("path_0", byId[rootId]?.label ?: rootId, ElementState.ACTIVE)),
+                bufferLabel = "BST SEARCH PATH",
+                activeNodeId = rootId,
+                visitedNodeIds = setOf(rootId),
+                activeCodeLines = listOf(1, 2),
+                variables = mapOf(
+                    "root" to (byId[rootId]?.label ?: rootId),
+                    "searchKey" to searchKey.toString()
+                ),
+                callStack = listOf("BST.search($searchKey)")
+            )
+        )
+
         var current: String? = rootId
-        val visited = mutableSetOf<String>()
+        val visited = linkedSetOf<String>()
+        val searchStack = mutableListOf("BST.search($searchKey)")
         var found = false
         while (current != null) {
             val nodeVal = byId[current]?.label?.toIntOrNull() ?: break
             visited.add(current)
+            searchStack.add("search(node=$nodeVal, key=$searchKey)")
+            val pathBuffer = visited.mapIndexed { idx, id ->
+                BufferItem("p_$idx", byId[id]?.label ?: id, if (id == current) ElementState.ACTIVE else ElementState.IDLE)
+            }
             if (nodeVal == searchKey) {
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
-                        description = "Found key $searchKey in BST!",
-                        comparisonExpr = "FOUND: Node $searchKey",
+                        description = "Found target key $searchKey at node $nodeVal! Search path: ${visited.joinToString(" → ") { byId[it]?.label ?: it }}",
+                        comparisonExpr = "FOUND: key $searchKey == node($nodeVal)",
                         phaseLabel = "FOUND",
                         renderMode = VisualizerRenderMode.GRAPH_TREE,
                         nodes = nodes.map {
@@ -1357,10 +1477,20 @@ object AlgorithmStepRepository {
                             }
                         },
                         edges = edges.map { e ->
-                            if (e.from in visited || e.to in visited) e.copy(isHighlighted = true) else e
+                            if (e.from in visited && e.to in visited) e.copy(isHighlighted = true) else e
                         },
+                        buffer = pathBuffer.map { if (it.value == nodeVal.toString()) it.copy(state = ElementState.FOUND) else it },
+                        bufferLabel = "BST SEARCH PATH",
                         activeNodeId = current,
-                        activeCodeLines = listOf(2, 3)
+                        visitedNodeIds = visited.toSet(),
+                        activeCodeLines = listOf(2, 3),
+                        variables = mapOf(
+                            "current" to nodeVal.toString(),
+                            "searchKey" to searchKey.toString(),
+                            "depth" to (visited.size - 1).toString(),
+                            "status" to "FOUND"
+                        ),
+                        callStack = searchStack.toList()
                     )
                 )
                 found = true
@@ -1372,14 +1502,15 @@ object AlgorithmStepRepository {
             val next = if (searchKey < nodeVal) {
                 children.firstOrNull { byId[it]?.label?.toIntOrNull()?.let { v -> v < nodeVal } == true }
             } else {
-                children.firstOrNull { byId[it]?.label?.toIntOrNull()?.let { v -> v > nodeVal } == true }
+                children.firstOrNull { byId[it]?.label?.toIntOrNull()?.let { v -> v >= nodeVal } == true }
             }
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "searchKey=$searchKey $op node($nodeVal) -> Traverse $direction subtree",
+                    description = "searchKey=$searchKey $op node($nodeVal) -> Traverse $direction subtree" +
+                        (if (next != null) " to node ${byId[next]?.label}" else " (null child)"),
                     comparisonExpr = "$searchKey $op $nodeVal -> $direction",
-                    phaseLabel = if (searchKey < nodeVal) "LEFT" else "RIGHT",
+                    phaseLabel = direction,
                     renderMode = VisualizerRenderMode.GRAPH_TREE,
                     nodes = nodes.map {
                         when (it.id) {
@@ -1389,11 +1520,21 @@ object AlgorithmStepRepository {
                         }
                     },
                     edges = edges.map { e ->
-                        if ((e.from == current && e.to == next) || e.from in visited)
+                        if ((e.from == current && e.to == next) || (e.from in visited && e.to in visited))
                             e.copy(isHighlighted = true) else e
                     },
+                    buffer = pathBuffer,
+                    bufferLabel = "BST SEARCH PATH",
                     activeNodeId = current,
-                    activeCodeLines = listOf(4, 5, 6, 7)
+                    visitedNodeIds = visited.toSet(),
+                    activeCodeLines = listOf(4, 5, 6, 7),
+                    variables = mapOf(
+                        "current" to nodeVal.toString(),
+                        "searchKey" to searchKey.toString(),
+                        "branch" to direction,
+                        "next" to (next?.let { byId[it]?.label } ?: "null")
+                    ),
+                    callStack = searchStack.toList()
                 )
             )
             current = next
@@ -1402,361 +1543,590 @@ object AlgorithmStepRepository {
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "Key $searchKey not found in BST.",
+                    description = "Key $searchKey not found in BST (reached null leaf after ${visited.size} comparisons).",
+                    comparisonExpr = "NOT FOUND: key $searchKey",
                     phaseLabel = "NOT FOUND",
                     renderMode = VisualizerRenderMode.GRAPH_TREE,
                     nodes = nodes.map {
                         if (it.id in visited) it.copy(state = ElementState.VISITED) else it
                     },
-                    edges = edges,
-                    activeCodeLines = listOf(2, 3)
+                    edges = edges.map { e ->
+                        if (e.from in visited && e.to in visited) e.copy(isHighlighted = true) else e
+                    },
+                    buffer = visited.mapIndexed { idx, id ->
+                        BufferItem("p_$idx", byId[id]?.label ?: id, ElementState.VISITED)
+                    },
+                    bufferLabel = "BST SEARCH PATH",
+                    activeNodeId = visited.lastOrNull(),
+                    visitedNodeIds = visited.toSet(),
+                    activeCodeLines = listOf(2, 3),
+                    variables = mapOf(
+                        "searchKey" to searchKey.toString(),
+                        "comparisons" to visited.size.toString(),
+                        "status" to "NOT_FOUND"
+                    ),
+                    callStack = searchStack.toList()
                 )
             )
         }
         return steps
     }
 
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    // 11. Heap (Max-Heap)
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    // ─────────────────────────────────────────────────────────────
+    // 11. Heap (Max-Heap / Min-Heap with Dual Tree + Array State)
+    // ─────────────────────────────────────────────────────────────
     private fun generateHeapSteps(input: List<Int>, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
         val isDesc = sortOrder == SortOrder.DESC
-        // ASC: max-heap (parent >= children). DESC: min-heap (parent <= children).
         val heapKind = if (isDesc) "Min-Heap" else "Max-Heap"
-        val op = if (isDesc) "<=" else ">="
+        val op = if (isDesc) "<" else ">"
 
-        // For now we use the canonical 7-node demo layout and only flip
-        // the labels / comparisons. A future change can re-build the tree
-        // layout from the user-supplied `input` values.
-        val values = listOf(90, 80, 70, 40, 50, 30, 60)
-        val nodes = values.mapIndexed { idx, v ->
-            val x = when (idx) {
-                0 -> 100f
-                1 -> 50f
-                2 -> 150f
-                3 -> 25f
-                4 -> 75f
-                5 -> 125f
-                else -> 175f
+        val initial = if (input.isNotEmpty() && input != DEFAULT_INPUT) {
+            input.take(15)
+        } else {
+            listOf(40, 80, 70, 90, 50, 30, 60)
+        }
+        val arr = initial.toMutableList()
+        val n = arr.size
+
+        fun buildTreeNodes(
+            values: List<Int>,
+            states: Map<Int, ElementState>,
+            heapBound: Int = values.size
+        ): Pair<List<GraphNodeState>, List<GraphEdgeState>> {
+            val maxLevel = if (values.size <= 1) 0 else 31 - Integer.numberOfLeadingZeros(values.size)
+            val treeNodes = values.mapIndexed { idx, v ->
+                val level = 31 - Integer.numberOfLeadingZeros(idx + 1)
+                val indexInLevel = (idx + 1) - (1 shl level)
+                val nodesInLevel = 1 shl level
+                val x = 15f + ((indexInLevel + 0.5f) / nodesInLevel.toFloat()) * 170f
+                val y = if (maxLevel == 0) 54f else 18f + (level.toFloat() / maxLevel.toFloat()) * 82f
+                val st = states[idx] ?: if (idx >= heapBound) ElementState.SORTED else ElementState.IDLE
+                GraphNodeState(idx.toString(), v.toString(), x, y, st)
             }
-            val y = if (idx == 0) 15f else if (idx < 3) 50f else 90f
-            GraphNodeState(idx.toString(), v.toString(), x, y)
+            val treeEdges = mutableListOf<GraphEdgeState>()
+            for (i in 0 until values.size) {
+                val left = 2 * i + 1
+                val right = 2 * i + 2
+                if (left < values.size) {
+                    val hi = (states[i] == ElementState.ACTIVE || states[i] == ElementState.SWAPPING) &&
+                        (states[left] == ElementState.COMPARING || states[left] == ElementState.SWAPPING)
+                    treeEdges.add(GraphEdgeState(i.toString(), left.toString(), weight = left, isDirected = true, isHighlighted = hi))
+                }
+                if (right < values.size) {
+                    val hi = (states[i] == ElementState.ACTIVE || states[i] == ElementState.SWAPPING) &&
+                        (states[right] == ElementState.COMPARING || states[right] == ElementState.SWAPPING)
+                    treeEdges.add(GraphEdgeState(i.toString(), right.toString(), weight = right, isDirected = true, isHighlighted = hi))
+                }
+            }
+            return treeNodes to treeEdges
         }
 
-        val edges = listOf(
-            GraphEdgeState("0", "1", isDirected = true),
-            GraphEdgeState("0", "2", isDirected = true),
-            GraphEdgeState("1", "3", isDirected = true),
-            GraphEdgeState("1", "4", isDirected = true),
-            GraphEdgeState("2", "5", isDirected = true),
-            GraphEdgeState("2", "6", isDirected = true)
-        )
-
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "$heapKind: Root element (${values[0]}) satisfies parent $op children property",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes,
-                edges = edges,
-                activeCodeLines = listOf(1, 2)
+        fun emitHeapStep(
+            desc: String,
+            expr: String?,
+            phase: String,
+            states: Map<Int, ElementState>,
+            activeIdx: Int?,
+            codeLines: List<Int>,
+            heapBound: Int = n,
+            callFrame: String = "buildHeap()"
+        ) {
+            val (nodes, edges) = buildTreeNodes(arr, states, heapBound)
+            val topPtrs = mutableMapOf<String, Int>()
+            if (activeIdx != null && activeIdx in 0 until n) {
+                topPtrs["P"] = activeIdx
+                val l = 2 * activeIdx + 1
+                val r = 2 * activeIdx + 2
+                if (l < heapBound) topPtrs["L"] = l
+                if (r < heapBound) topPtrs["R"] = r
+            }
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = desc,
+                    comparisonExpr = expr,
+                    phaseLabel = phase,
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    array = arr.toList(),
+                    elementStates = states,
+                    topPointers = topPtrs,
+                    nodes = nodes,
+                    edges = edges,
+                    activeNodeId = activeIdx?.toString(),
+                    visitedNodeIds = states.filter { it.value == ElementState.SORTED || it.value == ElementState.VISITED }.keys.map { it.toString() }.toSet(),
+                    activeCodeLines = codeLines,
+                    variables = buildMap {
+                        put("heapType", heapKind)
+                        put("heapSize", heapBound.toString())
+                        put("rootVal", (arr.firstOrNull() ?: 0).toString())
+                        if (activeIdx != null && activeIdx in 0 until n) {
+                            put("parentIdx", activeIdx.toString())
+                            put("parentVal", arr[activeIdx].toString())
+                        }
+                    },
+                    callStack = listOf("Heap.main()", callFrame).distinct()
+                )
             )
+        }
+
+        emitHeapStep(
+            desc = "$heapKind: Initial array $arr (${n} elements). Starting bottom-up buildHeap from last parent index ${(n / 2) - 1}.",
+            expr = "BUILD $heapKind (n=$n)",
+            phase = "INITIALIZING",
+            states = mapOf(0 to ElementState.ACTIVE),
+            activeIdx = ((n / 2) - 1).coerceAtLeast(0),
+            codeLines = listOf(1, 2),
+            callFrame = "buildHeap(n=$n)"
         )
 
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "Comparing left child ${values[1]} and right child ${values[2]} with root ${values[0]}",
-                comparisonExpr = if (isDesc) "HEAPIFY: ${values[0]} < min(${values[1]}, ${values[2]})"
-                                 else "HEAPIFY: ${values[0]} > max(${values[1]}, ${values[2]})",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map {
-                    when (it.id) {
-                        "0" -> it.copy(state = ElementState.ACTIVE)
-                        "1", "2" -> it.copy(state = ElementState.COMPARING)
-                        else -> it
+        fun siftDown(startIdx: Int, endExclusive: Int) {
+            var root = startIdx
+            while (2 * root + 1 < endExclusive) {
+                val left = 2 * root + 1
+                val right = 2 * root + 2
+                var target = root
+
+                if (isDesc) {
+                    if (arr[left] < arr[target]) target = left
+                    if (right < endExclusive && arr[right] < arr[target]) target = right
+                } else {
+                    if (arr[left] > arr[target]) target = left
+                    if (right < endExclusive && arr[right] > arr[target]) target = right
+                }
+
+                val compareStates = buildMap {
+                    put(root, ElementState.ACTIVE)
+                    put(left, ElementState.COMPARING)
+                    if (right < endExclusive) put(right, ElementState.COMPARING)
+                    for (k in endExclusive until n) put(k, ElementState.SORTED)
+                }
+                val rightStr = if (right < endExclusive) ", R[$right]=${arr[right]}" else ""
+                emitHeapStep(
+                    desc = "siftDown(i=$root): Comparing parent P[$root]=${arr[root]} with child L[$left]=${arr[left]}$rightStr",
+                    expr = "COMPARE: arr[$root] (${arr[root]}) vs arr[$target] (${arr[target]})",
+                    phase = "HEAPIFY",
+                    states = compareStates,
+                    activeIdx = root,
+                    codeLines = listOf(3, 4, 5),
+                    heapBound = endExclusive,
+                    callFrame = "siftDown(i=$root, size=$endExclusive)"
+                )
+
+                if (target != root) {
+                    val parentVal = arr[root]
+                    val childVal = arr[target]
+                    arr[root] = childVal
+                    arr[target] = parentVal
+
+                    val swapStates = buildMap {
+                        put(root, ElementState.SWAPPING)
+                        put(target, ElementState.SWAPPING)
+                        for (k in endExclusive until n) put(k, ElementState.SORTED)
                     }
-                },
-                edges = edges.map { if (it.from == "0") it.copy(isHighlighted = true) else it },
-                activeNodeId = "0",
-                activeCodeLines = listOf(3, 4, 5)
+                    emitHeapStep(
+                        desc = "Child $childVal $op Parent $parentVal -> Swapped index $root ↔ $target",
+                        expr = "ELEVATE: $childVal at [$root]",
+                        phase = "SWAPPING",
+                        states = swapStates,
+                        activeIdx = target,
+                        codeLines = listOf(6, 7),
+                        heapBound = endExclusive,
+                        callFrame = "swap($root, $target)"
+                    )
+                    root = target
+                } else {
+                    break
+                }
+            }
+        }
+
+        for (i in (n / 2) - 1 downTo 0) {
+            siftDown(i, n)
+        }
+
+        emitHeapStep(
+            desc = "$heapKind property established! Root arr[0]=${arr[0]} is the ${if (isDesc) "minimum" else "maximum"} element.",
+            expr = "HEAP READY: root = ${arr[0]}",
+            phase = "HEAPIFIED",
+            states = mapOf(0 to ElementState.FOUND),
+            activeIdx = 0,
+            codeLines = listOf(2),
+            callFrame = "buildHeap() -> ready"
+        )
+
+        // Demonstrate extracting the root element and re-heapifying
+        if (n > 1) {
+            val extracted = arr[0]
+            val lastVal = arr[n - 1]
+            arr[0] = lastVal
+            arr[n - 1] = extracted
+            emitHeapStep(
+                desc = "extractRoot(): Swapped root $extracted with last leaf $lastVal (index ${n - 1}) and locked $extracted.",
+                expr = "EXTRACT: $extracted -> slot [${n - 1}]",
+                phase = "EXTRACTING",
+                states = mapOf(0 to ElementState.ACTIVE, (n - 1) to ElementState.SORTED),
+                activeIdx = 0,
+                codeLines = listOf(6, 7),
+                heapBound = n - 1,
+                callFrame = "extractRoot() -> $extracted"
             )
+            siftDown(0, n - 1)
+        }
+
+        emitHeapStep(
+            desc = "$heapKind operations complete! Current root is ${arr[0]}.",
+            expr = "COMPLETE: root = ${arr[0]}",
+            phase = "SORTED",
+            states = (0 until n).associateWith { if (it == 0) ElementState.FOUND else ElementState.VISITED },
+            activeIdx = 0,
+            codeLines = listOf(8),
+            callFrame = "Heap.done()"
         )
 
         return steps
     }
 
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    // 12. Breadth-First Search (BFS)
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateBFSSteps(startNodeId: String = "A"): List<VisualizerStep> {
+    // ─────────────────────────────────────────────────────────────
+    // Canonical 6-Node Weighted Graph (`figma-make-ref` Parity)
+    // ─────────────────────────────────────────────────────────────
+    fun canonicalWeightedGraph(): Pair<List<GraphNodeState>, List<GraphEdgeState>> {
+        val nodes = listOf(
+            GraphNodeState("A", "A", 45f, 35f),
+            GraphNodeState("B", "B", 125f, 25f),
+            GraphNodeState("C", "C", 205f, 40f),
+            GraphNodeState("D", "D", 50f, 110f),
+            GraphNodeState("E", "E", 130f, 120f),
+            GraphNodeState("F", "F", 210f, 105f)
+        )
+        val edges = listOf(
+            GraphEdgeState("A", "B", weight = 4, isDirected = false),
+            GraphEdgeState("A", "D", weight = 2, isDirected = false),
+            GraphEdgeState("B", "C", weight = 5, isDirected = false),
+            GraphEdgeState("B", "E", weight = 1, isDirected = false),
+            GraphEdgeState("D", "E", weight = 3, isDirected = false),
+            GraphEdgeState("E", "C", weight = 2, isDirected = false),
+            GraphEdgeState("E", "F", weight = 4, isDirected = false),
+            GraphEdgeState("C", "F", weight = 3, isDirected = false)
+        )
+        return nodes to edges
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 12. Breadth-First Search (BFS — Weighted Graph + Live Queue)
+    // ─────────────────────────────────────────────────────────────
+    private fun generateBFSSteps(
+        startNodeId: String = "A",
+        customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null
+    ): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
-        val validStart = startNodeId.uppercase() in setOf("A", "B", "C", "D", "E")
-        val start = if (validStart) startNodeId.uppercase() else "A"
+        val (rawNodes, rawEdges) = customGraph?.takeIf { it.first.isNotEmpty() } ?: canonicalWeightedGraph()
+        val baseNodes = rawNodes.map { it.copy(state = ElementState.IDLE) }
+        val baseEdges = rawEdges.map { it.copy(isHighlighted = false) }
+        val validIds = baseNodes.map { it.id }.toSet()
+        val start = if (startNodeId.uppercase() in validIds) startNodeId.uppercase() else (baseNodes.firstOrNull()?.id ?: "A")
 
-        val nodes = listOf(
-            GraphNodeState("A", "A", 40f, 25f),
-            GraphNodeState("B", "B", 110f, 15f),
-            GraphNodeState("C", "C", 40f, 85f),
-            GraphNodeState("D", "D", 110f, 85f),
-            GraphNodeState("E", "E", 180f, 50f)
-        )
+        val adj = mutableMapOf<String, MutableList<Pair<String, Int>>>()
+        baseNodes.forEach { adj[it.id] = mutableListOf() }
+        baseEdges.forEach { e ->
+            val w = e.weight ?: 1
+            adj[e.from]?.add(e.to to w)
+            if (!e.isDirected) {
+                adj[e.to]?.add(e.from to w)
+            }
+        }
+        adj.values.forEach { list -> list.sortBy { it.first } }
 
-        val edges = listOf(
-            GraphEdgeState("A", "B", isDirected = false),
-            GraphEdgeState("A", "C", isDirected = false),
-            GraphEdgeState("B", "D", isDirected = false),
-            GraphEdgeState("C", "D", isDirected = false),
-            GraphEdgeState("D", "E", isDirected = false)
-        )
+        val visited = linkedSetOf<String>()
+        val queue = ArrayDeque<String>()
+        val treeEdges = mutableSetOf<Pair<String, String>>()
+        val distMap = mutableMapOf<String, Int>()
+
+        visited.add(start)
+        queue.addLast(start)
+        distMap[start] = 0
+
+        fun queueBufferItems(highlightId: String? = null): List<BufferItem> =
+            queue.mapIndexed { idx, id ->
+                BufferItem(
+                    id = "q_${idx}_$id",
+                    value = "$id(d=${distMap[id] ?: 0})",
+                    state = if (id == highlightId) ElementState.ACTIVE else ElementState.IDLE
+                )
+            }
+
+        fun isTreeEdge(e: GraphEdgeState): Boolean =
+            (e.from to e.to) in treeEdges || (e.to to e.from) in treeEdges
 
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "BFS: Starting at node $start. Enqueued $start.",
+                description = "BFS: Initialized source node $start (dist=0). Enqueued $start into frontier.",
+                comparisonExpr = "QUEUE: [$start]",
                 phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map { if (it.id == start) it.copy(state = ElementState.ACTIVE) else it },
-                edges = edges,
+                nodes = baseNodes.map { if (it.id == start) it.copy(state = ElementState.ACTIVE) else it },
+                edges = baseEdges,
+                buffer = queueBufferItems(start),
+                bufferLabel = "BFS FRONTIER QUEUE",
                 activeNodeId = start,
-                visitedNodeIds = setOf(start),
-                activeCodeLines = listOf(1, 2)
+                visitedNodeIds = visited.toSet(),
+                activeCodeLines = listOf(1, 2),
+                variables = mapOf(
+                    "source" to start,
+                    "queueSize" to queue.size.toString(),
+                    "visitedCount" to visited.size.toString()
+                ),
+                callStack = listOf("bfs(start=$start)")
             )
         )
 
-        // For non-default start, emit a short synthetic sequence noting the
-        // start. The full BFS-from-arbitrary-start implementation is a
-        // follow-up; this keeps the existing demo intact.
-        if (start == "A") {
-            steps.add(
-                VisualizerStep(
-                    stepIndex = sIdx++,
-                    description = "BFS: Dequeued A. Visiting unvisited neighbors B and C. Queue = [B, C]",
-                    comparisonExpr = "QUEUE: [B, C]",
-                    phaseLabel = "ENQUEUED",
-                    renderMode = VisualizerRenderMode.GRAPH_TREE,
-                    nodes = nodes.map {
-                        when (it.id) {
-                            "A" -> it.copy(state = ElementState.VISITED)
-                            "B", "C" -> it.copy(state = ElementState.COMPARING)
-                            else -> it
-                        }
-                    },
-                    edges = edges.map { if (it.from == "A") it.copy(isHighlighted = true) else it },
-                    activeNodeId = "A",
-                    visitedNodeIds = setOf("A", "B", "C"),
-                    activeCodeLines = listOf(3, 4, 5, 6, 7)
-                )
-            )
+        while (queue.isNotEmpty()) {
+            val curr = queue.removeFirst()
+            val currDist = distMap[curr] ?: 0
+            val neighbors = adj[curr].orEmpty()
+            val newlyDiscovered = mutableListOf<String>()
+
+            for ((nextId, weight) in neighbors) {
+                if (nextId !in visited) {
+                    visited.add(nextId)
+                    distMap[nextId] = currDist + weight
+                    treeEdges.add(curr to nextId)
+                    queue.addLast(nextId)
+                    newlyDiscovered.add("$nextId(w=$weight)")
+                }
+            }
+
+            val desc = if (newlyDiscovered.isNotEmpty()) {
+                "BFS: Dequeued $curr (dist=$currDist). Discovered ${newlyDiscovered.joinToString(", ")}. Queue = [${queue.joinToString(", ")}]"
+            } else {
+                "BFS: Dequeued $curr (dist=$currDist). All neighbors already visited. Queue = [${queue.joinToString(", ")}]"
+            }
 
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "BFS: Dequeued B. Visiting neighbor D. Queue = [C, D]",
-                    comparisonExpr = "QUEUE: [C, D]",
-                    phaseLabel = "ENQUEUED",
+                    description = desc,
+                    comparisonExpr = "QUEUE: [${queue.joinToString(", ")}]",
+                    phaseLabel = if (newlyDiscovered.isNotEmpty()) "ENQUEUED" else "VISITING",
                     renderMode = VisualizerRenderMode.GRAPH_TREE,
-                    nodes = nodes.map {
-                        when (it.id) {
-                            "B" -> it.copy(state = ElementState.ACTIVE)
-                            "D" -> it.copy(state = ElementState.COMPARING)
-                            "A", "C" -> it.copy(state = ElementState.VISITED)
-                            else -> it
-                        }
-                    },
-                    edges = edges.map {
+                    nodes = baseNodes.map { node ->
                         when {
-                            it.from == "A" || (it.from == "B" && it.to == "D") -> it.copy(isHighlighted = true)
-                            else -> it
+                            node.id == curr -> node.copy(state = ElementState.ACTIVE)
+                            node.id in queue -> node.copy(state = ElementState.COMPARING)
+                            node.id in visited -> node.copy(state = ElementState.VISITED)
+                            else -> node
                         }
                     },
-                    activeNodeId = "B",
-                    visitedNodeIds = setOf("A", "B", "C", "D"),
-                    activeCodeLines = listOf(3, 4, 5, 6, 7)
-                )
-            )
-
-            steps.add(
-                VisualizerStep(
-                    stepIndex = sIdx++,
-                    description = "BFS: Dequeued D. Visiting neighbor E. Queue = [E]",
-                    comparisonExpr = "QUEUE: [E]",
-                    phaseLabel = "ENQUEUED",
-                    renderMode = VisualizerRenderMode.GRAPH_TREE,
-                    nodes = nodes.map {
-                        when (it.id) {
-                            "D" -> it.copy(state = ElementState.ACTIVE)
-                            "E" -> it.copy(state = ElementState.FOUND)
-                            else -> it.copy(state = ElementState.VISITED)
-                        }
+                    edges = baseEdges.map { e ->
+                        if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
                     },
-                    edges = edges.map { it.copy(isHighlighted = true) },
-                    activeNodeId = "D",
-                    visitedNodeIds = setOf("A", "B", "C", "D", "E"),
-                    activeCodeLines = listOf(3, 4, 5, 6, 7)
-                )
-            )
-        } else {
-            steps.add(
-                VisualizerStep(
-                    stepIndex = sIdx++,
-                    description = "BFS from $start: walking the existing A/B/C/D/E topology (full BFS-from-arbitrary-start coming soon).",
-                    comparisonExpr = "START: $start",
-                    phaseLabel = "VISITING",
-                    renderMode = VisualizerRenderMode.GRAPH_TREE,
-                    nodes = nodes.map { it.copy(state = ElementState.VISITED) },
-                    edges = edges.map { it.copy(isHighlighted = true) },
-                    visitedNodeIds = setOf("A", "B", "C", "D", "E"),
-                    activeCodeLines = listOf(1)
+                    buffer = queueBufferItems(),
+                    bufferLabel = "BFS FRONTIER QUEUE",
+                    activeNodeId = curr,
+                    visitedNodeIds = visited.toSet(),
+                    activeCodeLines = listOf(3, 4, 5, 6, 7),
+                    variables = mapOf(
+                        "curr" to curr,
+                        "dist[$curr]" to currDist.toString(),
+                        "queue" to "[${queue.joinToString(",")}]",
+                        "visited" to visited.joinToString("→")
+                    ),
+                    callStack = listOf("bfs(start=$start)", "expand(curr=$curr)")
                 )
             )
         }
 
+        val lastVisited = visited.lastOrNull() ?: start
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "BFS Traversal Complete! All nodes visited level by level.",
+                description = "BFS Traversal Complete! Order: ${visited.joinToString(" → ")}.",
+                comparisonExpr = "COMPLETE: ${visited.size} nodes visited",
                 phaseLabel = "SORTED",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map { it.copy(state = ElementState.VISITED) },
-                edges = edges.map { it.copy(isHighlighted = true) },
-                visitedNodeIds = setOf("A", "B", "C", "D", "E"),
-                activeCodeLines = listOf(3)
+                nodes = baseNodes.map {
+                    if (it.id == lastVisited) it.copy(state = ElementState.FOUND)
+                    else if (it.id in visited) it.copy(state = ElementState.VISITED)
+                    else it
+                },
+                edges = baseEdges.map { e ->
+                    if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                },
+                buffer = emptyList(),
+                bufferLabel = "BFS FRONTIER QUEUE",
+                activeNodeId = lastVisited,
+                visitedNodeIds = visited.toSet(),
+                activeCodeLines = listOf(3),
+                variables = mapOf(
+                    "source" to start,
+                    "visitedOrder" to visited.joinToString("→"),
+                    "totalVisited" to visited.size.toString()
+                ),
+                callStack = listOf("bfs(start=$start) -> complete")
             )
         )
 
         return steps
     }
 
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    // 13. Depth-First Search (DFS)
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-    private fun generateDFSSteps(startNodeId: String = "A"): List<VisualizerStep> {
+    // ─────────────────────────────────────────────────────────────
+    // 13. Depth-First Search (DFS — Weighted Graph + Call Stack)
+    // ─────────────────────────────────────────────────────────────
+    private fun generateDFSSteps(
+        startNodeId: String = "A",
+        customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null
+    ): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
-        val validStart = startNodeId.uppercase() in setOf("A", "B", "C", "D", "E")
-        val start = if (validStart) startNodeId.uppercase() else "A"
+        val (rawNodes, rawEdges) = customGraph?.takeIf { it.first.isNotEmpty() } ?: canonicalWeightedGraph()
+        val baseNodes = rawNodes.map { it.copy(state = ElementState.IDLE) }
+        val baseEdges = rawEdges.map { it.copy(isHighlighted = false) }
+        val validIds = baseNodes.map { it.id }.toSet()
+        val start = if (startNodeId.uppercase() in validIds) startNodeId.uppercase() else (baseNodes.firstOrNull()?.id ?: "A")
 
-        val nodes = listOf(
-            GraphNodeState("A", "A", 40f, 25f),
-            GraphNodeState("B", "B", 110f, 15f),
-            GraphNodeState("C", "C", 40f, 85f),
-            GraphNodeState("D", "D", 110f, 85f),
-            GraphNodeState("E", "E", 180f, 50f)
-        )
+        val adj = mutableMapOf<String, MutableList<Pair<String, Int>>>()
+        baseNodes.forEach { adj[it.id] = mutableListOf() }
+        baseEdges.forEach { e ->
+            val w = e.weight ?: 1
+            adj[e.from]?.add(e.to to w)
+            if (!e.isDirected) {
+                adj[e.to]?.add(e.from to w)
+            }
+        }
+        adj.values.forEach { list -> list.sortBy { it.first } }
 
-        val edges = listOf(
-            GraphEdgeState("A", "B", isDirected = false),
-            GraphEdgeState("A", "C", isDirected = false),
-            GraphEdgeState("B", "D", isDirected = false),
-            GraphEdgeState("C", "D", isDirected = false),
-            GraphEdgeState("D", "E", isDirected = false)
-        )
+        val visited = linkedSetOf<String>()
+        val callStack = mutableListOf<String>()
+        val treeEdges = mutableSetOf<Pair<String, String>>()
 
-        if (start == "A") {
-            steps.add(
-                VisualizerStep(
-                    stepIndex = sIdx++,
-                    description = "DFS: Starting at root node A. Exploring depth branch A -> B",
-                    comparisonExpr = "CALL STACK: [dfs(A)]",
-                    phaseLabel = "INITIALIZING",
-                    renderMode = VisualizerRenderMode.GRAPH_TREE,
-                    nodes = nodes.map { if (it.id == "A") it.copy(state = ElementState.ACTIVE) else it },
-                    edges = edges,
-                    activeNodeId = "A",
-                    visitedNodeIds = setOf("A"),
-                    activeCodeLines = listOf(1, 2)
+        fun isTreeEdge(e: GraphEdgeState): Boolean =
+            (e.from to e.to) in treeEdges || (e.to to e.from) in treeEdges
+
+        fun stackBufferItems(): List<BufferItem> =
+            callStack.mapIndexed { idx, id ->
+                BufferItem(
+                    id = "dfs_${idx}_$id",
+                    value = "dfs($id)",
+                    state = if (idx == callStack.lastIndex) ElementState.ACTIVE else ElementState.IDLE
                 )
-            )
+            }
+
+        fun dfs(u: String, incomingWeight: Int?) {
+            visited.add(u)
+            callStack.add(u)
+            val weightInfo = if (incomingWeight != null) " via edge (w=$incomingWeight)" else ""
 
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "DFS: Reached node B. Exploring deeper to node D.",
-                    comparisonExpr = "CALL STACK: [dfs(A), dfs(B)]",
-                    phaseLabel = "VISITING",
+                    description = "DFS: Visiting node $u$weightInfo. Call Stack = [${callStack.joinToString(" → ")}]",
+                    comparisonExpr = "CALL STACK: [${callStack.joinToString(", ") { "dfs($it)" }}]",
+                    phaseLabel = if (callStack.size == 1) "INITIALIZING" else "VISITING",
                     renderMode = VisualizerRenderMode.GRAPH_TREE,
-                    nodes = nodes.map {
-                        when (it.id) {
-                            "A" -> it.copy(state = ElementState.VISITED)
-                            "B" -> it.copy(state = ElementState.ACTIVE)
-                            else -> it
+                    nodes = baseNodes.map { node ->
+                        when {
+                            node.id == u -> node.copy(state = ElementState.ACTIVE)
+                            node.id in callStack -> node.copy(state = ElementState.COMPARING)
+                            node.id in visited -> node.copy(state = ElementState.VISITED)
+                            else -> node
                         }
                     },
-                edges = edges.map { if (it.from == "A" && it.to == "B") it.copy(isHighlighted = true) else it },
-                activeNodeId = "B",
-                visitedNodeIds = setOf("A", "B"),
-                activeCodeLines = listOf(3, 4, 5)
-            )
-        )
-
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "DFS: Reached node D. Exploring deeper to node E.",
-                comparisonExpr = "CALL STACK: [dfs(A), dfs(B), dfs(D)]",
-                phaseLabel = "VISITING",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map {
-                    when (it.id) {
-                        "A", "B" -> it.copy(state = ElementState.VISITED)
-                        "D" -> it.copy(state = ElementState.ACTIVE)
-                        else -> it
-                    }
-                },
-                edges = edges.map {
-                    when {
-                        it.from == "A" && it.to == "B" -> it.copy(isHighlighted = true)
-                        it.from == "B" && it.to == "D" -> it.copy(isHighlighted = true)
-                        else -> it
-                    }
-                },
-                activeNodeId = "D",
-                visitedNodeIds = setOf("A", "B", "D"),
-                activeCodeLines = listOf(3, 4, 5)
-            )
-        )
-
-        steps.add(
-            VisualizerStep(
-                stepIndex = sIdx++,
-                description = "DFS: Reached leaf node E. Backtracking.",
-                comparisonExpr = "BACKTRACK: dfs(E) returns",
-                phaseLabel = "FOUND",
-                renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = nodes.map {
-                    when (it.id) {
-                        "E" -> it.copy(state = ElementState.FOUND)
-                        else -> it.copy(state = ElementState.VISITED)
-                    }
-                },
-                edges = edges.map { it.copy(isHighlighted = true) },
-                activeNodeId = "E",
-                visitedNodeIds = setOf("A", "B", "D", "E"),
-                activeCodeLines = listOf(5)
-            )
-        )
-        } else {
-            steps.add(
-                VisualizerStep(
-                    stepIndex = sIdx++,
-                    description = "DFS from $start: walking the existing A/B/C/D/E topology (full DFS-from-arbitrary-start coming soon).",
-                    comparisonExpr = "START: $start",
-                    phaseLabel = "VISITING",
-                    renderMode = VisualizerRenderMode.GRAPH_TREE,
-                    nodes = nodes.map { it.copy(state = ElementState.VISITED) },
-                    edges = edges.map { it.copy(isHighlighted = true) },
-                    visitedNodeIds = setOf("A", "B", "C", "D", "E"),
-                    activeCodeLines = listOf(1)
+                    edges = baseEdges.map { e ->
+                        if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                    },
+                    buffer = stackBufferItems(),
+                    bufferLabel = "DFS CALL STACK",
+                    activeNodeId = u,
+                    visitedNodeIds = visited.toSet(),
+                    activeCodeLines = if (callStack.size == 1) listOf(1, 2) else listOf(3, 4, 5),
+                    variables = mapOf(
+                        "u" to u,
+                        "depth" to callStack.size.toString(),
+                        "visited" to visited.joinToString("→")
+                    ),
+                    callStack = callStack.map { "dfs($it)" }
                 )
             )
+
+            for ((v, w) in adj[u].orEmpty()) {
+                if (v !in visited) {
+                    treeEdges.add(u to v)
+                    dfs(v, w)
+                }
+            }
+
+            callStack.removeAt(callStack.lastIndex)
+            if (callStack.isNotEmpty()) {
+                val parent = callStack.last()
+                steps.add(
+                    VisualizerStep(
+                        stepIndex = sIdx++,
+                        description = "DFS: Backtracking from $u to parent $parent.",
+                        comparisonExpr = "BACKTRACK: dfs($u) -> $parent",
+                        phaseLabel = "BACKTRACKING",
+                        renderMode = VisualizerRenderMode.GRAPH_TREE,
+                        nodes = baseNodes.map { node ->
+                            when {
+                                node.id == parent -> node.copy(state = ElementState.ACTIVE)
+                                node.id == u -> node.copy(state = ElementState.FOUND)
+                                node.id in visited -> node.copy(state = ElementState.VISITED)
+                                else -> node
+                            }
+                        },
+                        edges = baseEdges.map { e ->
+                            if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                        },
+                        buffer = stackBufferItems(),
+                        bufferLabel = "DFS CALL STACK",
+                        activeNodeId = parent,
+                        visitedNodeIds = visited.toSet(),
+                        activeCodeLines = listOf(5),
+                        variables = mapOf(
+                            "backtrackFrom" to u,
+                            "parent" to parent,
+                            "depth" to callStack.size.toString()
+                        ),
+                        callStack = callStack.map { "dfs($it)" }
+                    )
+                )
+            }
         }
+
+        dfs(start, null)
+
+        val lastNode = visited.lastOrNull() ?: start
+        steps.add(
+            VisualizerStep(
+                stepIndex = sIdx++,
+                description = "DFS Complete! Visited order: ${visited.joinToString(" → ")}.",
+                comparisonExpr = "COMPLETE: ${visited.size} nodes visited",
+                phaseLabel = "FOUND",
+                renderMode = VisualizerRenderMode.GRAPH_TREE,
+                nodes = baseNodes.map {
+                    if (it.id == lastNode) it.copy(state = ElementState.FOUND)
+                    else if (it.id in visited) it.copy(state = ElementState.VISITED)
+                    else it
+                },
+                edges = baseEdges.map { e ->
+                    if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                },
+                buffer = emptyList(),
+                bufferLabel = "DFS CALL STACK",
+                activeNodeId = lastNode,
+                visitedNodeIds = visited.toSet(),
+                activeCodeLines = listOf(5),
+                variables = mapOf(
+                    "source" to start,
+                    "visitedOrder" to visited.joinToString("→"),
+                    "totalVisited" to visited.size.toString()
+                ),
+                callStack = listOf("dfs(start=$start) -> complete")
+            )
+        )
 
         return steps
     }
-
-    // ---------------------------------------------------------------------
 }

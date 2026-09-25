@@ -291,4 +291,62 @@ class VisualizerScreenStateTest {
         state.previewScrub(4)
         assertEquals(1f, state.stepProgress, 0.0001f)
     }
+
+    @Test
+    fun stackAndQueue_initializeWithDefaultOperationsAndPreRemovalHighlights() {
+        val state = makeState(1)
+        assertTrue(state.bufferOps.isNotEmpty())
+        assertTrue(state.queueOps.isNotEmpty())
+
+        val stackSteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.STACK),
+            bufferOps = state.bufferOps
+        )
+        assertTrue("Stack should have more than 2 steps", stackSteps.size > 2)
+        assertTrue(
+            "Stack Pop should emit a pre-removal SWAPPING step",
+            stackSteps.any { step -> step.buffer.any { it.state == com.example.algolens.ui.visualizer.ElementState.SWAPPING } }
+        )
+        assertTrue("Stack steps should populate variables", stackSteps.all { it.variables.isNotEmpty() })
+
+        val queueSteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.QUEUE),
+            queueOps = state.queueOps
+        )
+        assertTrue("Queue should have more than 2 steps", queueSteps.size > 2)
+        assertTrue(
+            "Queue Dequeue should emit a pre-removal SWAPPING step",
+            queueSteps.any { step -> step.buffer.any { it.state == com.example.algolens.ui.visualizer.ElementState.SWAPPING } }
+        )
+    }
+
+    @Test
+    fun bstHeapBfsDfs_populateTelemetryVariablesAndRespectCustomInput() {
+        val bstSteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.BINARY_SEARCH_TREE),
+            bstValues = listOf(50, 30, 70, 20, 40),
+            bstSearchKey = 40
+        )
+        assertTrue("BST should include insertion steps", bstSteps.any { it.phaseLabel == "INSERTING" })
+        assertTrue("BST should populate visitedNodeIds", bstSteps.last().visitedNodeIds.isNotEmpty())
+        assertTrue("BST should populate variables", bstSteps.last().variables.isNotEmpty())
+
+        val customHeapInput = listOf(12, 45, 7, 89, 23, 56, 34, 99, 10)
+        val heapSteps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            com.example.algolens.model.Algorithm(id = com.example.algolens.model.AlgorithmId.HEAP),
+            inputArray = customHeapInput
+        )
+        assertEquals("Heap should use all 9 custom elements", 9, heapSteps.first().nodes.size)
+        assertTrue("Heap should populate variables", heapSteps.first().variables.isNotEmpty())
+    }
+
+    @Test
+    fun appSettings_toggleBookmark_addsAndRemovesAlgorithmId() {
+        com.example.algolens.data.AppSettings.clearAllSavedData()
+        assertFalse(com.example.algolens.data.AppSettings.isBookmarked("MERGE_SORT"))
+        com.example.algolens.data.AppSettings.toggleBookmark("MERGE_SORT")
+        assertTrue(com.example.algolens.data.AppSettings.isBookmarked("MERGE_SORT"))
+        com.example.algolens.data.AppSettings.toggleBookmark("MERGE_SORT")
+        assertFalse(com.example.algolens.data.AppSettings.isBookmarked("MERGE_SORT"))
+    }
 }

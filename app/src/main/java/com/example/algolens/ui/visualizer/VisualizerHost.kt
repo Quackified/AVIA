@@ -66,14 +66,31 @@ fun VisualizerHost(
                 state = state
             )
 
-            VisualizerFamily.GRAPH_2D -> GraphTreeCanvas(
-                currentStep = currentStep,
-                algorithmId = spec.id
-            )
+            VisualizerFamily.GRAPH_2D -> {
+                if (spec.id == AlgorithmId.HEAP && arrayViewMode == ArrayViewMode.BARS) {
+                    Linear1DCanvas(
+                        spec = spec,
+                        currentStep = currentStep,
+                        arrayViewMode = ArrayViewMode.CELLS,
+                        selectedCellIndices = selectedCellIndices,
+                        challengeTargetIndices = challengeTargetIndices,
+                        syncPulse = syncPulse,
+                        onCellClick = onCellClick,
+                        state = state
+                    )
+                } else {
+                    GraphTreeCanvas(
+                        currentStep = currentStep,
+                        algorithmId = spec.id,
+                        state = state
+                    )
+                }
+            }
 
             VisualizerFamily.BUFFER -> BufferCanvas(
                 currentStep = currentStep,
-                spec = spec
+                spec = spec,
+                state = state
             )
         }
 
@@ -176,8 +193,15 @@ private fun Linear1DCanvas(
 @Composable
 private fun GraphTreeCanvas(
     currentStep: VisualizerStep,
-    algorithmId: AlgorithmId
+    algorithmId: AlgorithmId,
+    state: VisualizerScreenState
 ) {
+    val challengeNodeIds = if (state.challengeInFlight) {
+        currentStep.nodes.map { it.id }.toSet()
+    } else {
+        emptySet()
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
@@ -191,6 +215,15 @@ private fun GraphTreeCanvas(
         GraphTreeVisualizer(
             step = currentStep,
             algorithmKey = algorithmId.name,
+            challengeTargetNodeIds = challengeNodeIds,
+            onNodeClick = { nodeId ->
+                state.submitNodePrediction(nodeId, algorithmId)
+            },
+            onGraphModified = if (algorithmId == AlgorithmId.BFS || algorithmId == AlgorithmId.DFS) {
+                { nodes, edges ->
+                    state.customGraph = if (nodes.isEmpty()) null else (nodes to edges)
+                }
+            } else null,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -204,7 +237,8 @@ private fun GraphTreeCanvas(
 @Composable
 private fun BufferCanvas(
     currentStep: VisualizerStep,
-    spec: AlgorithmSpec
+    spec: AlgorithmSpec,
+    state: VisualizerScreenState
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -219,6 +253,8 @@ private fun BufferCanvas(
         BufferVisualizer(
             step = currentStep,
             isStack = spec.isStack,
+            onStackOp = { op -> state.appendLiveStackOp(op) },
+            onQueueOp = { op -> state.appendLiveQueueOp(op) },
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)

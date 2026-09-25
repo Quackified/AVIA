@@ -14,6 +14,7 @@ import com.example.algolens.data.AlgorithmRegistry
 import com.example.algolens.data.AlgorithmStepRepository
 import com.example.algolens.data.AppSettings
 import com.example.algolens.model.Algorithm
+import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.BufferOp
 import com.example.algolens.model.GraphCustomization
 import com.example.algolens.model.QueueOp
@@ -73,7 +74,7 @@ class VisualizerScreenState(
     var isPlaying: Boolean by mutableStateOf(false)
 
     /** Three discrete speeds, cycled by the rail's speed chip. */
-    var playbackSpeedMs: Long by mutableLongStateOf(1_000L)
+    var playbackSpeedMs: Long by mutableLongStateOf(AppSettings.defaultPlaybackSpeedMs)
 
     // ── Sheet visibility ──
     var showInputSheet: Boolean by mutableStateOf(false)
@@ -118,17 +119,19 @@ class VisualizerScreenState(
     //    customize-input sheet; null means the generator default. ──
     var searchTarget: Int? by mutableStateOf(null)
 
-    // ── Buffer customize state (Stack / Queue). When the user
-    //    applies an operation list in the customize sheet, this
-    //    holds it so the step generator re-runs on the new list. ──
-    var bufferOps: List<BufferOp> by mutableStateOf(emptyList())
-    var queueOps: List<QueueOp> by mutableStateOf(emptyList())
+    // ── Buffer customize state (Stack / Queue). Initialized to canonical
+    //    default sequences so Stack and Queue open with rich interactive steps. ──
+    var bufferOps: List<BufferOp> by mutableStateOf(AlgorithmStepRepository.defaultStackOps())
+    var queueOps: List<QueueOp> by mutableStateOf(AlgorithmStepRepository.defaultQueueOps())
 
     // ── Graph customize state (BST / Heap / BFS / DFS). The sheet
     //    emits a `GraphCustomization` (ForHeap | ForBst | ForTraversal)
     //    which is stored here. The step generator dispatch reads
     //    the active variant. ──
     var graphConfig: GraphCustomization? by mutableStateOf(null)
+
+    // ── Interactive Graph Builder topology (BFS / DFS). Null uses canonicalWeightedGraph(). ──
+    var customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? by mutableStateOf(null)
 
     // ── Derived helpers ──
     /** Clamped to ≥ 1 so scrubbers / counters never render `Step 0 of 0`. */
@@ -170,7 +173,12 @@ class VisualizerScreenState(
         }
 
     // ── Mutators ──
-    fun togglePlay() { isPlaying = !isPlaying }
+    fun togglePlay() {
+        isPlaying = !isPlaying
+        if (isPlaying && AppSettings.autoOpenDeckOnPlay) {
+            deckExpanded = true
+        }
+    }
     /** Used by the playback LaunchedEffect to step forward. */
     internal fun advance() {
         if (currentStepIdx < steps.lastIndex) currentStepIdx++
@@ -272,6 +280,73 @@ class VisualizerScreenState(
         val updated = if (current.contains(idx)) current - idx else current + idx
         challengeState = challengeState.copy(selectedIndices = updated)
     }
+
+    /**
+     * Evaluates a direct node tap on the 2D Graph / Tree / Heap canvas when
+     * Challenge Mode is active (`SELECT_VISIT_NODE` or Heap index `SELECT_COMPARE_PAIR`).
+     */
+    fun submitNodePrediction(nodeId: String, algorithmId: AlgorithmId) {
+        if (!challengeInFlight) return
+        val nextStep = steps.getOrNull(displayStepIdx + 1)
+        val q = buildPredictionQuestion(algorithmId, currentStep, nextStep) ?: return
+        val idx = nodeId.toIntOrNull()
+        val isCorrect = when (q.kind) {
+            PredictionKind.SELECT_VISIT_NODE -> predictionAnswerFor(
+                question = q,
+                userSelectedNodeId = nodeId
+            )
+            PredictionKind.SELECT_COMPARE_PAIR,
+            PredictionKind.SELECT_PIVOT -> if (idx != null) {
+                setCellSelected(idx)
+                return
+            } else false
+            else -> return
+        }
+        val pts = if (isCorrect) q.pointsAvailable + (challengeState.streak * 20) else 0
+        challengeState = challengeState.copy(
+            score = challengeState.score + pts,
+            streak = if (isCorrect) challengeState.streak + 1 else 0,
+            totalQuestions = challengeState.totalQuestions + 1,
+            correctAnswers = challengeState.correctAnswers + (if (isCorrect) 1 else 0),
+            feedback = ChallengeFeedback(
+                isCorrect = isCorrect,
+                message = if (isCorrect) "Spot on! Node $nodeId is next. ${q.contextLine}" else "Incorrect. Expected ${(q.answer as? PredictionAnswer.NodeId)?.id ?: "another node"}. ${q.contextLine}",
+                pointsAwarded = pts
+            )
+        )
+    }
+
+    internal var pendingStepAfterRegen: Int? = null
+
+    /**
+     * Appends a live Stack operation directly from the stage controls and jumps
+     * the playhead to the newly executed step.
+     */
+    fun appendLiveStackOp(op: BufferOp) {
+        val baseOps = if (bufferOps.isNotEmpty()) {
+            bufferOps
+        } else {
+            currentStep.buffer.mapNotNull { it.value.toIntOrNull()?.let { v -> BufferOp.Push(v) } }
+        }
+        val updated = baseOps + op
+        pendingStepAfterRegen = -1 // sentinel: jump to the last operation step before DONE
+        bufferOps = updated
+    }
+
+    /**
+     * Appends a live Queue operation directly from the stage controls and jumps
+     * the playhead to the newly executed step.
+     */
+    fun appendLiveQueueOp(op: QueueOp) {
+        val baseOps = if (queueOps.isNotEmpty()) {
+            queueOps
+        } else {
+            currentStep.buffer.mapNotNull { it.value.toIntOrNull()?.let { v -> QueueOp.Enqueue(v) } }
+        }
+        val updated = baseOps + op
+        pendingStepAfterRegen = -1
+        queueOps = updated
+    }
 }
 
 /**
@@ -287,9 +362,7 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
 
     // Regenerate steps when the algorithm or any user-customized
     // input changes (array values, sort order, buffer op list,
-    // graph config). The re-key list deliberately includes every
-    // input the step generator dispatch in AlgorithmStepRepository
-    // can read.
+    // graph config, or interactive customGraph).
     LaunchedEffect(
         algorithm,
         state.arrayData,
@@ -298,16 +371,23 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
         state.bufferOps,
         state.queueOps,
         state.graphConfig,
+        state.customGraph,
     ) {
-        // Pull graph-related values out of the GraphCustomization for
-        // clean per-parameter forwarding.
-        val bstValues = (state.graphConfig as? GraphCustomization.ForBst)?.values ?: listOf(50, 30, 70, 20, 40, 60, 80)
-        val bstSearchKey = (state.graphConfig as? GraphCustomization.ForBst)?.searchKey ?: 40
+        val heapValues = (state.graphConfig as? GraphCustomization.ForHeap)?.values
+        val effectiveInput = if (algorithm.id == AlgorithmId.HEAP && !heapValues.isNullOrEmpty()) {
+            heapValues
+        } else {
+            state.arrayData
+        }
+        val bstValues = (state.graphConfig as? GraphCustomization.ForBst)?.values
+            ?: AlgorithmStepRepository.defaultBstValues
+        val bstSearchKey = (state.graphConfig as? GraphCustomization.ForBst)?.searchKey
+            ?: AlgorithmStepRepository.defaultBstSearchKey
         val traversalStart = (state.graphConfig as? GraphCustomization.ForTraversal)?.startNodeId ?: "A"
 
         state.steps = AlgorithmStepRepository.generateStepsForAlgorithm(
             algorithm,
-            inputArray = state.arrayData,
+            inputArray = effectiveInput,
             sortOrder = state.lastAppliedSortOrder,
             searchTarget = state.searchTarget,
             bufferOps = state.bufferOps,
@@ -315,11 +395,23 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             bstValues = bstValues,
             bstSearchKey = bstSearchKey,
             traversalStartNodeId = traversalStart,
+            customGraph = state.customGraph,
         )
-        state.reset()
+        val targetIdx = state.pendingStepAfterRegen
+        state.pendingStepAfterRegen = null
+        if (targetIdx != null && state.steps.isNotEmpty()) {
+            val resolved = if (targetIdx < 0) {
+                (state.steps.lastIndex - 1).coerceAtLeast(0)
+            } else {
+                targetIdx.coerceIn(0, (state.steps.lastIndex - 1).coerceAtLeast(0))
+            }
+            state.scrubTo(resolved)
+        } else {
+            state.reset()
+        }
     }
 
-    // Playback tick  single source of "is the animation advancing?".
+    // Playback tick — single source of "is the animation advancing?".
     LaunchedEffect(state.isPlaying, state.playbackSpeedMs) {
         while (state.isPlaying) {
             delay(state.playbackSpeedMs)
@@ -327,16 +419,19 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
                 if (state.currentStepIdx < state.steps.lastIndex) {
                     state.advance()
                 } else {
-                    // Reached the end  stop playing so the rail UI updates.
+                    // Reached the end — stop playing so the rail UI updates.
                     state.togglePlay()
                 }
             }
         }
     }
 
-    // Sync cell scale when changed in Settings
+    // Sync cell scale & default playback speed when changed in Settings
     LaunchedEffect(AppSettings.defaultCellScale) {
         state.applyCellScale(AppSettings.defaultCellScale)
+    }
+    LaunchedEffect(AppSettings.defaultPlaybackSpeedMs) {
+        state.playbackSpeedMs = AppSettings.defaultPlaybackSpeedMs
     }
 
     return state

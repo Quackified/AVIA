@@ -520,12 +520,17 @@ fun CanvasChallengePrompt(
     }
     if (question == null && state.feedback == null) return
 
-    fun onAnswered(userSaidYes: Boolean? = null, userSelectedIndices: Set<Int> = emptySet()) {
+    fun onAnswered(
+        userSaidYes: Boolean? = null,
+        userSelectedIndices: Set<Int> = emptySet(),
+        userSelectedNodeId: String? = null
+    ) {
         val q = question ?: return
         val isCorrect = predictionAnswerFor(
             question = q,
             userSaidYes = userSaidYes,
             userSelectedIndices = userSelectedIndices,
+            userSelectedNodeId = userSelectedNodeId,
         )
         val pts = if (isCorrect) q.pointsAvailable + (state.streak * 20) else 0
         onStateChange(
@@ -562,6 +567,7 @@ fun CanvasChallengePrompt(
                     onAnswerYes = { onAnswered(userSaidYes = true) },
                     onAnswerNo = { onAnswered(userSaidYes = false) },
                     onAnswerIndices = { onAnswered(userSelectedIndices = it) },
+                    onAnswerNodeId = { onAnswered(userSelectedNodeId = it) }
                 )
             } else if (fb != null) {
                 FeedbackRow(
@@ -636,6 +642,7 @@ private fun PredictionPromptBody(
     onAnswerYes: () -> Unit,
     onAnswerNo: () -> Unit,
     onAnswerIndices: (Set<Int>) -> Unit,
+    onAnswerNodeId: (String) -> Unit = {},
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -672,20 +679,29 @@ private fun PredictionPromptBody(
             PredictionKind.SELECT_PIVOT -> TapIndicesChip(
                 question = question, step = step, onSubmit = onAnswerIndices,
             )
-            PredictionKind.SELECT_VISIT_NODE -> Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(7.dp))
-                    .background(PurpleSubtle)
-                    .border(1.dp, SecondaryPurple.copy(alpha = 0.4f), RoundedCornerShape(7.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center,
+            PredictionKind.SELECT_VISIT_NODE -> Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "TAP A NODE",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PurpleGlow,
-                    fontWeight = FontWeight.Bold, fontSize = AlgoType.microSize,
-                )
+                step.nodes.take(6).forEach { node ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(PurpleSubtle)
+                            .border(1.dp, SecondaryPurple.copy(alpha = 0.55f), RoundedCornerShape(6.dp))
+                            .clickable { onAnswerNodeId(node.id) }
+                            .padding(horizontal = 8.dp, vertical = 5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = node.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PurpleGlow,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = AlgoType.microSize
+                        )
+                    }
+                }
             }
         }
     }

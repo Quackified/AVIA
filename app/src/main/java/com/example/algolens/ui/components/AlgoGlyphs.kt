@@ -283,19 +283,11 @@ object AlgoGlyphs {
         line(15.2f, 15.2f, 20.5f, 20.5f)
     }
 
-    val Tune: ImageVector = ImageVector.Builder(
-        name = "AlgoGlyphs.Tune",
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f
-    ).path(
-        fill = null,
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.25f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
+    val ChevronUp: ImageVector = glyph("AlgoGlyphs.ChevronUp") {
+        moveTo(6f, 14.5f); lineTo(12f, 8.5f); lineTo(18f, 14.5f)
+    }
+
+    val Tune: ImageVector = glyph("AlgoGlyphs.Tune") {
         line(3.5f, 6.5f, 12.3f, 6.5f)
         circle(14.5f, 6.5f, 2.1f)
         line(16.7f, 6.5f, 20.5f, 6.5f)
@@ -307,21 +299,9 @@ object AlgoGlyphs {
         line(3.5f, 17.5f, 14.3f, 17.5f)
         circle(16.5f, 17.5f, 2.1f)
         line(18.7f, 17.5f, 20.5f, 17.5f)
-    }.build()
+    }
 
-    val Sliders: ImageVector = ImageVector.Builder(
-        name = "AlgoGlyphs.Sliders",
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f
-    ).path(
-        fill = null,
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.25f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
+    val Sliders: ImageVector = glyph("AlgoGlyphs.Sliders") {
         // Left slider track + hollow orb
         line(6f, 4f, 6f, 12.9f)
         circle(6f, 15f, 2.1f)
@@ -336,7 +316,7 @@ object AlgoGlyphs {
         line(18f, 4f, 18f, 13.4f)
         circle(18f, 15.5f, 2.1f)
         line(18f, 17.6f, 18f, 20f)
-    }.build()
+    }
 
     val Book: ImageVector = glyph("AlgoGlyphs.Book") {
         line(12f, 7f, 12f, 20f)
@@ -349,6 +329,13 @@ object AlgoGlyphs {
     val Bookmark: ImageVector = glyph("AlgoGlyphs.Bookmark") {
         moveTo(6f, 3.5f); lineTo(18f, 3.5f); lineTo(18f, 20.5f)
         lineTo(12f, 15.5f); lineTo(6f, 20.5f); close()
+    }
+
+    val BookmarkFilled: ImageVector = glyph("AlgoGlyphs.BookmarkFilled") {
+        moveTo(6f, 3.5f); lineTo(18f, 3.5f); lineTo(18f, 20.5f)
+        lineTo(12f, 15.5f); lineTo(6f, 20.5f); close()
+        // Inner checkmark indicator for saved state
+        moveTo(9.5f, 9.8f); lineTo(11.3f, 11.6f); lineTo(14.8f, 8.1f)
     }
 
     val Bolt: ImageVector = glyph("AlgoGlyphs.Bolt") {

@@ -53,11 +53,13 @@ import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextNavy
 import com.example.algolens.ui.theme.TextPrimary
 import com.example.algolens.ui.theme.TextSecondary
+import com.example.algolens.ui.components.pressPhysics
 
 @Composable
 fun ProfileScreen(
     onAlgorithmClick: (Algorithm) -> Unit,
     onSettingsClick: () -> Unit = {},
+    onNavigateToCatalog: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val allAlgorithms = remember { SampleData.algorithms }
@@ -94,14 +96,9 @@ fun ProfileScreen(
         }
     }
     val codeTraceCount = remember(totalCount) { totalCount * 4 }
-    val bookmarked = remember(allAlgorithms) {
-        allAlgorithms.filter {
-            it.id in listOf(
-                AlgorithmId.MERGE_SORT,
-                AlgorithmId.QUICK_SORT,
-                AlgorithmId.BFS
-            )
-        }
+    val savedIds = com.example.algolens.data.AppSettings.bookmarkedAlgorithmIds
+    val bookmarked = remember(allAlgorithms, savedIds) {
+        allAlgorithms.filter { it.id.name in savedIds }
     }
 
     Column(
@@ -143,7 +140,8 @@ fun ProfileScreen(
 
             Box(
                 modifier = Modifier
-                    .size(AlgoTokens.iconButtonSm)
+                    .size(AlgoTokens.Spacing.minTouchTarget)
+                    .pressPhysics()
                     .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                     .background(CardBackgroundElevated)
                     .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
@@ -310,11 +308,64 @@ fun ProfileScreen(
                 )
             }
 
-            bookmarked.forEach { algo ->
-                AlgoCard(
-                    algo = algo,
-                    onClick = { onAlgorithmClick(algo) }
-                )
+            if (bookmarked.isEmpty()) {
+                DoubleBezelShell(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(AlgoTokens.space5)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                    ) {
+                        Icon(
+                            imageVector = AlgoGlyphs.Bookmark,
+                            contentDescription = null,
+                            tint = PrimaryCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "NO BOOKMARKED ALGORITHMS",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = AlgoType.trackHeader
+                        )
+                        Text(
+                            text = "Bookmark any algorithm from the Visualizer header to pin it here for rapid recall.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted,
+                            fontSize = AlgoType.labelSize,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(top = AlgoTokens.space1)
+                                .size(width = 180.dp, height = AlgoTokens.Spacing.minTouchTarget)
+                                .pressPhysics()
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .background(CyanSubtle)
+                                .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
+                                .clickable { onNavigateToCatalog() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "BROWSE CATALOG",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PrimaryCyan,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = AlgoType.trackSection
+                            )
+                        }
+                    }
+                }
+            } else {
+                bookmarked.forEach { algo ->
+                    AlgoCard(
+                        algo = algo,
+                        onClick = { onAlgorithmClick(algo) }
+                    )
+                }
             }
         }
 

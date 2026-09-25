@@ -160,13 +160,15 @@ fun GraphBuilderGestures(
     onHoveredTargetNodeIdChanged: (String?) -> Unit,
     onGraphModified: ((List<GraphNodeState>, List<GraphEdgeState>) -> Unit)?,
     getNextNodeLabel: (List<GraphNodeState>) -> String,
+    onNodeClick: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier.pointerInput(dynamicNodes, dynamicEdges, isBuilderActive) {
+        modifier = modifier.pointerInput(dynamicNodes, dynamicEdges, isBuilderActive, onNodeClick) {
             detectTapGestures { tapOffset ->
                 val nodes = dynamicNodes
                 if (nodes.isEmpty()) {
+                    if (!isBuilderActive) return@detectTapGestures
                     // First node
                     val newNode = GraphNodeState(
                         id = "A",
@@ -183,12 +185,45 @@ fun GraphBuilderGestures(
 
                 val geom = GraphCanvasGeometry.from(nodes, size.toSize())
 
-                // Check if tapped on an existing node (radius threshold = 28px)
+                // Check if tapped on an existing node (radius threshold = 32px)
                 val hitNode = nodes.find { node ->
                     val c = geom.toCanvasOffset(node.x, node.y)
                     val dx = tapOffset.x - c.x
                     val dy = tapOffset.y - c.y
-                    sqrt(dx * dx + dy * dy) <= 30f
+                    sqrt(dx * dx + dy * dy) <= 32f
+                }
+
+                // When builder mode is OFF, tapping a node invokes onNodeClick (for Challenge Mode / inspection)
+                if (!isBuilderActive) {
+                    if (hitNode != null) {
+                        onNodeClick?.invoke(hitNode.id)
+                        onSelectedNodeIdChanged(if (selectedNodeId == hitNode.id) null else hitNode.id)
+                    }
+                    return@detectTapGestures
+                }
+
+                // Check if tapped on an existing edge weight pill to cycle its weight (1..9)
+                val hitEdgeIndex = dynamicEdges.indexOfFirst { edge ->
+                    val fromNode = nodes.find { it.id == edge.from } ?: return@indexOfFirst false
+                    val toNode = nodes.find { it.id == edge.to } ?: return@indexOfFirst false
+                    val start = geom.toCanvasOffset(fromNode.x, fromNode.y)
+                    val end = geom.toCanvasOffset(toNode.x, toNode.y)
+                    val midX = (start.x + end.x) / 2f
+                    val midY = (start.y + end.y) / 2f
+                    val dx = tapOffset.x - midX
+                    val dy = tapOffset.y - midY
+                    sqrt(dx * dx + dy * dy) <= 20f
+                }
+
+                if (hitEdgeIndex >= 0 && hitNode == null) {
+                    val targetEdge = dynamicEdges[hitEdgeIndex]
+                    val nextWeight = ((targetEdge.weight ?: 1) % 9) + 1
+                    val updatedEdges = dynamicEdges.toMutableList().apply {
+                        this[hitEdgeIndex] = targetEdge.copy(weight = nextWeight, isHighlighted = true)
+                    }
+                    onEdgesChanged(updatedEdges)
+                    onGraphModified?.invoke(dynamicNodes, updatedEdges)
+                    return@detectTapGestures
                 }
 
                 if (hitNode != null) {
@@ -199,7 +234,13 @@ fun GraphBuilderGestures(
                         val toId = hitNode.id
                         val edgeExists = dynamicEdges.any { (it.from == fromId && it.to == toId) || (it.from == toId && it.to == fromId) }
                         if (!edgeExists) {
-                            val newEdge = GraphEdgeState(from = fromId, to = toId, isHighlighted = true)
+                            val defaultWeight = ((dynamicEdges.size * 2) % 9) + 1
+                            val newEdge = GraphEdgeState(
+                                from = fromId,
+                                to = toId,
+                                weight = defaultWeight,
+                                isHighlighted = true
+                            )
                             val updatedEdges = dynamicEdges + newEdge
                             onEdgesChanged(updatedEdges)
                             onGraphModified?.invoke(dynamicNodes, updatedEdges)
@@ -223,10 +264,16 @@ fun GraphBuilderGestures(
                     )
 
                     var updatedEdges = dynamicEdges
-                    // If a node was selected, auto-connect to new node
+                    // If a node was selected, auto-connect to new node with a default weight
                     if (selectedNodeId != null) {
                         val fromId = selectedNodeId
-                        updatedEdges = updatedEdges + GraphEdgeState(from = fromId, to = nextLabel, isHighlighted = true)
+                        val defaultWeight = ((dynamicEdges.size * 2) % 9) + 1
+                        updatedEdges = updatedEdges + GraphEdgeState(
+                            from = fromId,
+                            to = nextLabel,
+                            weight = defaultWeight,
+                            isHighlighted = true
+                        )
                     }
 
                     val updatedNodes = nodes + newNode
@@ -236,7 +283,8 @@ fun GraphBuilderGestures(
                     onGraphModified?.invoke(updatedNodes, updatedEdges)
                 }
             }
-        }.pointerInput(dynamicNodes, dynamicEdges) {
+        }.pointerInput(dynamicNodes, dynamicEdges, isBuilderActive) {
+            if (!isBuilderActive) return@pointerInput
             detectDragGestures(
                 onDragStart = { startOffset ->
                     val nodes = dynamicNodes
@@ -282,9 +330,11 @@ fun GraphBuilderGestures(
                             (it.from == startNode.id && it.to == targetId) || (it.from == targetId && it.to == startNode.id)
                         }
                         if (!edgeExists) {
+                            val defaultWeight = ((dynamicEdges.size * 2) % 9) + 1
                             val newEdge = GraphEdgeState(
                                 from = startNode.id,
                                 to = targetId,
+                                weight = defaultWeight,
                                 isHighlighted = true
                             )
                             val updatedEdges = dynamicEdges + newEdge

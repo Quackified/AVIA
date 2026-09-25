@@ -193,8 +193,8 @@ fun AlgoHairline(
 
 @Composable
 fun Modifier.pressPhysics(
-    shape: Shape,
-    accent: Color,
+    shape: Shape = RoundedCornerShape(AlgoTokens.radiusSm),
+    accent: Color = AlgoTokens.accentCyan,
     enabled: Boolean = true
 ): Modifier {
     var isDown by remember { mutableStateOf(false) }

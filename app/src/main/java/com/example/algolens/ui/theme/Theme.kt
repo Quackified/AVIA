@@ -146,6 +146,10 @@ object AlgoTokens {
     // ── Component Sizing ──
     /** Minimum recommended touch target for accessibility (WCAG-aligned). */
     val minTouchTarget: Dp = 44.dp
+
+    object Spacing {
+        val minTouchTarget: Dp = 44.dp
+    }
     /** Extra-small icon button (cell key-card glyphs, smaller than the 30dp rail icons). */
     val iconButtonXs: Dp = 26.dp
     /** Compact icon button used in rails / headers. */

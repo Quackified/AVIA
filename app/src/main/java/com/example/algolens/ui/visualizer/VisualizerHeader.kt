@@ -254,31 +254,30 @@ private fun HeaderActions(
     val spaceLabel = remember(algorithm.id) {
         "SPACE ${algorithm.spaceComplexity}"
     }
-
-    // Helper: materialise the TIME / SPACE complexity strings from the
-    // algorithm reference (used by HeaderOverflowMenuHost below where we do
-    // not yet have the cached labels available because that composable's
-    // signature is owned by a different branch and we keep the change minimal).
+    val isBookmarked = com.example.algolens.data.AppSettings.isBookmarked(algorithm.id.name)
+    val showComplexity = com.example.algolens.data.AppSettings.showComplexityBadges
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        CompactHeaderPill(
-            label = timeLabel,
-            accent = PrimaryCyan,
-            accentContainer = CyanSubtle,
-            borderColor = PrimaryCyan.copy(alpha = 0.28f),
-            onClick = { state.showTheorySheet = true }
-        )
+        if (showComplexity) {
+            CompactHeaderPill(
+                label = timeLabel,
+                accent = PrimaryCyan,
+                accentContainer = CyanSubtle,
+                borderColor = PrimaryCyan.copy(alpha = 0.28f),
+                onClick = { state.showTheorySheet = true }
+            )
 
-        CompactHeaderPill(
-            label = spaceLabel,
-            accent = PurpleGlow,
-            accentContainer = PurpleSubtle,
-            borderColor = SecondaryPurple.copy(alpha = 0.28f),
-            onClick = { state.showTheorySheet = true }
-        )
+            CompactHeaderPill(
+                label = spaceLabel,
+                accent = PurpleGlow,
+                accentContainer = PurpleSubtle,
+                borderColor = SecondaryPurple.copy(alpha = 0.28f),
+                onClick = { state.showTheorySheet = true }
+            )
+        }
 
         val helpIcon by remember {
             derivedStateOf { AlgoGlyphs.Help }
@@ -289,6 +288,17 @@ private fun HeaderActions(
         val actionGlyphSize by remember {
             derivedStateOf { AlgoTokens.inlineIconSm }
         }
+
+        RailIconButton(
+            icon = if (isBookmarked) AlgoGlyphs.BookmarkFilled else AlgoGlyphs.Bookmark,
+            contentDescription = if (isBookmarked) "Remove Bookmark" else "Bookmark Algorithm",
+            boxSize = actionButtonSize,
+            iconSize = actionGlyphSize,
+            tint = if (isBookmarked) PrimaryCyan else TextSecondary,
+            container = if (isBookmarked) CyanSubtle else Color.Transparent,
+            borderColor = if (isBookmarked) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
+            onClick = { com.example.algolens.data.AppSettings.toggleBookmark(algorithm.id.name) }
+        )
 
         RailIconButton(
             icon = helpIcon,
@@ -470,12 +480,22 @@ private fun HeaderModeRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Cell View / Bar Chart toggle (for 1D linear arrays)
+        // Left: Cell View / Bar Chart toggle (for 1D linear arrays) or Tree / Array toggle (for Heap)
         if (spec?.id?.family == VisualizerFamily.LINEAR_1D) {
             SegmentedToggle(
                 options = listOf(
                     "Cell View" to ArrayViewMode.CELLS,
                     "Bar Chart" to ArrayViewMode.BARS
+                ),
+                selectedKey = state.arrayViewMode,
+                onContainer = DarkBackground,
+                onSelect = { key -> state.arrayViewMode = key as ArrayViewMode }
+            )
+        } else if (spec?.id == com.example.algolens.model.AlgorithmId.HEAP) {
+            SegmentedToggle(
+                options = listOf(
+                    "Tree View" to ArrayViewMode.CELLS,
+                    "Array View" to ArrayViewMode.BARS
                 ),
                 selectedKey = state.arrayViewMode,
                 onContainer = DarkBackground,

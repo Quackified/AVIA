@@ -59,26 +59,29 @@ import com.example.algolens.ui.theme.CardBackgroundHover
 import com.example.algolens.ui.theme.AlgoType
 import com.example.algolens.ui.components.AlgoGlyphs
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.sizeIn
+import com.example.algolens.ui.components.pressPhysics
+
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
     onReplayOnboarding: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var selectedLanguage by remember { mutableStateOf("Kotlin") }
-    var speedSlider by remember { mutableFloatStateOf(50f) }
-    var highContrast by remember { mutableStateOf(false) }
+    val speedSlider = AppSettings.speedSliderValue
+    val highContrast = AppSettings.highContrastNodeOutlines
+    val autoOpenDeck = AppSettings.autoOpenDeckOnPlay
+    val showComplexity = AppSettings.showComplexityBadges
+    var dataClearedBanner by remember { mutableStateOf(false) }
 
     val speedLabel = when {
         speedSlider < 34f -> "Slow"
         speedSlider < 67f -> "Normal"
         else -> "Fast"
     }
-    val speedMs = when {
-        speedSlider < 34f -> "800ms"
-        speedSlider < 67f -> "480ms"
-        else -> "220ms"
-    }
+    val speedMs = "${AppSettings.defaultPlaybackSpeedMs}ms"
+    val backShape = RoundedCornerShape(AlgoTokens.radiusSm)
 
     Column(
         modifier = modifier
@@ -103,10 +106,11 @@ fun SettingsScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(AlgoTokens.Spacing.minTouchTarget)
+                        .pressPhysics(shape = backShape, accent = PrimaryCyan)
+                        .clip(backShape)
                         .background(CardBackground)
-                        .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                        .border(1.dp, BorderSubtle, backShape)
                         .clickable { onBack() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -114,7 +118,7 @@ fun SettingsScreen(
                         imageVector = AlgoGlyphs.Back,
                         contentDescription = "Back",
                         tint = TextSecondary,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
 
@@ -128,7 +132,7 @@ fun SettingsScreen(
 
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(AlgoTokens.iconButtonLg)
                     .clip(RoundedCornerShape(8.dp))
                     .background(CyanSubtle)
                     .border(1.dp, PrimaryCyan.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
@@ -138,29 +142,32 @@ fun SettingsScreen(
                     imageVector = AlgoGlyphs.Tune,
                     contentDescription = null,
                     tint = PrimaryCyan,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
 
-        // ── 1. Language Preference ──
+        // ── 1. Default Trace Language ──
         SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Code, text = "Preferred Language")
+            SectionLabel(icon = AlgoGlyphs.Code, text = "Default Trace Language")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 com.example.algolens.data.TraceLanguage.entries.forEach { lang ->
                     val isSel = AppSettings.preferredLanguage == lang
+                    val chipShape = RoundedCornerShape(8.dp)
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
+                            .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                            .pressPhysics(shape = chipShape, accent = PrimaryCyan)
+                            .clip(chipShape)
                             .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
                             .border(
                                 1.dp,
                                 if (isSel) PrimaryCyan else BorderSubtle,
-                                RoundedCornerShape(8.dp)
+                                chipShape
                             )
                             .clickable { AppSettings.preferredLanguage = lang }
                             .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -185,9 +192,9 @@ fun SettingsScreen(
             )
         }
 
-        // ── 2. Playback Speed ──
+        // ── 2. Default Playback Speed ──
         SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Speed, text = "Animation Playback Speed")
+            SectionLabel(icon = AlgoGlyphs.Speed, text = "Default Playback Speed")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -209,7 +216,7 @@ fun SettingsScreen(
 
             Slider(
                 value = speedSlider,
-                onValueChange = { speedSlider = it },
+                onValueChange = { AppSettings.speedSliderValue = it },
                 valueRange = 0f..100f,
                 colors = SliderDefaults.colors(
                     thumbColor = PrimaryCyan,
@@ -222,7 +229,7 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                listOf("Slow", "Normal", "Fast").forEach {
+                listOf("Slow (800ms)", "Normal (480ms)", "Fast (220ms)").forEach {
                     Text(text = it, style = MaterialTheme.typography.labelSmall, color = TextNavy, fontSize = AlgoType.microSize)
                 }
             }
@@ -326,30 +333,83 @@ fun SettingsScreen(
             }
         }
 
-        // ── 4. Display Preferences ──
+        // ── 4. Display & Deck Behaviour ──
         SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Sliders, text = "Display")
+            SectionLabel(icon = AlgoGlyphs.Sliders, text = "Workspace Display & Deck")
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
                     Text(
-                        text = "High Contrast Labels",
+                        text = "High-Contrast Node Outlines",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Increase label visibility on bars and nodes",
+                        text = "Increase border stroke weight and label contrast on nodes and cells",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
                         fontSize = AlgoType.microSize
                     )
                 }
-                CustomSwitch(checked = highContrast, onCheckedChange = { highContrast = it })
+                CustomSwitch(
+                    checked = highContrast,
+                    onCheckedChange = { AppSettings.highContrastNodeOutlines = it }
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
+                    Text(
+                        text = "Auto-Open Deck on Play",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Automatically expand the Focus Deck trace terminal when playback starts",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                        fontSize = AlgoType.microSize
+                    )
+                }
+                CustomSwitch(
+                    checked = autoOpenDeck,
+                    onCheckedChange = { AppSettings.autoOpenDeckOnPlay = it }
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
+                    Text(
+                        text = "Inline Complexity Readouts",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Display TIME and SPACE Big-O pills in the Visualizer header",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                        fontSize = AlgoType.microSize
+                    )
+                }
+                CustomSwitch(
+                    checked = showComplexity,
+                    onCheckedChange = { AppSettings.showComplexityBadges = it }
+                )
             }
         }
 
@@ -382,15 +442,18 @@ fun SettingsScreen(
                     "L (1.25x)" to 1.25f
                 ).forEach { (label, scale) ->
                     val isSel = AppSettings.defaultCellScale == scale
+                    val scaleShape = RoundedCornerShape(AlgoTokens.radiusSm)
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                            .pressPhysics(shape = scaleShape, accent = PrimaryCyan)
+                            .clip(scaleShape)
                             .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
                             .border(
                                 AlgoTokens.strokeThin,
                                 if (isSel) PrimaryCyan else BorderSubtle,
-                                RoundedCornerShape(AlgoTokens.radiusSm)
+                                scaleShape
                             )
                             .clickable { AppSettings.defaultCellScale = scale }
                             .padding(vertical = AlgoTokens.space2),
@@ -414,7 +477,7 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
                     Text(
                         text = "Tactile Haptic Feedback",
                         style = MaterialTheme.typography.labelMedium,
@@ -439,16 +502,19 @@ fun SettingsScreen(
         if (onReplayOnboarding != null) {
             SettingsCard {
                 SectionLabel(icon = AlgoGlyphs.Spark, text = "Workspace Tour")
+                val tourShape = RoundedCornerShape(AlgoTokens.radiusSm)
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                        .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                        .pressPhysics(shape = tourShape, accent = PrimaryCyan)
+                        .clip(tourShape)
                         .background(CyanSubtle)
                         .border(
                             AlgoTokens.strokeThin,
                             PrimaryCyan.copy(alpha = 0.35f),
-                            RoundedCornerShape(AlgoTokens.radiusSm)
+                            tourShape
                         )
                         .clickable { onReplayOnboarding() }
                         .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
@@ -486,14 +552,20 @@ fun SettingsScreen(
         // ── 7. Data Management (Danger Zone) ──
         SettingsCard {
             SectionLabel(icon = AlgoGlyphs.Storage, text = "Data Management")
+            val clearShape = RoundedCornerShape(9.dp)
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(9.dp))
+                    .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                    .pressPhysics(shape = clearShape, accent = AccentRed)
+                    .clip(clearShape)
                     .background(RedSubtle)
-                    .border(1.dp, AccentRed.copy(alpha = 0.25f), RoundedCornerShape(9.dp))
-                    .clickable { }
+                    .border(1.dp, AccentRed.copy(alpha = 0.25f), clearShape)
+                    .clickable {
+                        AppSettings.clearAllSavedData()
+                        dataClearedBanner = true
+                    }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -509,7 +581,7 @@ fun SettingsScreen(
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = "Clear Saved Data",
+                        text = if (dataClearedBanner) "Saved Data Reset to Defaults" else "Clear Saved Data",
                         style = MaterialTheme.typography.labelMedium,
                         color = AccentRed,
                         fontWeight = FontWeight.Bold
@@ -517,7 +589,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Bookmarks · History",
+                    text = "${AppSettings.bookmarkedAlgorithmIds.size} Bookmarks · Prefs",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     fontSize = AlgoType.microSize

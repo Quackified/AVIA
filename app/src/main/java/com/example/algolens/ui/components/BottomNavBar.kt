@@ -10,17 +10,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChatBubble
-import androidx.compose.material.icons.filled.CompassCalibration
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,10 +36,10 @@ import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.TextDark
 
 enum class NavTab(val label: String, val icon: ImageVector) {
-    HOME("Home", Icons.Default.Home),
-    EXPLORE("Explore", Icons.Default.Explore),
-    CHAT("Chat", Icons.Default.ChatBubble),
-    PROFILE("Profile", Icons.Default.Person)
+    HOME("Home", AlgoGlyphs.Home),
+    EXPLORE("Explore", AlgoGlyphs.Compass),
+    CHAT("Chat", AlgoGlyphs.Chat),
+    PROFILE("Profile", AlgoGlyphs.Person)
 }
 
 @Composable
@@ -60,13 +54,14 @@ fun BottomNavBar(
             .background(CardBackgroundElevated)
             .border(width = AlgoTokens.strokeThin, color = BorderSubtle)
             .navigationBarsPadding()
-            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space3),
+            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space2),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
         NavTab.entries.forEach { tab ->
             val isActive = activeTab == tab
             val interactionSource = remember { MutableInteractionSource() }
+            val tabShape = RoundedCornerShape(AlgoTokens.radiusSm)
 
             val iconColor by animateColorAsState(
                 targetValue = if (isActive) PrimaryCyan else TextDark,
@@ -80,13 +75,15 @@ fun BottomNavBar(
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                    .pressPhysics(shape = tabShape, accent = PrimaryCyan)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null
                     ) { onTabSelected(tab) }
                     .padding(vertical = AlgoTokens.space1),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1, Alignment.CenterVertically)
             ) {
                 Box(
                     modifier = Modifier
@@ -94,7 +91,7 @@ fun BottomNavBar(
                             width = AlgoTokens.iconButtonLg + AlgoTokens.space1,
                             height = AlgoTokens.iconButtonXs + AlgoTokens.space1
                         )
-                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                        .clip(tabShape)
                         .background(pillBg),
                     contentAlignment = Alignment.Center
                 ) {

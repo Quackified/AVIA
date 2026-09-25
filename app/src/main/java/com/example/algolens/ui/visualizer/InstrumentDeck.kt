@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,12 +35,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.AlgorithmId
+import com.example.algolens.ui.components.AlgoGlyphs
+import com.example.algolens.ui.components.pressPhysics
 import com.example.algolens.ui.theme.AlgoLensTheme
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.theme.CardBackgroundElevated
+import com.example.algolens.ui.theme.CyanSubtle
 import com.example.algolens.ui.theme.PrimaryCyan
+import com.example.algolens.ui.theme.PurpleGlow
+import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextPrimary
 
@@ -90,6 +97,8 @@ fun InstrumentDeck(
         // Attached window tabs sitting flush on top of the terminal frame
         AttachedDeckTabs(
             selected = state.deckPage,
+            isExpanded = state.deckExpanded,
+            onToggleExpand = { state.deckExpanded = !state.deckExpanded },
             onSelect = { page ->
                 if (state.deckPage == page) {
                     state.deckExpanded = !state.deckExpanded
@@ -158,6 +167,8 @@ fun InstrumentDeck(
 @Composable
 private fun AttachedDeckTabs(
     selected: DeckPage,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
     onSelect: (DeckPage) -> Unit
 ) {
     Row(
@@ -176,6 +187,8 @@ private fun AttachedDeckTabs(
 
             Row(
                 modifier = Modifier
+                    .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                    .pressPhysics(shape = shape, accent = PrimaryCyan)
                     .clip(shape)
                     .background(if (isSelected) CardBackgroundElevated else CanvasBackground.copy(alpha = 0.85f))
                     .border(
@@ -207,6 +220,74 @@ private fun AttachedDeckTabs(
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                 )
             }
+        }
+
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
+
+        // Inline language switcher tab (Kotlin / Java / Python / C++)
+        val langShape = RoundedCornerShape(
+            topStart = AlgoTokens.radiusSm,
+            topEnd = AlgoTokens.radiusSm
+        )
+        val currentLang = com.example.algolens.data.AppSettings.preferredLanguage
+        Row(
+            modifier = Modifier
+                .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                .padding(end = AlgoTokens.space1)
+                .pressPhysics(shape = langShape, accent = SecondaryPurple)
+                .clip(langShape)
+                .background(SecondaryPurple.copy(alpha = 0.16f))
+                .border(
+                    width = AlgoTokens.strokeThin,
+                    color = SecondaryPurple.copy(alpha = 0.4f),
+                    shape = langShape
+                )
+                .clickable {
+                    val entries = com.example.algolens.data.TraceLanguage.entries
+                    val next = entries[(currentLang.ordinal + 1) % entries.size]
+                    com.example.algolens.data.AppSettings.preferredLanguage = next
+                }
+                .padding(
+                    horizontal = AlgoTokens.space3,
+                    vertical = AlgoTokens.space1
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "${currentLang.label.uppercase()} ↻",
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = PurpleGlow,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Collapse / Expand Deck Icon Button (44.dp minTouchTarget)
+        val collapseShape = RoundedCornerShape(
+            topStart = AlgoTokens.radiusSm,
+            topEnd = AlgoTokens.radiusSm
+        )
+        Box(
+            modifier = Modifier
+                .size(AlgoTokens.Spacing.minTouchTarget)
+                .padding(end = AlgoTokens.space2)
+                .pressPhysics(shape = collapseShape, accent = PrimaryCyan)
+                .clip(collapseShape)
+                .background(if (isExpanded) CyanSubtle else CardBackgroundElevated)
+                .border(
+                    width = AlgoTokens.strokeThin,
+                    color = if (isExpanded) PrimaryCyan.copy(alpha = 0.45f) else BorderSubtle,
+                    shape = collapseShape
+                )
+                .clickable { onToggleExpand() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (isExpanded) AlgoGlyphs.ChevronDown else AlgoGlyphs.ChevronUp,
+                contentDescription = if (isExpanded) "Collapse deck" else "Expand deck",
+                tint = PrimaryCyan,
+                modifier = Modifier.size(AlgoTokens.inlineIconMd)
+            )
         }
     }
 }

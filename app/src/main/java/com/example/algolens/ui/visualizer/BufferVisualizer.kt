@@ -67,29 +67,66 @@ import com.example.algolens.ui.theme.YellowSubtle
 import com.example.algolens.ui.theme.AlgoType
 import com.example.algolens.ui.components.AlgoGlyphs
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import com.example.algolens.model.BufferOp
+import com.example.algolens.model.QueueOp
+import com.example.algolens.ui.components.DoubleBezelShell
+import com.example.algolens.ui.components.pressPhysics
+
 /**
  * Animated Buffer Memory Visualizer for Stack (LIFO) and Queue (FIFO) data structures.
+ * Features:
+ * - DoubleBezelShell instrument framing & subtle grid-dot chamber background
+ * - Inline stage controls (`Push(val)`, `Pop()`, `Peek()`, `Enqueue(val)`, `Dequeue()`)
  */
 @Composable
 fun BufferVisualizer(
     step: VisualizerStep,
     isStack: Boolean = true,
+    onStackOp: ((BufferOp) -> Unit)? = null,
+    onQueueOp: ((QueueOp) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
+    var nextInputValue by remember(isStack, step.buffer.size) {
+        val seed = ((step.buffer.size + 1) * 14 + 18) % 89 + 10
+        mutableIntStateOf(seed)
+    }
+
+    DoubleBezelShell(
+        modifier = modifier.fillMaxWidth(),
+        shellBorder = PrimaryCyan.copy(alpha = 0.20f),
+        coreColor = CanvasBackground,
+        contentPadding = PaddingValues(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxSize()
+                .drawBehind {
+                    val stepPx = 22.dp.toPx()
+                    var x = stepPx
+                    while (x < size.width) {
+                        var y = stepPx
+                        while (y < size.height) {
+                            drawCircle(
+                                color = BorderSubtle.copy(alpha = 0.35f),
+                                radius = 1.2f,
+                                center = Offset(x, y)
+                            )
+                            y += stepPx
+                        }
+                        x += stepPx
+                    }
+                },
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Buffer Header Tag — plain ASCII, no special characters
-            // (the `|` separator was rendering as a corrupted glyph on
-            // some devices; the user opted for clean text).
+            // ── Top Buffer Telemetry Header ──
             val label = step.bufferLabel ?: if (isStack) "STACK - LIFO (Last In, First Out)" else "QUEUE - FIFO (First In, First Out)"
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -104,18 +141,181 @@ fun BufferVisualizer(
                     fontSize = AlgoType.microSize,
                     letterSpacing = AlgoType.trackTight
                 )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (step.buffer.isNotEmpty()) {
+                        val headText = if (isStack) "TOP=${step.buffer.last().value}" else "FRONT=${step.buffer.first().value}"
+                        Text(
+                            text = headText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PrimaryCyan,
+                            fontSize = AlgoType.microSize,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        text = "Size: ${step.buffer.size} / ${step.bufferCapacity}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextMuted,
+                        fontSize = AlgoType.microSize
+                    )
+                }
+            }
+
+            // ── Main Stack / Queue Chamber ──
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isStack) {
+                    StackCanvas(step)
+                } else {
+                    QueueCanvas(step)
+                }
+            }
+
+            // ── Inline Interactive Stage Operations Bar ──
+            if (onStackOp != null || onQueueOp != null) {
+                BufferStageControls(
+                    isStack = isStack,
+                    nextValue = nextInputValue,
+                    onCycleValue = { nextInputValue = ((nextInputValue + 13) % 89) + 10 },
+                    canRemove = step.buffer.isNotEmpty(),
+                    isFull = step.buffer.size >= step.bufferCapacity,
+                    onPushOrEnqueue = {
+                        if (isStack) {
+                            onStackOp?.invoke(BufferOp.Push(nextInputValue))
+                        } else {
+                            onQueueOp?.invoke(QueueOp.Enqueue(nextInputValue))
+                        }
+                    },
+                    onPopOrDequeue = {
+                        if (isStack) {
+                            onStackOp?.invoke(BufferOp.Pop)
+                        } else {
+                            onQueueOp?.invoke(QueueOp.Dequeue)
+                        }
+                    },
+                    onPeek = if (isStack) {
+                        { onStackOp?.invoke(BufferOp.Peek) }
+                    } else null
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BufferStageControls(
+    isStack: Boolean,
+    nextValue: Int,
+    onCycleValue: () -> Unit,
+    canRemove: Boolean,
+    isFull: Boolean,
+    onPushOrEnqueue: () -> Unit,
+    onPopOrDequeue: () -> Unit,
+    onPeek: (() -> Unit)?
+) {
+    val pillShape = RoundedCornerShape(AlgoTokens.radiusXxs)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+            .background(CardBackground)
+            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Value chip (tap to cycle next value)
+        Row(
+            modifier = Modifier
+                .clip(pillShape)
+                .background(DarkBackground)
+                .pressPhysics(shape = pillShape, accent = PrimaryCyan)
+                .clickable { onCycleValue() }
+                .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+        ) {
+            Text(
+                text = "VAL:",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted,
+                fontSize = AlgoType.microSize
+            )
+            Text(
+                text = "$nextValue ↻",
+                style = MaterialTheme.typography.labelSmall,
+                color = PrimaryCyan,
+                fontSize = AlgoType.microSize,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Action pills
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // + PUSH / + ENQUEUE
+            Box(
+                modifier = Modifier
+                    .clip(pillShape)
+                    .background(if (!isFull) CyanSubtle else DarkBackground)
+                    .pressPhysics(shape = pillShape, accent = PrimaryCyan, enabled = !isFull)
+                    .clickable(enabled = !isFull) { onPushOrEnqueue() }
+                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+            ) {
                 Text(
-                    text = "Size: ${step.buffer.size} / ${step.bufferCapacity}",
+                    text = if (isStack) "+ PUSH($nextValue)" else "+ ENQUEUE($nextValue)",
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextMuted,
-                    fontSize = AlgoType.microSize
+                    color = if (!isFull) PrimaryCyan else TextDark,
+                    fontSize = AlgoType.microSize,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            if (isStack) {
-                StackCanvas(step)
-            } else {
-                QueueCanvas(step)
+            // - POP / - DEQUEUE
+            Box(
+                modifier = Modifier
+                    .clip(pillShape)
+                    .background(if (canRemove) RedSubtle else DarkBackground)
+                    .pressPhysics(shape = pillShape, accent = AccentRed, enabled = canRemove)
+                    .clickable(enabled = canRemove) { onPopOrDequeue() }
+                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+            ) {
+                Text(
+                    text = if (isStack) "− POP()" else "− DEQUEUE()",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (canRemove) AccentRed else TextDark,
+                    fontSize = AlgoType.microSize,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // PEEK() (Stack only)
+            if (onPeek != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(pillShape)
+                        .background(if (canRemove) PurpleSubtle else DarkBackground)
+                        .pressPhysics(shape = pillShape, accent = SecondaryPurple, enabled = canRemove)
+                        .clickable(enabled = canRemove) { onPeek() }
+                        .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
+                ) {
+                    Text(
+                        text = "PEEK()",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (canRemove) PurpleGlow else TextDark,
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

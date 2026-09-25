@@ -32,8 +32,9 @@ class MainActivity : ComponentActivity() {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        // Initialize persistent user preferences (e.g. onboarding completion)
+        // Initialize persistent user preferences and workspace settings
         com.example.algolens.data.UserPreferences.init(applicationContext)
+        com.example.algolens.data.AppSettings.init(applicationContext)
 
         val bootController = BootController()
         // Dismiss the blank OS starting window immediately so only the

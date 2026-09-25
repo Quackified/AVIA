@@ -12,18 +12,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentPink
 import com.example.algolens.ui.theme.AccentRed
 import com.example.algolens.ui.theme.AccentYellow
+import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CardBackground
+import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.PurpleGlow
 import com.example.algolens.ui.theme.SecondaryPurple
@@ -37,11 +43,83 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Pure rendering of the graph/tree canvas — edges, drag preview, nodes with
- * halos. Owns the `activeHaloPulse` infinite transition that breathes the
- * active node's halo. Has no interactive state of its own; the public
- * [GraphTreeVisualizer] shell passes in the live state values to read each
- * frame.
+ * Draws the engineered CAD / oscilloscope grid-like background on the 2D Graph & Tree stage:
+ * - Subtle radial emerald/cyan ambient glow
+ * - Minor Cartesian grid lines (24dp pitch)
+ * - Major Cartesian grid lines (96dp pitch) with intersection dot markers
+ */
+private fun DrawScope.drawGraphInstrumentGrid() {
+    val minorStep = 24.dp.toPx().coerceAtLeast(16f)
+    val majorEvery = 4
+
+    // Subtle ambient radial glow in the stage center
+    val maxDim = size.maxDimension.coerceAtLeast(1f)
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(
+                AccentGreen.copy(alpha = 0.05f),
+                PrimaryCyan.copy(alpha = 0.025f),
+                Color.Transparent
+            ),
+            center = Offset(size.width * 0.5f, size.height * 0.5f),
+            radius = maxDim * 0.62f
+        ),
+        radius = maxDim * 0.62f,
+        center = Offset(size.width * 0.5f, size.height * 0.5f)
+    )
+
+    val minorColor = BorderSubtle.copy(alpha = 0.30f)
+    val majorColor = PrimaryCyan.copy(alpha = 0.11f)
+    val dotColor = PrimaryCyan.copy(alpha = 0.28f)
+
+    var colIndex = 0
+    var x = 0f
+    while (x <= size.width) {
+        val isMajor = colIndex % majorEvery == 0
+        drawLine(
+            color = if (isMajor) majorColor else minorColor,
+            start = Offset(x, 0f),
+            end = Offset(x, size.height),
+            strokeWidth = if (isMajor) 1.2f else 0.8f
+        )
+        x += minorStep
+        colIndex++
+    }
+
+    var rowIndex = 0
+    var y = 0f
+    while (y <= size.height) {
+        val isMajor = rowIndex % majorEvery == 0
+        drawLine(
+            color = if (isMajor) majorColor else minorColor,
+            start = Offset(0f, y),
+            end = Offset(size.width, y),
+            strokeWidth = if (isMajor) 1.2f else 0.8f
+        )
+        if (isMajor) {
+            var ix = 0f
+            var cIdx = 0
+            while (ix <= size.width) {
+                if (cIdx % majorEvery == 0) {
+                    drawCircle(
+                        color = dotColor,
+                        radius = 1.6f,
+                        center = Offset(ix, y)
+                    )
+                }
+                ix += minorStep
+                cIdx++
+            }
+        }
+        y += minorStep
+        rowIndex++
+    }
+}
+
+/**
+ * Pure rendering of the graph/tree canvas — grid background, edges, weight pills,
+ * drag preview, and nodes with halos. Owns the `activeHaloPulse` infinite transition
+ * that breathes the active node's halo.
  */
 @Composable
 fun GraphTreeRenderer(
@@ -54,6 +132,7 @@ fun GraphTreeRenderer(
     dragStartNode: GraphNodeState?,
     currentDragPos: Offset?,
     nodeScales: Map<String, Float>,
+    challengeTargetNodeIds: Set<String> = emptySet(),
     modifier: Modifier = Modifier
 ) {
     // Render-phase pulse for the active node's halo (draw-read only).
@@ -69,6 +148,9 @@ fun GraphTreeRenderer(
         )
 
     Canvas(modifier = modifier) {
+        // ── 0. Precision Instrument Grid Background ──
+        drawGraphInstrumentGrid()
+
         if (nodes.isEmpty()) return@Canvas
 
         val geom = GraphCanvasGeometry.from(nodes, size)
@@ -83,7 +165,7 @@ fun GraphTreeRenderer(
 
             val isHighlighted = edge.isHighlighted
             val edgeColor = if (isHighlighted) AccentGreen else GraphEdgeDefault
-            val strokeWidth = if (isHighlighted) 4.5f else 2f
+            val strokeWidth = if (isHighlighted) 4.5f else 2.2f
 
             // Draw path highlight glow
             if (isHighlighted) {
@@ -91,7 +173,7 @@ fun GraphTreeRenderer(
                     color = AccentGreen.copy(alpha = 0.25f),
                     start = start,
                     end = end,
-                    strokeWidth = 9f
+                    strokeWidth = 9.5f
                 )
             }
 
@@ -123,30 +205,35 @@ fun GraphTreeRenderer(
                 drawLine(color = edgeColor, start = arrowTip, end = rightWing, strokeWidth = strokeWidth)
             }
 
-            // Draw edge weight badge if present
+            // Draw rounded pill edge weight badge (figma-make-ref parity)
             if (edge.weight != null) {
-                val midX = (start.x + end.x) / 2
-                val midY = (start.y + end.y) / 2
+                val midX = (start.x + end.x) / 2f
+                val midY = (start.y + end.y) / 2f
+                val pillW = 28f
+                val pillH = 20f
+                val corner = CornerRadius(6f, 6f)
 
-                drawRect(
-                    color = CanvasBackground,
-                    topLeft = Offset(midX - 14f, midY - 10f),
-                    size = Size(28f, 20f)
+                drawRoundRect(
+                    color = DarkBackground,
+                    topLeft = Offset(midX - pillW / 2f, midY - pillH / 2f),
+                    size = Size(pillW, pillH),
+                    cornerRadius = corner
                 )
-                drawRect(
-                    color = if (isHighlighted) AccentGreen else GraphEdgeDefault,
-                    topLeft = Offset(midX - 14f, midY - 10f),
-                    size = Size(28f, 20f),
-                    style = Stroke(width = 1f)
+                drawRoundRect(
+                    color = if (isHighlighted) AccentGreen else PrimaryCyan.copy(alpha = 0.45f),
+                    topLeft = Offset(midX - pillW / 2f, midY - pillH / 2f),
+                    size = Size(pillW, pillH),
+                    cornerRadius = corner,
+                    style = Stroke(width = if (isHighlighted) 1.6f else 1.1f)
                 )
 
                 drawContext.canvas.nativeCanvas.apply {
                     val paint = Paint().apply {
                         isAntiAlias = true
-                        color = (if (isHighlighted) AccentGreen else TextMuted).toArgb()
+                        color = (if (isHighlighted) AccentGreen else TextSecondary).toArgb()
                         textSize = 18f
                         textAlign = Paint.Align.CENTER
-                        typeface = Typeface.MONOSPACE
+                        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     }
                     drawText(edge.weight.toString(), midX, midY + 6f, paint)
                 }
@@ -193,6 +280,7 @@ fun GraphTreeRenderer(
             // look identical to the previous Canvas.
             val popScale = nodeScales[node.id] ?: 1f
 
+            val highContrast = com.example.algolens.data.AppSettings.highContrastNodeOutlines
             val (fillColor, strokeColor, textColor) = when {
                 isHovered -> Triple(PrimaryCyan.copy(alpha = 0.40f), PrimaryCyan, PrimaryCyan)
                 isDragSource -> Triple(SecondaryPurple.copy(alpha = 0.40f), SecondaryPurple, PurpleGlow)
@@ -202,7 +290,11 @@ fun GraphTreeRenderer(
                 node.state == ElementState.FOUND || node.state == ElementState.TARGET -> Triple(PrimaryCyan.copy(alpha = 0.25f), PrimaryCyan, PrimaryCyan)
                 node.state == ElementState.PIVOT -> Triple(AccentPink.copy(alpha = 0.25f), AccentPink, Color.White)
                 isVisited || node.state == ElementState.SORTED -> Triple(SecondaryPurple.copy(alpha = 0.20f), SecondaryPurple, TextPrimary)
-                else -> Triple(CardBackground, PrimaryCyan.copy(alpha = 0.5f), TextSecondary)
+                else -> Triple(
+                    CardBackground,
+                    if (highContrast) PrimaryCyan.copy(alpha = 0.90f) else PrimaryCyan.copy(alpha = 0.5f),
+                    if (highContrast) TextPrimary else TextSecondary
+                )
             }
 
             // ── Halo Glow Rendering Underneath Touch Targets ──
@@ -229,6 +321,19 @@ fun GraphTreeRenderer(
                 )
             }
 
+            if (node.id in challengeTargetNodeIds) {
+                val breathe = activeHaloPulse.value
+                drawCircle(
+                    color = SecondaryPurple.copy(alpha = 0.22f + 0.16f * breathe),
+                    radius = (25f + 3f * breathe) * popScale,
+                    center = center,
+                    style = Stroke(
+                        width = 1.8f,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f), 0f)
+                    )
+                )
+            }
+
             // Node background circle
             drawCircle(
                 color = fillColor,
@@ -237,11 +342,13 @@ fun GraphTreeRenderer(
             )
 
             // Node border stroke
+            val baseStroke = if (isActive || isHovered || isDragSource) 3f else 1.8f
+            val strokeW = (if (highContrast) baseStroke + 1.2f else baseStroke) * popScale
             drawCircle(
                 color = strokeColor,
                 radius = 20f * popScale,
                 center = center,
-                style = Stroke(width = (if (isActive || isHovered || isDragSource) 3f else 1.8f) * popScale)
+                style = Stroke(width = strokeW)
             )
 
             // Node label text — also scaled so the glyph grows

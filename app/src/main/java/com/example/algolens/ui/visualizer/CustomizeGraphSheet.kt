@@ -239,7 +239,7 @@ fun CustomizeGraphSheet(
                 AlgorithmId.BFS, AlgorithmId.DFS -> {
                     StartNodeDropdown(
                         current = startNodeId,
-                        nodes = listOf("A", "B", "C", "D", "E"),
+                        nodes = listOf("A", "B", "C", "D", "E", "F"),
                         onSelect = { startNodeId = it }
                     )
                 }

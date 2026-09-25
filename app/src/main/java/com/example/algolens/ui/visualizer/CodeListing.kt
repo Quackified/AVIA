@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -98,6 +99,7 @@ fun CodeListing(
             Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
                 .background(com.example.algolens.ui.theme.CardBackgroundElevated)
                 .clickable { onToggleExpand() }
                 .padding(horizontal = 12.dp, vertical = 7.dp),
@@ -110,26 +112,26 @@ fun CodeListing(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(AlgoTokens.space3)
                             .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(Color(0xFFEF4444).copy(alpha = 0.85f))
+                            .background(com.example.algolens.ui.theme.AccentRed.copy(alpha = 0.85f))
                     )
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(AlgoTokens.space3)
                             .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(Color(0xFFF59E0B).copy(alpha = 0.85f))
+                            .background(com.example.algolens.ui.theme.AccentYellow.copy(alpha = 0.85f))
                     )
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(AlgoTokens.space3)
                             .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(Color(0xFF10B981).copy(alpha = 0.85f))
+                            .background(com.example.algolens.ui.theme.AccentGreen.copy(alpha = 0.85f))
                     )
                 }
 
@@ -149,44 +151,49 @@ fun CodeListing(
                         color = TextSecondary,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 10.sp
+                        fontSize = AlgoType.microSize
                     )
                 }
             }
 
-            // Right: Read-Only Preferred Language Badge + Peek/Expand Toggle
+            // Right: Interactive Language Switcher Badge + Peek/Expand Toggle
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                         .background(SecondaryPurple.copy(alpha = 0.18f))
                         .border(
                             AlgoTokens.strokeHairline,
                             SecondaryPurple.copy(alpha = 0.45f),
-                            RoundedCornerShape(4.dp)
+                            RoundedCornerShape(AlgoTokens.radiusXxs)
                         )
+                        .clickable {
+                            val entries = TraceLanguage.entries
+                            val nextLang = entries[(selectedLanguage.ordinal + 1) % entries.size]
+                            com.example.algolens.data.AppSettings.preferredLanguage = nextLang
+                        }
                         .padding(horizontal = 7.dp, vertical = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = selectedLanguage.label.uppercase(),
+                        text = "${selectedLanguage.label.uppercase()} ↻",
                         style = MaterialTheme.typography.labelSmall.copy(
                             platformStyle = androidx.compose.ui.text.PlatformTextStyle(
                                 includeFontPadding = false
                             )
                         ),
                         color = PurpleGlow,
-                        fontSize = 8.5.sp,
-                        lineHeight = 8.5.sp,
+                        fontSize = AlgoType.microSize,
+                        lineHeight = AlgoType.microSize,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Box(
+                Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
                         .background(com.example.algolens.ui.theme.CyanSubtle)
@@ -196,10 +203,11 @@ fun CodeListing(
                             RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 7.dp, vertical = 2.5.dp),
-                    contentAlignment = Alignment.Center
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = if (isExpanded) "Collapse v" else "Expand ^",
+                        text = if (isExpanded) "Collapse" else "Expand",
                         style = MaterialTheme.typography.labelSmall.copy(
                             platformStyle = androidx.compose.ui.text.PlatformTextStyle(
                                 includeFontPadding = false
@@ -210,6 +218,12 @@ fun CodeListing(
                         lineHeight = 8.5.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold
+                    )
+                    Icon(
+                        imageVector = if (isExpanded) AlgoGlyphs.ChevronDown else AlgoGlyphs.ChevronUp,
+                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        tint = com.example.algolens.ui.theme.PrimaryCyan,
+                        modifier = Modifier.size(10.dp)
                     )
                 }
             }

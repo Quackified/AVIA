@@ -36,6 +36,7 @@ import com.example.algolens.model.practice.PracticeDifficulty
 import com.example.algolens.ui.components.AlgoGlyphs
 import com.example.algolens.ui.components.DoubleBezelShell
 import com.example.algolens.ui.components.InstrumentMeter
+import com.example.algolens.ui.components.pressPhysics
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentOrange
 import com.example.algolens.ui.theme.AccentPink
@@ -102,12 +103,14 @@ fun PracticeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
+                    val backShape = RoundedCornerShape(AlgoTokens.radiusSm)
                     Box(
                         modifier = Modifier
-                            .size(AlgoTokens.iconButtonSm)
-                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .size(AlgoTokens.Spacing.minTouchTarget)
+                            .pressPhysics(shape = backShape, accent = PrimaryCyan)
+                            .clip(backShape)
                             .background(CardBackground)
-                            .border(AlgoTokens.bezelInset, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                            .border(AlgoTokens.bezelInset, BorderSubtle, backShape)
                             .clickable { onBack() },
                         contentAlignment = Alignment.Center
                     ) {

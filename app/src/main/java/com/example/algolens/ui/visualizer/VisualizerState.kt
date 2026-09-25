@@ -127,5 +127,6 @@ data class VisualizerStep(
     
     // Code Trace Sync
     val activeCodeLines: List<Int> = emptyList(), // 1-indexed lines in code pane
-    val variables: Map<String, String> = emptyMap() // live inspector e.g. {"i": "0", "j": "2", "pivot": "7"}
+    val variables: Map<String, String> = emptyMap(), // live inspector e.g. {"i": "0", "j": "2", "pivot": "7"}
+    val callStack: List<String> = emptyList() // live call stack frames e.g. ["dfs(A)", "dfs(B)"]
 )

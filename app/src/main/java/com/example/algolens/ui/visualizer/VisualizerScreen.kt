@@ -281,8 +281,17 @@ fun VisualizerScreen(
                 }
                 VisualizerFamily.GRAPH_2D -> CustomizeGraphSheet(
                     algorithmId = spec.id,
-                    initialValues = state.arrayData,
-                    initialSearchKey = (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForBst)?.searchKey,
+                    initialValues = when (spec.id) {
+                        com.example.algolens.model.AlgorithmId.BINARY_SEARCH_TREE ->
+                            (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForBst)?.values
+                                ?: com.example.algolens.data.AlgorithmStepRepository.defaultBstValues
+                        com.example.algolens.model.AlgorithmId.HEAP ->
+                            (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForHeap)?.values
+                                ?: listOf(40, 80, 70, 90, 50, 30, 60)
+                        else -> state.arrayData
+                    },
+                    initialSearchKey = (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForBst)?.searchKey
+                        ?: com.example.algolens.data.AlgorithmStepRepository.defaultBstSearchKey,
                     initialStartNodeId = (state.graphConfig as? com.example.algolens.model.GraphCustomization.ForTraversal)?.startNodeId,
                     onApply = { config ->
                         state.graphConfig = config
