@@ -18,34 +18,34 @@
     "semantic_hash": "96133931add014e2bc6c8957e572ffc9"
   },
   "app/src/main/java/com/example/algolens/MainActivity.kt": {
-    "mtime": 1790176039.3195834,
-    "seen": 1790252910.8601809,
-    "ast_hash": "31dce2f57c6a0fd942fabdb1fdd537ab",
-    "semantic_hash": "31dce2f57c6a0fd942fabdb1fdd537ab"
+    "mtime": 1790300000.7411122,
+    "seen": 1790383501.354922,
+    "ast_hash": "c7670cf67ea9f214596c5a3d38c73745",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/AlgorithmCodeRegistry.kt": {
-    "mtime": 1788262008.7878957,
-    "seen": 1790252910.8601825,
-    "ast_hash": "5ba8022db071257676ed51d3ca638ca1",
-    "semantic_hash": "5ba8022db071257676ed51d3ca638ca1"
+    "mtime": 1790316608.9724767,
+    "seen": 1790383501.3549256,
+    "ast_hash": "12906086cd0f1a5c41777b75465ac505",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/AlgorithmRegistry.kt": {
-    "mtime": 1788262008.8621855,
-    "seen": 1790252910.8601844,
-    "ast_hash": "454603255533b2ddfd764c0459071021",
-    "semantic_hash": "454603255533b2ddfd764c0459071021"
+    "mtime": 1790316699.0502865,
+    "seen": 1790383501.354928,
+    "ast_hash": "1d21c362529332b49456a10f09af059c",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/AlgorithmStepRepository.kt": {
-    "mtime": 1789402440.4503415,
-    "seen": 1790252910.8601859,
-    "ast_hash": "0ecac2486cc2ff9c4d2dd07875abcd70",
-    "semantic_hash": "0ecac2486cc2ff9c4d2dd07875abcd70"
+    "mtime": 1790318784.809042,
+    "seen": 1790383501.3549309,
+    "ast_hash": "1d019c17ad88f50f46557c3c9274a25d",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/AppSettings.kt": {
-    "mtime": 1790213501.5901265,
-    "seen": 1790252910.860187,
-    "ast_hash": "7b11c5ff26bb72ce386e4635080b47f1",
-    "semantic_hash": "7b11c5ff26bb72ce386e4635080b47f1"
+    "mtime": 1790338830.47656,
+    "seen": 1790383501.3549337,
+    "ast_hash": "dc6d558b55f0cb21840c257d174d0bf6",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/SampleData.kt": {
     "mtime": 1788262008.9460661,
@@ -60,10 +60,10 @@
     "semantic_hash": "8f310c86749bad2adbd12af0f432217c"
   },
   "app/src/main/java/com/example/algolens/data/chat/AiChatEngine.kt": {
-    "mtime": 1789960813.5702407,
-    "seen": 1790252910.8601909,
-    "ast_hash": "8f6b6ebb0c7a5cc5007c2c75bd5115ef",
-    "semantic_hash": "8f6b6ebb0c7a5cc5007c2c75bd5115ef"
+    "mtime": 1790326170.688216,
+    "seen": 1790383501.3549488,
+    "ast_hash": "80c4b336674e203eee8cefc6cf87e91d",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/practice/PracticeQuestionRepository.kt": {
     "mtime": 1789944447.0240474,
@@ -78,10 +78,10 @@
     "semantic_hash": "a7dc89775b6cd2cca64df9df644aebb1"
   },
   "app/src/main/java/com/example/algolens/model/AlgorithmId.kt": {
-    "mtime": 1788262009.024508,
-    "seen": 1790252910.860196,
-    "ast_hash": "3721259d757ef3600a708bbc99a3fda3",
-    "semantic_hash": "3721259d757ef3600a708bbc99a3fda3"
+    "mtime": 1790316693.997039,
+    "seen": 1790383501.3549626,
+    "ast_hash": "71a1cb044e2164d780da2a25ba6ffbb0",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/model/BufferOps.kt": {
     "mtime": 1788092295.2878165,
@@ -108,10 +108,10 @@
     "semantic_hash": "c67e3b52f10e14214077b1a3dff6a0bc"
   },
   "app/src/main/java/com/example/algolens/model/chat/ChatMessage.kt": {
-    "mtime": 1789958767.4638333,
-    "seen": 1790252910.8602028,
-    "ast_hash": "d00a9b1475067484dc608fc3c654f162",
-    "semantic_hash": "d00a9b1475067484dc608fc3c654f162"
+    "mtime": 1790326025.2167413,
+    "seen": 1790383501.3549771,
+    "ast_hash": "f8dd27645d2d53469a065dac5642aed2",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/model/practice/PracticeQuestion.kt": {
     "mtime": 1789944414.006007,
@@ -126,10 +126,10 @@
     "semantic_hash": "96736441fd85c939888b1eb238da28ee"
   },
   "app/src/main/java/com/example/algolens/ui/AlgoLensApp.kt": {
-    "mtime": 1789990913.1418457,
-    "seen": 1790252910.860207,
-    "ast_hash": "ccebe1496e9395d275c1070e69f91dc3",
-    "semantic_hash": "ccebe1496e9395d275c1070e69f91dc3"
+    "mtime": 1790354088.4161825,
+    "seen": 1790383501.3549855,
+    "ast_hash": "a2ed98745bbd01d78376101e071c4456",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/boot/BootController.kt": {
     "mtime": 1790176620.4248912,
@@ -138,10 +138,10 @@
     "semantic_hash": "bf2735b0fd99d002d334173876eede08"
   },
   "app/src/main/java/com/example/algolens/ui/boot/BootOverlay.kt": {
-    "mtime": 1790176630.5243394,
-    "seen": 1790252910.8602111,
-    "ast_hash": "45ce9363402f37df673488b05c3c978f",
-    "semantic_hash": "45ce9363402f37df673488b05c3c978f"
+    "mtime": 1790350821.875684,
+    "seen": 1790383501.3549905,
+    "ast_hash": "9c2051f3365e928b4e3f2597c6097496",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatFlowchartRenderer.kt": {
     "mtime": 1789960571.3716831,
@@ -150,22 +150,22 @@
     "semantic_hash": "35d50a420258cb113db2e9f27939c6a9"
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatMarkdownRenderer.kt": {
-    "mtime": 1789960462.8152287,
-    "seen": 1790252910.8602161,
-    "ast_hash": "8d048be29fdfa47020c1d41e9a215d94",
-    "semantic_hash": "8d048be29fdfa47020c1d41e9a215d94"
+    "mtime": 1790350821.8775456,
+    "seen": 1790383501.3549957,
+    "ast_hash": "7420630286358d22c047f749ad4102bf",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatScreen.kt": {
-    "mtime": 1789959426.6619554,
-    "seen": 1790252910.8602176,
-    "ast_hash": "5eb79f9704709f76ab35b1f883728702",
-    "semantic_hash": "5eb79f9704709f76ab35b1f883728702"
+    "mtime": 1790352729.7116966,
+    "seen": 1790383501.354998,
+    "ast_hash": "0d4c7c797be8c34c553333aa37a3dd18",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatSessionState.kt": {
-    "mtime": 1789958805.138184,
-    "seen": 1790252910.8602185,
-    "ast_hash": "5f40ddbb4f1bdbb38c8046311afcf124",
-    "semantic_hash": "5f40ddbb4f1bdbb38c8046311afcf124"
+    "mtime": 1790327409.5988686,
+    "seen": 1790383501.3550005,
+    "ast_hash": "8c5326daf9e73280595951aabcc30f40",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatTableRenderer.kt": {
     "mtime": 1789960424.0012124,
@@ -174,34 +174,34 @@
     "semantic_hash": "37dcf819a0d7bdfdc724fc8fc6a953a2"
   },
   "app/src/main/java/com/example/algolens/ui/components/AlgoCard.kt": {
-    "mtime": 1790180770.6585183,
-    "seen": 1790252910.860223,
+    "mtime": 1790349255.779865,
+    "seen": 1790383501.355008,
     "ast_hash": "2cfb6fc4d8510358b434c0b83556f112",
     "semantic_hash": "2cfb6fc4d8510358b434c0b83556f112"
   },
   "app/src/main/java/com/example/algolens/ui/components/AlgoGlyphs.kt": {
-    "mtime": 1790213594.145472,
-    "seen": 1790252910.8602242,
-    "ast_hash": "860cab49231cab934e29053307517a2d",
-    "semantic_hash": "860cab49231cab934e29053307517a2d"
+    "mtime": 1790333879.5720913,
+    "seen": 1790383501.3550103,
+    "ast_hash": "928597bcef18cbcef0f2d36256704f87",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/components/AviaLogo.kt": {
-    "mtime": 1790176591.4988234,
-    "seen": 1790252910.8602252,
-    "ast_hash": "49eed1da794558aad7605cc855157ec2",
-    "semantic_hash": "49eed1da794558aad7605cc855157ec2"
+    "mtime": 1790319787.0803235,
+    "seen": 1790383501.355013,
+    "ast_hash": "bf1b85c51685943fa2c3151ac61430a7",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/components/BottomNavBar.kt": {
-    "mtime": 1789958747.5277514,
-    "seen": 1790252910.8602266,
-    "ast_hash": "d2a79a22f7a9fe9d01801bb47d886b4c",
-    "semantic_hash": "d2a79a22f7a9fe9d01801bb47d886b4c"
+    "mtime": 1790352356.379351,
+    "seen": 1790383501.3550153,
+    "ast_hash": "10dc709433329aa0eb2bceeef47d8d3f",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/components/CommonComponents.kt": {
-    "mtime": 1789591267.5942683,
-    "seen": 1790252910.8602276,
-    "ast_hash": "bb28f1c8fab83f18c0bdff1bc91869ac",
-    "semantic_hash": "bb28f1c8fab83f18c0bdff1bc91869ac"
+    "mtime": 1790350821.8794596,
+    "seen": 1790383501.3550177,
+    "ast_hash": "491809002eff20358a37ac6298ef69a7",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/components/GlassPanel.kt": {
     "mtime": 1789403483.6732383,
@@ -210,16 +210,16 @@
     "semantic_hash": "d517363554ae258934389a397b7087dc"
   },
   "app/src/main/java/com/example/algolens/ui/components/Instrument.kt": {
-    "mtime": 1789553012.8273828,
-    "seen": 1790252910.86023,
-    "ast_hash": "a0337993abb1d3931d862c7d4619273a",
-    "semantic_hash": "a0337993abb1d3931d862c7d4619273a"
+    "mtime": 1790350821.8810258,
+    "seen": 1790383501.3550231,
+    "ast_hash": "d88756ef8b39dc3c8c263acd2058f407",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/components/WorkspaceControls.kt": {
-    "mtime": 1789400134.5684054,
-    "seen": 1790252910.8602314,
-    "ast_hash": "456070dae21fd805a77b253449b0389a",
-    "semantic_hash": "456070dae21fd805a77b253449b0389a"
+    "mtime": 1790350869.0062592,
+    "seen": 1790383501.355026,
+    "ast_hash": "e8a26bab4a75e4fe31a5a5d2dce88139",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/dashboard/DashboardScreen.kt": {
     "mtime": 1790181538.336873,
@@ -228,16 +228,16 @@
     "semantic_hash": "5bb65972ed617d48835be437d5b69078"
   },
   "app/src/main/java/com/example/algolens/ui/onboarding/OnboardingScreen.kt": {
-    "mtime": 1789991047.0290444,
-    "seen": 1790252910.8602335,
-    "ast_hash": "9caff5aef154dcc21b335364e90dd0fd",
-    "semantic_hash": "9caff5aef154dcc21b335364e90dd0fd"
+    "mtime": 1790300354.640132,
+    "seen": 1790383501.3550313,
+    "ast_hash": "76534418383d90e2218d1674db023127",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/practice/PracticeScreen.kt": {
-    "mtime": 1789944495.773768,
-    "seen": 1790252910.8602347,
-    "ast_hash": "6c03798003f4a0b43e585814ee592b18",
-    "semantic_hash": "6c03798003f4a0b43e585814ee592b18"
+    "mtime": 1790352719.0126326,
+    "seen": 1790383501.3550339,
+    "ast_hash": "2404b0488d470cfe2d003f08abe256ee",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/practice/PracticeSessionState.kt": {
     "mtime": 1789944452.4841108,
@@ -252,16 +252,16 @@
     "semantic_hash": "06a54cd18775a6e5d55fadc1498392d8"
   },
   "app/src/main/java/com/example/algolens/ui/profile/ProfileScreen.kt": {
-    "mtime": 1789958910.655601,
-    "seen": 1790252910.8602383,
-    "ast_hash": "f951db52d92d2c49df14a243fbba30cb",
-    "semantic_hash": "f951db52d92d2c49df14a243fbba30cb"
+    "mtime": 1790354085.8479388,
+    "seen": 1790383501.3550448,
+    "ast_hash": "62543bd4d6532134fe0ca9b3169ac742",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/settings/SettingsScreen.kt": {
-    "mtime": 1790213529.0325758,
-    "seen": 1790252910.8602405,
-    "ast_hash": "aba1c5a6915a9e9ae9deaa7e5016c6f6",
-    "semantic_hash": "aba1c5a6915a9e9ae9deaa7e5016c6f6"
+    "mtime": 1790338450.803811,
+    "seen": 1790383501.3550475,
+    "ast_hash": "57ed73c03aab5beeb2d3715ff74d0acf",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/theme/Color.kt": {
     "mtime": 1788182937.061842,
@@ -270,16 +270,16 @@
     "semantic_hash": "7f4e71ad89f0e2ea2b56d9b0bcab9ec4"
   },
   "app/src/main/java/com/example/algolens/ui/theme/Theme.kt": {
-    "mtime": 1789549359.0079658,
-    "seen": 1790252910.8602426,
-    "ast_hash": "cb7bc32ee9cfc6dedad9ccdbab833e3b",
-    "semantic_hash": "cb7bc32ee9cfc6dedad9ccdbab833e3b"
+    "mtime": 1790353195.2718349,
+    "seen": 1790383501.3550522,
+    "ast_hash": "01a8d83de974edfe9331eadc23ec9f4f",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/theme/Type.kt": {
-    "mtime": 1789566586.0925312,
-    "seen": 1790252910.8602443,
-    "ast_hash": "98bd975e467e751df9f082046da677c2",
-    "semantic_hash": "98bd975e467e751df9f082046da677c2"
+    "mtime": 1790353603.8339658,
+    "seen": 1790383501.355055,
+    "ast_hash": "5564a19590a746c70ede5b4d962f8fb2",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/tutor/AiTutorSheet.kt": {
     "mtime": 1789569506.220646,
@@ -288,8 +288,8 @@
     "semantic_hash": "ff36f1d015d338973d8e4ed231846403"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/AlgorithmTheorySheet.kt": {
-    "mtime": 1790184681.1190016,
-    "seen": 1790252910.8602464,
+    "mtime": 1790350821.8843234,
+    "seen": 1790383501.355061,
     "ast_hash": "ab9e6b89ad2b5642c1dfbf729696ab82",
     "semantic_hash": "ab9e6b89ad2b5642c1dfbf729696ab82"
   },
@@ -306,10 +306,10 @@
     "semantic_hash": "a04ff6e7cc779724542741072cb2eee8"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/BufferVisualizer.kt": {
-    "mtime": 1790184090.5391998,
-    "seen": 1790252910.8602498,
-    "ast_hash": "fd3d9039c48bcdf0b922cb710a8fc683",
-    "semantic_hash": "fd3d9039c48bcdf0b922cb710a8fc683"
+    "mtime": 1790318800.799176,
+    "seen": 1790383501.3550692,
+    "ast_hash": "d38078766edc52e4bc111fcc8935b12e",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/CellArrayVisualizer.kt": {
     "mtime": 1790244213.3481762,
@@ -342,10 +342,10 @@
     "semantic_hash": "1106351dad9a55b74887666480ff4dc6"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/ChallengeModeManager.kt": {
-    "mtime": 1789569847.2722316,
-    "seen": 1790252910.8602564,
-    "ast_hash": "2d0c7635de8dc52b658678c3079d752c",
-    "semantic_hash": "2d0c7635de8dc52b658678c3079d752c"
+    "mtime": 1790293479.5834267,
+    "seen": 1790383501.3550901,
+    "ast_hash": "ba651d61c45d4ac522ed5f825b27fc7f",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/CodeLineAccent.kt": {
     "mtime": 1788232464.8875847,
@@ -354,16 +354,16 @@
     "semantic_hash": "262492737ae06e783cb9cbd9085cd752"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/CodeListing.kt": {
-    "mtime": 1790244169.1540544,
-    "seen": 1790252910.8602588,
-    "ast_hash": "0c447de147a6474ebf5457289f2a261c",
-    "semantic_hash": "0c447de147a6474ebf5457289f2a261c"
+    "mtime": 1790352502.4717839,
+    "seen": 1790383501.3550956,
+    "ast_hash": "09751da2edc6f4f4d10fc7ea5ef22302",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/CodeTracePane.kt": {
-    "mtime": 1790246769.6561794,
-    "seen": 1790252910.86026,
-    "ast_hash": "e5e0210be95f540f28a99f849b826289",
-    "semantic_hash": "e5e0210be95f540f28a99f849b826289"
+    "mtime": 1790316634.1205184,
+    "seen": 1790383501.3550978,
+    "ast_hash": "3dac2e80ea999957c4ed1a5a4c0d05b2",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/ComparisonBridgeOverlay.kt": {
     "mtime": 1790216044.385795,
@@ -378,10 +378,10 @@
     "semantic_hash": "0ab1bbaa52d9a29301c89b2ad4feb525"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/CustomizeGraphSheet.kt": {
-    "mtime": 1789570074.2734673,
-    "seen": 1790252910.8602655,
-    "ast_hash": "310b247aeea682c9ce237ab91d9a5916",
-    "semantic_hash": "310b247aeea682c9ce237ab91d9a5916"
+    "mtime": 1790317648.0208454,
+    "seen": 1790383501.3551056,
+    "ast_hash": "b6f41185b6a7a5ee567c76fd79ed9161",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/CustomizeInputSheet.kt": {
     "mtime": 1789570155.300769,
@@ -396,22 +396,22 @@
     "semantic_hash": "569f33d31724b9b74ead4ec26f5541d2"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphBuilderOverlay.kt": {
-    "mtime": 1789570534.634954,
-    "seen": 1790252910.8602703,
-    "ast_hash": "ae8b23c13b30fb54e3fa6799f5790237",
-    "semantic_hash": "ae8b23c13b30fb54e3fa6799f5790237"
+    "mtime": 1790330277.2634144,
+    "seen": 1790383501.3551135,
+    "ast_hash": "97728f5a80ad7c26ac9c9a5810e035f2",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphTreeRenderer.kt": {
-    "mtime": 1789402440.4790175,
-    "seen": 1790252910.8602717,
-    "ast_hash": "d0dd3683c48883516fe6b79f01d8922d",
-    "semantic_hash": "d0dd3683c48883516fe6b79f01d8922d"
+    "mtime": 1790325721.846999,
+    "seen": 1790383501.355116,
+    "ast_hash": "fdcc654aa20163525b36bdd13f5d94ad",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphTreeVisualizer.kt": {
-    "mtime": 1790184085.477508,
-    "seen": 1790252910.8602731,
-    "ast_hash": "e0c0d3157d36adb0a7d721ad5fc999a1",
-    "semantic_hash": "e0c0d3157d36adb0a7d721ad5fc999a1"
+    "mtime": 1790327287.2371535,
+    "seen": 1790383501.355118,
+    "ast_hash": "ff87ce5e4a420467c05673e2ad544d2b",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphVisualizer.kt": {
     "mtime": 1789402319.6894715,
@@ -426,10 +426,10 @@
     "semantic_hash": "2b309c0f826219207bfe471c399e2736"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/InstrumentDeck.kt": {
-    "mtime": 1790246739.6617775,
-    "seen": 1790252910.8602765,
-    "ast_hash": "2a115c239590cb13383ac2f46c192136",
-    "semantic_hash": "2a115c239590cb13383ac2f46c192136"
+    "mtime": 1790352444.453793,
+    "seen": 1790383501.3551252,
+    "ast_hash": "731b36364869be4b33c78b3c20bd607b",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/OffscreenPointerBanner.kt": {
     "mtime": 1789591142.06521,
@@ -444,10 +444,10 @@
     "semantic_hash": "929b6860e72455f65abdbb8eb9e1282f"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/PlaybackRail.kt": {
-    "mtime": 1790246860.4936266,
-    "seen": 1790252910.8602798,
-    "ast_hash": "de827d2a6165729dcd2d9f5ca40ca390",
-    "semantic_hash": "de827d2a6165729dcd2d9f5ca40ca390"
+    "mtime": 1790293725.7549448,
+    "seen": 1790383501.355134,
+    "ast_hash": "cc3ebc04029eb1777b21754bb5d0897d",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/PointerBannerOverlay.kt": {
     "mtime": 1789591161.769574,
@@ -462,16 +462,16 @@
     "semantic_hash": "3b61e9eb584facfc3347f3df69ceae2c"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/StageLegend.kt": {
-    "mtime": 1790231106.3849826,
-    "seen": 1790252910.860283,
-    "ast_hash": "63864bfce67aab0278092960e59eae69",
-    "semantic_hash": "63864bfce67aab0278092960e59eae69"
+    "mtime": 1790325568.0022378,
+    "seen": 1790383501.355142,
+    "ast_hash": "4f0324b809482ba48fb6775ea250321b",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/StateDeckPage.kt": {
-    "mtime": 1790246850.3959727,
-    "seen": 1790252910.8602843,
-    "ast_hash": "050deb0d129fc0b328c2757bed9f879e",
-    "semantic_hash": "050deb0d129fc0b328c2757bed9f879e"
+    "mtime": 1790352498.429266,
+    "seen": 1790383501.3551447,
+    "ast_hash": "226d87a41baca83f97f249374f05050d",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/SwapFlight.kt": {
     "mtime": 1788089713.0270898,
@@ -492,16 +492,16 @@
     "semantic_hash": "85294eeef3261ef55e5b2cbb9fe1d35f"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerHeader.kt": {
-    "mtime": 1790244218.43279,
-    "seen": 1790252910.8602896,
-    "ast_hash": "62e8ac5f03deac5572962bed5dc34ad4",
-    "semantic_hash": "62e8ac5f03deac5572962bed5dc34ad4"
+    "mtime": 1790319585.1534765,
+    "seen": 1790383501.355157,
+    "ast_hash": "ff86c588b1bb17816d6c85594951a607",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerHost.kt": {
-    "mtime": 1790242608.1754248,
-    "seen": 1790252910.8602908,
-    "ast_hash": "17786ff3359393b231bbe4821cf897b9",
-    "semantic_hash": "17786ff3359393b231bbe4821cf897b9"
+    "mtime": 1790317719.5530014,
+    "seen": 1790383501.3551598,
+    "ast_hash": "bf786b8fb21a4166266146156d2de6e6",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerOverlay.kt": {
     "mtime": 1788007407.0446336,
@@ -510,22 +510,22 @@
     "semantic_hash": "098d628678b951d49ea36816baa74215"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerScreen.kt": {
-    "mtime": 1790246855.4580743,
-    "seen": 1790252910.8602934,
-    "ast_hash": "04b51b256a4c75c9839168393cb6db73",
-    "semantic_hash": "04b51b256a4c75c9839168393cb6db73"
+    "mtime": 1790325573.0325422,
+    "seen": 1790383501.3551655,
+    "ast_hash": "916dfd524c01805e584b3ed3b4a762ee",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerScreenState.kt": {
-    "mtime": 1790231446.7910893,
-    "seen": 1790252910.8602958,
-    "ast_hash": "323d621a3daf9caf73c450ffb26f1e63",
-    "semantic_hash": "323d621a3daf9caf73c450ffb26f1e63"
+    "mtime": 1790325603.3219707,
+    "seen": 1790383501.3551674,
+    "ast_hash": "97d5dad15bd99faee34fdc7f5915b71e",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerState.kt": {
-    "mtime": 1788262009.2726052,
-    "seen": 1790252910.8602972,
-    "ast_hash": "6f57424fd6299ba627785a9421927689",
-    "semantic_hash": "6f57424fd6299ba627785a9421927689"
+    "mtime": 1790316704.0858827,
+    "seen": 1790383501.3551695,
+    "ast_hash": "9916541f863b0e63dfea35c75e959365",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/WeightBadgeOverlay.kt": {
     "mtime": 1788007594.3596632,
@@ -588,10 +588,10 @@
     "semantic_hash": "7fdc84af9afe0b092cfc4778a72728d5"
   },
   "app/src/test/java/com/example/algolens/FeatureEnhancementsTest.kt": {
-    "mtime": 1788105286.1685088,
-    "seen": 1790252910.8603094,
-    "ast_hash": "f1cefa33ab753371eba438983a3eeca6",
-    "semantic_hash": "f1cefa33ab753371eba438983a3eeca6"
+    "mtime": 1790340847.0995839,
+    "seen": 1790383501.3552036,
+    "ast_hash": "439bbfdd736536899ab7833813f9d209",
+    "semantic_hash": ""
   },
   "app/src/test/java/com/example/algolens/PracticeBackendTest.kt": {
     "mtime": 1789944502.625247,
@@ -618,10 +618,10 @@
     "semantic_hash": "648ebcfc0163ff1b492de4577474a323"
   },
   "app/src/test/java/com/example/algolens/VisualizerScreenStateTest.kt": {
-    "mtime": 1790242585.2881072,
-    "seen": 1790252910.8603163,
-    "ast_hash": "5d857034a9fce2b98295e7b362d3fbe1",
-    "semantic_hash": "5d857034a9fce2b98295e7b362d3fbe1"
+    "mtime": 1790319278.6033096,
+    "seen": 1790383501.3552155,
+    "ast_hash": "955c3588a3922a392ac5018c48c4f1a8",
+    "semantic_hash": ""
   },
   "benchmark/build.gradle.kts": {
     "mtime": 1788210627.2328856,
@@ -677,46 +677,142 @@
     "ast_hash": "d10a99bc0ec73fda2da0f17582c8f216",
     "semantic_hash": "d10a99bc0ec73fda2da0f17582c8f216"
   },
-  "DESIGN.md": {
-    "mtime": 1790233269.9592123,
-    "seen": 1790252910.8603272,
-    "ast_hash": "4850e1204ff36604eeb63542b23a7b92",
-    "semantic_hash": "4850e1204ff36604eeb63542b23a7b92"
+  ".codex/hooks.json": {
+    "mtime": 1790287503.7701607,
+    "seen": 1790383501.354891,
+    "ast_hash": "d2b0eae898eca4785225fd60b5918a69",
+    "semantic_hash": ""
   },
-  "PRODUCT.md": {
-    "mtime": 1789400580.892903,
-    "seen": 1790252910.8603282,
-    "ast_hash": "3e0a74722a47c37f5cb98bcab6f6be8b",
-    "semantic_hash": "3e0a74722a47c37f5cb98bcab6f6be8b"
+  "app/src/androidTest/java/com/example/algolens/ProfileFlowTest.kt": {
+    "mtime": 1790354255.7948904,
+    "seen": 1790383501.3549137,
+    "ast_hash": "ea946f6282f5fc4b6e0d0ae9f7f6425a",
+    "semantic_hash": ""
   },
-  "docs/ALGORITHM_AUTHORING.md": {
-    "mtime": 1788003932.818594,
-    "seen": 1790252910.8603292,
-    "ast_hash": "a1f30e9bc35f7b9d181b24ce87c3fe79",
-    "semantic_hash": "a1f30e9bc35f7b9d181b24ce87c3fe79"
+  "app/src/main/java/com/example/algolens/data/auth/AuthRepository.kt": {
+    "mtime": 1790353424.452879,
+    "seen": 1790383501.3549461,
+    "ast_hash": "84f6ae01cfc9f4f6442498d926a36865",
+    "semantic_hash": ""
   },
-  "docs/HANDOVER.md": {
-    "mtime": 1788309666.4055934,
-    "seen": 1790252910.8603303,
-    "ast_hash": "6edc2ef43120a2e1c0d136ac4f416979",
-    "semantic_hash": "6edc2ef43120a2e1c0d136ac4f416979"
+  "app/src/main/java/com/example/algolens/data/chat/ChatHistoryRepository.kt": {
+    "mtime": 1790326254.4971712,
+    "seen": 1790383501.3549514,
+    "ast_hash": "19edc3d48e6790d6ee7faab765128579",
+    "semantic_hash": ""
   },
-  "docs/TASKS.md": {
-    "mtime": 1790235393.7185736,
-    "seen": 1790252910.8603313,
-    "ast_hash": "1c2bd0f07a3975e6146f5ac64b771791",
-    "semantic_hash": "1c2bd0f07a3975e6146f5ac64b771791"
+  "app/src/main/java/com/example/algolens/data/chat/ProjectAlgorithmRecommender.kt": {
+    "mtime": 1790326147.9973638,
+    "seen": 1790383501.354954,
+    "ast_hash": "26944c0a231b5cc9cbc0d74d84d2c7a6",
+    "semantic_hash": ""
   },
-  "docs/TASTE_HANDOVER_PROMPT.md": {
-    "mtime": 1789559657.8164642,
-    "seen": 1790252910.8603323,
-    "ast_hash": "9e4f5b0d2a9a72056ffd24754117e453",
-    "semantic_hash": "9e4f5b0d2a9a72056ffd24754117e453"
+  "app/src/main/java/com/example/algolens/ui/chat/ChatSidebarAndPlanner.kt": {
+    "mtime": 1790352876.2912352,
+    "seen": 1790383501.3550029,
+    "ast_hash": "f1925a64b3941481d25e5f67fea52a33",
+    "semantic_hash": ""
   },
-  "docs/UI_GUIDELINES.md": {
-    "mtime": 1790233143.4673085,
-    "seen": 1790252910.8603332,
-    "ast_hash": "a0893959f204fb19c64cac2c710fee82",
-    "semantic_hash": "a0893959f204fb19c64cac2c710fee82"
+  "app/src/main/java/com/example/algolens/ui/profile/AccountTemplateCard.kt": {
+    "mtime": 1790353885.8361886,
+    "seen": 1790383501.355042,
+    "ast_hash": "4be0c514d5573c9e8a9ead55b3956118",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/example/algolens/ProfileEditorDraftTest.kt": {
+    "mtime": 1790353474.9443486,
+    "seen": 1790383501.3552072,
+    "ast_hash": "002d8fc2f9b88b5270d967e79ca6b03e",
+    "semantic_hash": ""
+  },
+  "docs/ARCHITECTURE.md": {
+    "mtime": 1790340392.5859902,
+    "seen": 1790383501.355233,
+    "ast_hash": "a258940f107029ab4873015bb4a223db",
+    "semantic_hash": ""
+  },
+  "docs/DESIGN.md": {
+    "mtime": 1790339842.3418212,
+    "seen": 1790383501.3552346,
+    "ast_hash": "32edd05fb67e8b5b5fa23ede46644fd7",
+    "semantic_hash": ""
+  },
+  "docs/IMPLEMENTATION.md": {
+    "mtime": 1790340763.278687,
+    "seen": 1790383501.3552358,
+    "ast_hash": "165031f7c0c92e4831297ea9e57aeec8",
+    "semantic_hash": ""
+  },
+  "docs/PROFILE_DESIGN.md": {
+    "mtime": 1790353197.8408432,
+    "seen": 1790383501.3552375,
+    "ast_hash": "0f0879279cf40edb7b2e243a8f27d4f9",
+    "semantic_hash": ""
+  },
+  "docs/PROJECT.md": {
+    "mtime": 1790340396.498248,
+    "seen": 1790383501.3552384,
+    "ast_hash": "70005b732cbf54a261bb3f9c5597f5bf",
+    "semantic_hash": ""
+  },
+  "docs/REVIEW.md": {
+    "mtime": 1790330912.7738905,
+    "seen": 1790383501.3552396,
+    "ast_hash": "1e052542ac484fa1c7427c6af6ba26d3",
+    "semantic_hash": ""
+  },
+  "docs/TASK.md": {
+    "mtime": 1790336640.2691376,
+    "seen": 1790383501.355241,
+    "ast_hash": "1d3aaa17d4339e29e3908d912a09b285",
+    "semantic_hash": ""
+  },
+  "artifacts/profile/before.png": {
+    "mtime": 1790353136.0273943,
+    "seen": 1790383501.3552423,
+    "ast_hash": "95b29b1d0c13ffbaaae02c1c3d7901b8",
+    "semantic_hash": ""
+  },
+  "artifacts/profile/profile-review/editor-narrow-keyboard.png": {
+    "mtime": 1790354376.0556846,
+    "seen": 1790383501.3552434,
+    "ast_hash": "e3fc427b22358a2becce7ba6b7a03340",
+    "semantic_hash": ""
+  },
+  "artifacts/profile/profile-review/editor-narrow-large-text.png": {
+    "mtime": 1790354375.8935359,
+    "seen": 1790383501.3552446,
+    "ast_hash": "1202f5f869cce9943e3550f40f475a6b",
+    "semantic_hash": ""
+  },
+  "artifacts/profile/profile-review/editor-phone.png": {
+    "mtime": 1790354376.087249,
+    "seen": 1790383501.3552456,
+    "ast_hash": "6607bd541a957471ce0defba0b70ab38",
+    "semantic_hash": ""
+  },
+  "artifacts/profile/profile-review/profile-phone.png": {
+    "mtime": 1790354376.0990458,
+    "seen": 1790383501.3552465,
+    "ast_hash": "d057bc75eb3acd31a07a029b1d7b74d6",
+    "semantic_hash": ""
+  },
+  "artifacts/profile/profile-review/saved-empty-phone.png": {
+    "mtime": 1790354376.1240828,
+    "seen": 1790383501.355248,
+    "ast_hash": "5e9f45f34522c79663aa3ad9488fec8d",
+    "semantic_hash": ""
+  },
+  "artifacts/profile/profile.png": {
+    "mtime": 1790354474.5183089,
+    "seen": 1790383501.3552492,
+    "ast_hash": "ecac96d040334984c4b56ac9add34d3f",
+    "semantic_hash": ""
+  },
+  "artifacts/profile/test-state.png": {
+    "mtime": 1790353784.0561144,
+    "seen": 1790383501.3552504,
+    "ast_hash": "a2f9d4714c4802db8bbf0b78fce3048a",
+    "semantic_hash": ""
   }
 }

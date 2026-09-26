@@ -58,8 +58,9 @@ fun ProfileScreen(
 ) {
     var showingSaved by rememberSaveable { mutableStateOf(false) }
     var showAuthDialog by rememberSaveable { mutableStateOf(false) }
-    var showClearCacheDialog by rememberSaveable { mutableStateOf(false) }
-    var showClearHistoryDialog by rememberSaveable { mutableStateOf(false) }
+    var showDataStorageDialog by rememberSaveable { mutableStateOf(false) }
+    var showActivityStatsDialog by rememberSaveable { mutableStateOf(false) }
+    var showAboutDialog by rememberSaveable { mutableStateOf(false) }
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
     var showAccessibilityDialog by rememberSaveable { mutableStateOf(false) }
     var noticeMessage by rememberSaveable { mutableStateOf<String?>(null) }
@@ -164,7 +165,7 @@ fun ProfileScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(6.dp)
+                            .size(7.dp)
                             .clip(CircleShape)
                             .background(PrimaryCyan)
                     )
@@ -172,7 +173,7 @@ fun ProfileScreen(
                         text = "OPERATOR PROFILE",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextMuted,
-                        fontSize = AlgoType.microSize,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = AlgoType.trackSection
                     )
@@ -423,7 +424,7 @@ fun ProfileScreen(
                                     .padding(horizontal = 8.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = if (authRepository.state is AuthAccountState.SignedIn) "ONLINE SYNCED" else "OFFLINE READY",
+                                    text = if (authRepository.state is AuthAccountState.SignedIn) "ONLINE SYNCED" else "LOCAL",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = PrimaryCyan,
                                     fontWeight = FontWeight.Bold,
@@ -431,17 +432,6 @@ fun ProfileScreen(
                                     letterSpacing = AlgoType.trackSection
                                 )
                             }
-
-                            Text(
-                                text = "Edit profile",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary,
-                                fontSize = AlgoType.microSize,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                                    .clickable(onClick = onEditProfileClick)
-                                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                            )
                         }
                     }
 
@@ -472,6 +462,7 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                 ) {
+                    // Group 1: Workspace & Learning
                     ProfileOptionItem(
                         icon = AlgoGlyphs.Bookmark,
                         title = "Saved algorithms",
@@ -479,24 +470,14 @@ fun ProfileScreen(
                         onClick = { showingSaved = true }
                     )
                     ProfileOptionItem(
-                        icon = AlgoGlyphs.Book,
-                        title = "Algorithm library",
-                        onClick = onNavigateToCatalog
-                    )
-                    ProfileOptionItem(
-                        icon = AlgoGlyphs.Compass,
-                        title = "Practice drills",
-                        onClick = onNavigateToPractice
+                        icon = AlgoGlyphs.TrendingUp,
+                        title = "Activity & stats",
+                        onClick = { showActivityStatsDialog = true }
                     )
                     ProfileOptionItem(
                         icon = AlgoGlyphs.Tune,
                         title = "Study preferences",
                         onClick = onSettingsClick
-                    )
-                    ProfileOptionItem(
-                        icon = AlgoGlyphs.Chat,
-                        title = "Your tutor",
-                        onClick = onNavigateToChat
                     )
 
                     HorizontalDivider(
@@ -505,10 +486,16 @@ fun ProfileScreen(
                         thickness = 0.5.dp
                     )
 
-                    // Placeholders requested: Language, Accessibility, Clear cache, Clear history
+                    // Group 2: App Preferences & System
+                    ProfileOptionItem(
+                        icon = AlgoGlyphs.Storage,
+                        title = "Data & storage",
+                        onClick = { showDataStorageDialog = true }
+                    )
                     ProfileOptionItem(
                         icon = AlgoGlyphs.Globe,
                         title = "Language",
+                        trailingText = "English",
                         onClick = { showLanguageDialog = true }
                     )
                     ProfileOptionItem(
@@ -516,16 +503,6 @@ fun ProfileScreen(
                         title = "Accessibility",
                         onClick = { showAccessibilityDialog = true }
                     )
-                    ProfileOptionItem(
-                        icon = AlgoGlyphs.Trash,
-                        title = "Clear cache",
-                        onClick = { showClearCacheDialog = true }
-                    )
-                    ProfileOptionItem(
-                        icon = AlgoGlyphs.History,
-                        title = "Clear history",
-                        onClick = { showClearHistoryDialog = true }
-                    )
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = AlgoTokens.space2),
@@ -533,7 +510,13 @@ fun ProfileScreen(
                         thickness = 0.5.dp
                     )
 
-                    // Login/Logout placeholder
+                    // Group 3: Application & Session
+                    ProfileOptionItem(
+                        icon = AlgoGlyphs.Info,
+                        title = "About AVIA",
+                        trailingText = "v2.4.0",
+                        onClick = { showAboutDialog = true }
+                    )
                     ProfileOptionItem(
                         icon = AlgoGlyphs.LogOut,
                         title = if (authRepository.state is AuthAccountState.SignedIn) "Log out" else "Log out",
@@ -657,55 +640,207 @@ fun ProfileScreen(
         }
     }
 
-    if (showClearCacheDialog) {
+    if (showDataStorageDialog) {
         AlertDialog(
-            onDismissRequest = { showClearCacheDialog = false },
-            title = { Text("Clear Cache") },
-            text = {
-                Text(
-                    text = "Temporary visualizer frames, memory buffers, and cached states will be cleared.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showClearCacheDialog = false
-                    noticeMessage = "Cache cleared (0 MB freed)."
-                }) {
-                    Text("Clear", color = PrimaryCyan)
+            onDismissRequest = { showDataStorageDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(AlgoGlyphs.Storage, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Text("Data & Storage")
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showClearCacheDialog = false }) {
-                    Text("Cancel")
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
+                    Text(
+                        text = "Manage local cache, algorithm execution buffers, and activity history.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+
+                    DoubleBezelShell(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(AlgoTokens.space3)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Offline Catalogue", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("13 Algorithms", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Code Traces", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("52 Multi-language", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Saved Bookmarks", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("${saved.size} items", style = MaterialTheme.typography.bodySmall, color = PrimaryCyan)
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .background(CardBackgroundElevated)
+                                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                                .clickable {
+                                    showDataStorageDialog = false
+                                    noticeMessage = "Cache cleared (0.8 MB freed)."
+                                }
+                                .padding(vertical = AlgoTokens.space3),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(AlgoGlyphs.Trash, null, tint = TextPrimary, modifier = Modifier.size(14.dp))
+                                Text("Clear Cache", style = MaterialTheme.typography.labelSmall, color = TextPrimary)
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .background(CardBackgroundElevated)
+                                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                                .clickable {
+                                    showDataStorageDialog = false
+                                    noticeMessage = "Activity history cleared."
+                                }
+                                .padding(vertical = AlgoTokens.space3),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(AlgoGlyphs.History, null, tint = AccentRed, modifier = Modifier.size(14.dp))
+                                Text("Clear History", style = MaterialTheme.typography.labelSmall, color = AccentRed)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDataStorageDialog = false }) {
+                    Text("Done", color = PrimaryCyan)
                 }
             }
         )
     }
 
-    if (showClearHistoryDialog) {
+    if (showActivityStatsDialog) {
         AlertDialog(
-            onDismissRequest = { showClearHistoryDialog = false },
-            title = { Text("Clear History") },
-            text = {
-                Text(
-                    text = "Are you sure you want to clear your local activity history? Your bookmarked algorithms will not be affected.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showClearHistoryDialog = false
-                    noticeMessage = "Activity history cleared."
-                }) {
-                    Text("Clear", color = AccentRed)
+            onDismissRequest = { showActivityStatsDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(AlgoGlyphs.TrendingUp, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Text("Activity & Stats")
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showClearHistoryDialog = false }) {
-                    Text("Cancel")
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
+                    Text(
+                        text = "Overview of your algorithm visualizer sessions and offline inspection metrics.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                    DoubleBezelShell(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(AlgoTokens.space3)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Bookmarked Algorithms", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("${saved.size}", style = MaterialTheme.typography.bodySmall, color = PrimaryCyan, fontWeight = FontWeight.Bold)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Catalog Coverage", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("13/13 Offline Ready", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Multi-Language Traces", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("52 Code Solutions", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Telemetry Engine", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("Active · Nominal", style = MaterialTheme.typography.bodySmall, color = AccentGreen)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showActivityStatsDialog = false }) {
+                    Text("Got it", color = PrimaryCyan)
+                }
+            }
+        )
+    }
+
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(AlgoGlyphs.Avia, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Text("About AVIA")
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
+                    Text(
+                        text = "Algorithm Visualization & Inspection Apparatus",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = PrimaryCyan,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Version 2.4.0 (Offline Architecture Build)\n\nA high-precision offline algorithm workbench with multi-language execution step-through, visual AST tracking, and interactive exploration.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAboutDialog = false }) {
+                    Text("Close", color = PrimaryCyan)
                 }
             }
         )

@@ -236,13 +236,13 @@ fun AccountStatusCard(
                         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                     ) {
                         Text(
-                            text = "Local Guest Workspace · On-Device Storage",
+                            text = "Local Account",
                             style = MaterialTheme.typography.labelLarge,
                             color = TextPrimary,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Your profile, bookmarks, settings, and chat threads are saved on this device. Optional Google Sign-In (Firebase Auth) is not enabled in this offline build.",
+                            text = "Saved on this device. Sign in with Google to sync across devices.",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted
                         )

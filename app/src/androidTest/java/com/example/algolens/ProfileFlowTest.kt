@@ -97,12 +97,15 @@ class ProfileFlowTest {
             }
         }
         capture("profile-phone")
-        compose.onNodeWithText("Edit profile").performClick()
-        compose.onNodeWithText("Practice drills").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Edit profile").performClick()
         compose.onNodeWithText("Study preferences").performScrollTo().performClick()
-        compose.onNodeWithText("Your tutor").performScrollTo().performClick()
-        compose.onNodeWithText("Algorithm library").performScrollTo().performClick()
-        compose.runOnIdle { assertTrue(edit && settings && practice && catalog && chat) }
+        compose.runOnIdle { assertTrue(edit && settings) }
+        compose.onNodeWithText("Activity & stats").performScrollTo().performClick()
+        compose.onNodeWithText("Got it").performClick()
+        compose.onNodeWithText("Data & storage").performScrollTo().performClick()
+        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("About AVIA").performScrollTo().performClick()
+        compose.onNodeWithText("Close").performClick()
         compose.onNodeWithText("Saved algorithms").performScrollTo().performClick()
         compose.onNodeWithText("Keep your next algorithm close").assertIsDisplayed()
         capture("saved-empty-phone")
