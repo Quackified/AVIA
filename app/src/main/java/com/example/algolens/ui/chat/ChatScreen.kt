@@ -1,12 +1,15 @@
 package com.example.algolens.ui.chat
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,11 +43,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,7 +64,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -118,17 +128,29 @@ fun ChatScreen(
 ) {
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
-    var showResetConfirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameBuffer by remember { mutableStateOf("") }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
+    var feedbackText by remember { mutableStateOf("") }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var userActionTarget by remember { mutableStateOf<ChatMessage?>(null) }
+    var toastNotice by remember { mutableStateOf<String?>(null) }
 
     val hasUserMessages = remember(manager.messages) {
         manager.messages.any { it.sender == ChatSender.USER }
     }
 
-    BackHandler(enabled = manager.isSidebarOpen || manager.showProjectPlanner || showResetConfirm) {
+    BackHandler(enabled = manager.isSidebarOpen || manager.showProjectPlanner || showDeleteConfirm || showRenameDialog || showFeedbackDialog || userActionTarget != null) {
         when {
+            userActionTarget != null -> userActionTarget = null
+            showRenameDialog -> showRenameDialog = false
+            showFeedbackDialog -> showFeedbackDialog = false
+            showDeleteConfirm -> showDeleteConfirm = false
             manager.showProjectPlanner -> manager.toggleProjectPlanner(false)
             manager.isSidebarOpen -> manager.toggleSidebar(false)
-            showResetConfirm -> showResetConfirm = false
         }
     }
 
@@ -137,6 +159,23 @@ fun ChatScreen(
         if (manager.messages.isNotEmpty()) {
             listState.animateScrollToItem(manager.messages.size - 1)
         }
+    }
+
+    val onShareConversation = {
+        val transcript = buildString {
+            append("AlgoLens AVIA Conversation: ${manager.activeConversation.title}\n\n")
+            manager.messages.forEach { msg ->
+                val role = if (msg.sender == ChatSender.USER) "USER" else "AVIA"
+                append("[$role]\n${msg.content}\n\n")
+            }
+        }
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, transcript)
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, "Share conversation")
+        context.startActivity(shareIntent)
     }
 
     Box(
@@ -157,73 +196,58 @@ fun ChatScreen(
             ChatHeader(
                 conversationTitle = manager.activeConversation.title,
                 providerLabel = manager.providerLabel,
+                isPinned = manager.activeConversation.isPinned,
                 onOpenHistory = {
                     focusManager.clearFocus()
                     manager.toggleSidebar(true)
                 },
                 onNewChat = {
-                    showResetConfirm = false
                     manager.createNewChat()
                 },
-                onOpenPlanner = {
-                    focusManager.clearFocus()
-                    manager.toggleProjectPlanner(true)
+                onShare = onShareConversation,
+                onTogglePin = {
+                    manager.togglePinConversation()
+                    toastNotice = if (manager.activeConversation.isPinned) "Conversation pinned" else "Conversation unpinned"
                 },
-                onRequestReset = { showResetConfirm = true }
+                onRename = {
+                    renameBuffer = manager.activeConversation.title
+                    showRenameDialog = true
+                },
+                onFeedback = {
+                    feedbackText = ""
+                    showFeedbackDialog = true
+                },
+                onDelete = {
+                    showDeleteConfirm = true
+                }
             )
 
             AlgoHairline()
 
-            // ── Optional Confirmation Banner for Resetting Current Thread ──
-            AnimatedVisibility(visible = showResetConfirm) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(RedSubtle)
-                        .border(AlgoTokens.strokeThin, AccentRed.copy(alpha = 0.45f))
-                        .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space3),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Reset this conversation thread?",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
-                        Box(
+            // ── Temporary Toast/Feedback Notice Banner ──
+            AnimatedVisibility(visible = toastNotice != null) {
+                toastNotice?.let { msg ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(CyanSubtle)
+                            .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space2),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = msg,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = PrimaryCyan
+                        )
+                        Icon(
+                            imageVector = AlgoGlyphs.Close,
+                            contentDescription = "Dismiss",
+                            tint = PrimaryCyan,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                                .background(CardBackground)
-                                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
-                                .clickable { showResetConfirm = false }
-                                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
-                        ) {
-                            Text(
-                                text = "Cancel",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                                .background(AccentRed)
-                                .clickable {
-                                    showResetConfirm = false
-                                    manager.clearChat()
-                                }
-                                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
-                        ) {
-                            Text(
-                                text = "Reset",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                                .size(14.dp)
+                                .clickable { toastNotice = null }
+                        )
                     }
                 }
             }
@@ -238,14 +262,17 @@ fun ChatScreen(
                     horizontal = AlgoTokens.space6,
                     vertical = AlgoTokens.space4
                 ),
-                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
+                verticalArrangement = Arrangement.spacedBy(22.dp)
             ) {
                 items(
                     items = manager.messages,
                     key = { it.id }
                 ) { msg ->
                     when (msg.sender) {
-                        ChatSender.USER -> UserMessageBubble(message = msg)
+                        ChatSender.USER -> UserMessageBubble(
+                            message = msg,
+                            onHold = { userActionTarget = msg }
+                        )
                         ChatSender.ASSISTANT, ChatSender.SYSTEM -> AssistantMessageBubble(
                             message = msg,
                             onAction = { action ->
@@ -290,7 +317,9 @@ fun ChatScreen(
                 onSend = {
                     manager.sendMessage()
                 },
-                isThinking = manager.isThinking
+                isThinking = manager.isThinking,
+                isEditing = manager.editingMessageId != null,
+                onCancelEdit = { manager.cancelEditing() }
             )
         }
 
@@ -304,20 +333,19 @@ fun ChatScreen(
                 conversations = manager.filteredConversations,
                 activeConversationId = manager.activeConversationId,
                 searchQuery = manager.searchQuery,
+                filterPinnedOnly = manager.filterPinnedOnly,
+                onToggleFilterPinnedOnly = { manager.toggleFilterPinnedOnly() },
                 onSearchQueryChange = { manager.onSearchQueryChange(it) },
                 onSelectConversation = { manager.selectConversation(it) },
                 onNewChat = { manager.createNewChat() },
-                onOpenPlanner = {
+                onNavigateToCatalog = {
                     manager.toggleSidebar(false)
-                    manager.toggleProjectPlanner(true)
+                    val firstAlgo = SampleData.algorithms.firstOrNull()
+                    if (firstAlgo != null) onAlgorithmClick(firstAlgo)
                 },
                 onRenameConversation = { id, title -> manager.renameConversation(id, title) },
                 onDeleteConversation = { manager.deleteConversation(it) },
                 onClearAllHistory = { manager.clearAllHistory() },
-                onQuickPrompt = { prompt ->
-                    manager.toggleSidebar(false)
-                    manager.sendMessage(prompt)
-                },
                 onDismiss = { manager.toggleSidebar(false) },
                 modifier = Modifier.statusBarsPadding()
             )
@@ -335,6 +363,223 @@ fun ChatScreen(
                 modifier = Modifier.statusBarsPadding()
             )
         }
+
+        // ── 6. Rename Conversation Dialog ──
+        if (showRenameDialog) {
+            AlertDialog(
+                onDismissRequest = { showRenameDialog = false },
+                title = { Text("Rename Conversation") },
+                text = {
+                    BasicTextField(
+                        value = renameBuffer,
+                        onValueChange = { renameBuffer = it },
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextPrimary),
+                        cursorBrush = SolidColor(PrimaryCyan),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .background(CardBackground)
+                            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3)
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (renameBuffer.isNotBlank()) {
+                                manager.renameConversation(manager.activeConversationId, renameBuffer.trim())
+                            }
+                            showRenameDialog = false
+                        }
+                    ) {
+                        Text("Save", color = PrimaryCyan)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRenameDialog = false }) {
+                        Text("Cancel", color = TextSecondary)
+                    }
+                }
+            )
+        }
+
+        // ── 7. Feedback Dialog ──
+        if (showFeedbackDialog) {
+            AlertDialog(
+                onDismissRequest = { showFeedbackDialog = false },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                    ) {
+                        Icon(AlgoGlyphs.Spark, contentDescription = null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                        Text("Conversation Feedback")
+                    }
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
+                        Text(
+                            text = "Help us improve offline reasoning, Big-O accuracy, and multi-language code snippets.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                        BasicTextField(
+                            value = feedbackText,
+                            onValueChange = { feedbackText = it },
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextPrimary),
+                            cursorBrush = SolidColor(PrimaryCyan),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp)
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .background(CardBackground)
+                                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showFeedbackDialog = false
+                            feedbackText = ""
+                            toastNotice = "Feedback submitted. Thank you!"
+                        }
+                    ) {
+                        Text("Submit", color = PrimaryCyan)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showFeedbackDialog = false }) {
+                        Text("Cancel", color = TextSecondary)
+                    }
+                }
+            )
+        }
+
+        // ── 8. Delete Confirmation Dialog ──
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Delete Conversation?") },
+                text = {
+                    Text(
+                        text = "Are you sure you want to delete '${manager.activeConversation.title}'? This action cannot be undone.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteConfirm = false
+                            manager.deleteConversation(manager.activeConversationId)
+                            toastNotice = "Conversation deleted"
+                        }
+                    ) {
+                        Text("Delete", color = AccentRed, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) {
+                        Text("Cancel", color = TextSecondary)
+                    }
+                }
+            )
+        }
+
+        // ── 9. User Message Hold Context Menu ──
+        if (userActionTarget != null) {
+            val targetMsg = userActionTarget!!
+            AlertDialog(
+                onDismissRequest = { userActionTarget = null },
+                title = {
+                    Text(
+                        text = "Message Options",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
+                        Text(
+                            text = "\"${targetMsg.content.take(60)}${if (targetMsg.content.length > 60) "…" else ""}\"",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted
+                        )
+                        Spacer(Modifier.height(4.dp))
+
+                        // Edit
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .clickable {
+                                    userActionTarget = null
+                                    manager.startEditingMessage(targetMsg.id)
+                                }
+                                .padding(horizontal = AlgoTokens.space3, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(AlgoGlyphs.EditPencil, contentDescription = null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                            Column {
+                                Text("Edit message", style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+                                Text("Modifies text and redoes the AI output", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = AlgoType.microSize)
+                            }
+                        }
+
+                        // Copy
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .clickable {
+                                    userActionTarget = null
+                                    clipboardManager.setText(AnnotatedString(targetMsg.content))
+                                    toastNotice = "Copied text to clipboard"
+                                }
+                                .padding(horizontal = AlgoTokens.space3, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(AlgoGlyphs.Copy, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                            Text("Copy text", style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+                        }
+
+                        // Fork
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .clickable {
+                                    userActionTarget = null
+                                    val forkedId = manager.forkConversationAt(targetMsg.id)
+                                    if (forkedId != null) {
+                                        toastNotice = "Forked chat into new conversation"
+                                    }
+                                }
+                                .padding(horizontal = AlgoTokens.space3, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(AlgoGlyphs.Fork, contentDescription = null, tint = SecondaryPurple, modifier = Modifier.size(18.dp))
+                            Column {
+                                Text("Fork chat on this message", style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+                                Text("Branches conversation from this point", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = AlgoType.microSize)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { userActionTarget = null }) {
+                        Text("Close", color = TextSecondary)
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -342,10 +587,14 @@ fun ChatScreen(
 private fun ChatHeader(
     conversationTitle: String,
     providerLabel: String,
+    isPinned: Boolean,
     onOpenHistory: () -> Unit,
     onNewChat: () -> Unit,
-    onOpenPlanner: () -> Unit,
-    onRequestReset: () -> Unit,
+    onShare: () -> Unit,
+    onTogglePin: () -> Unit,
+    onRename: () -> Unit,
+    onFeedback: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -375,14 +624,27 @@ private fun ChatHeader(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
             ) {
-                Text(
-                    text = conversationTitle,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (isPinned) {
+                        Icon(
+                            imageVector = AlgoGlyphs.Pin,
+                            contentDescription = "Pinned",
+                            tint = PrimaryCyan,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                    Text(
+                        text = conversationTitle,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
@@ -430,53 +692,93 @@ private fun ChatHeader(
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
-                    modifier = Modifier.background(CardBackgroundElevated)
+                    modifier = Modifier
+                        .background(CardBackgroundElevated)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                 ) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = "Plan algorithm for project",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextPrimary
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = AlgoGlyphs.Spark,
-                                contentDescription = null,
-                                tint = SecondaryPurple,
-                                modifier = Modifier.size(AlgoTokens.inlineIconMd)
-                            )
-                        },
+                    CompactDropdownMenuItem(
+                        icon = AlgoGlyphs.Share,
+                        label = "Share conversation",
                         onClick = {
                             menuExpanded = false
-                            onOpenPlanner()
+                            onShare()
                         }
                     )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = "Reset current thread…",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = AccentRed
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = AlgoGlyphs.Trash,
-                                contentDescription = null,
-                                tint = AccentRed,
-                                modifier = Modifier.size(AlgoTokens.inlineIconMd)
-                            )
-                        },
+                    CompactDropdownMenuItem(
+                        icon = AlgoGlyphs.Pin,
+                        label = if (isPinned) "Unpin conversation" else "Pin conversation",
+                        iconTint = if (isPinned) PrimaryCyan else TextSecondary,
+                        textColor = if (isPinned) PrimaryCyan else TextPrimary,
                         onClick = {
                             menuExpanded = false
-                            onRequestReset()
+                            onTogglePin()
+                        }
+                    )
+                    CompactDropdownMenuItem(
+                        icon = AlgoGlyphs.EditPencil,
+                        label = "Rename",
+                        onClick = {
+                            menuExpanded = false
+                            onRename()
+                        }
+                    )
+                    CompactDropdownMenuItem(
+                        icon = AlgoGlyphs.Spark,
+                        label = "Feedback",
+                        onClick = {
+                            menuExpanded = false
+                            onFeedback()
+                        }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = BorderSubtle,
+                        thickness = 0.5.dp
+                    )
+                    CompactDropdownMenuItem(
+                        icon = AlgoGlyphs.Trash,
+                        label = "Delete conversation",
+                        iconTint = AccentRed,
+                        textColor = AccentRed,
+                        onClick = {
+                            menuExpanded = false
+                            onDelete()
                         }
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CompactDropdownMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    iconTint: Color = TextSecondary,
+    textColor: Color = TextPrimary
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = textColor,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -573,9 +875,11 @@ private fun EmptyConversationStarters(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun UserMessageBubble(
     message: ChatMessage,
+    onHold: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -584,9 +888,9 @@ private fun UserMessageBubble(
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
     ) {
         Text(
-            text = "OPERATOR",
+            text = "YOU",
             style = MaterialTheme.typography.labelSmall,
-            color = TextDark,
+            color = PrimaryCyan.copy(alpha = 0.8f),
             fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Bold,
             letterSpacing = AlgoType.trackSection
@@ -594,26 +898,14 @@ private fun UserMessageBubble(
 
         Box(
             modifier = Modifier
-                .clip(
-                    RoundedCornerShape(
-                        topStart = AlgoTokens.radiusMd,
-                        topEnd = AlgoTokens.radiusXs,
-                        bottomStart = AlgoTokens.radiusMd,
-                        bottomEnd = AlgoTokens.radiusMd
-                    )
+                .widthIn(max = 320.dp)
+                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+                .background(CardBackgroundElevated.copy(alpha = 0.6f))
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onHold
                 )
-                .background(CardBackgroundElevated)
-                .border(
-                    AlgoTokens.strokeThin,
-                    BorderCyan.copy(alpha = 0.45f),
-                    RoundedCornerShape(
-                        topStart = AlgoTokens.radiusMd,
-                        topEnd = AlgoTokens.radiusXs,
-                        bottomStart = AlgoTokens.radiusMd,
-                        bottomEnd = AlgoTokens.radiusMd
-                    )
-                )
-                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3)
+                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3)
         ) {
             Text(
                 text = parseMarkdownInline(message.content),
@@ -659,114 +951,113 @@ private fun AssistantMessageBubble(
             )
         }
 
-        DoubleBezelShell(
+        // Direct borderless content flow with generous breathing room
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(AlgoTokens.space5)
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)) {
-                // Main Explanation Text (Rich Markdown Encoded)
-                ChatMarkdownMessage(
-                    content = message.content,
-                    modifier = Modifier.fillMaxWidth()
-                )
+            // Main Explanation Text (Rich Markdown Encoded)
+            ChatMarkdownMessage(
+                content = message.content,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                // Structured Project Algorithm Recommendation (instrument card)
-                message.projectRecommendation?.let { payload ->
-                    ProjectRecommendationBlock(
-                        payload = payload,
-                        onLaunchVisualizer = { algoId ->
-                            val algo = SampleData.algorithms.firstOrNull { it.id == algoId }
-                            if (algo != null) {
-                                onAction(ChatAction.LaunchVisualizer(algo.id, algo.name))
-                            }
+            // Structured Project Algorithm Recommendation (instrument card)
+            message.projectRecommendation?.let { payload ->
+                ProjectRecommendationBlock(
+                    payload = payload,
+                    onLaunchVisualizer = { algoId ->
+                        val algo = SampleData.algorithms.firstOrNull { it.id == algoId }
+                        if (algo != null) {
+                            onAction(ChatAction.LaunchVisualizer(algo.id, algo.name))
                         }
-                    )
-                }
+                    }
+                )
+            }
 
-                // Complexity Matrix (if present)
-                message.complexity?.let { matrix ->
-                    ComplexityMatrixBlock(matrix = matrix)
-                }
+            // Complexity Matrix (if present)
+            message.complexity?.let { matrix ->
+                ComplexityMatrixBlock(matrix = matrix)
+            }
 
-                // Code Snippet (if present)
-                message.codeSnippet?.let { snippet ->
-                    CodeSnippetBlock(snippet = snippet)
-                }
+            // Code Snippet (if present)
+            message.codeSnippet?.let { snippet ->
+                CodeSnippetBlock(snippet = snippet)
+            }
 
-                // Action Buttons (Launch Visualizer)
-                if (message.actions.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
-                        message.actions.forEach { action ->
-                            when (action) {
-                                is ChatAction.LaunchVisualizer -> {
+            // Action Buttons (Launch Visualizer)
+            if (message.actions.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
+                    message.actions.forEach { action ->
+                        when (action) {
+                            is ChatAction.LaunchVisualizer -> {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                        .background(CyanSubtle)
+                                        .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
+                                        .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusSm), accent = PrimaryCyan)
+                                        .clickable { onAction(action) }
+                                        .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                                            .background(CyanSubtle)
-                                            .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
-                                            .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusSm), accent = PrimaryCyan)
-                                            .clickable { onAction(action) }
-                                            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-                                        ) {
-                                            Icon(
-                                                imageVector = AlgoGlyphs.PlayCircle,
-                                                contentDescription = null,
-                                                tint = PrimaryCyan,
-                                                modifier = Modifier.size(AlgoTokens.inlineIconMd)
-                                            )
-                                            Text(
-                                                text = "Launch Visualizer → ${action.displayName}",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = PrimaryCyan,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = AlgoType.labelSize
-                                            )
-                                        }
                                         Icon(
-                                            imageVector = AlgoGlyphs.ChevronRight,
+                                            imageVector = AlgoGlyphs.PlayCircle,
                                             contentDescription = null,
                                             tint = PrimaryCyan,
-                                            modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                                            modifier = Modifier.size(AlgoTokens.inlineIconMd)
+                                        )
+                                        Text(
+                                            text = "Launch Visualizer → ${action.displayName}",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = PrimaryCyan,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = AlgoType.labelSize
                                         )
                                     }
+                                    Icon(
+                                        imageVector = AlgoGlyphs.ChevronRight,
+                                        contentDescription = null,
+                                        tint = PrimaryCyan,
+                                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                                    )
                                 }
-                                is ChatAction.QueryFollowUp -> Unit
                             }
+                            is ChatAction.QueryFollowUp -> Unit
                         }
                     }
                 }
+            }
 
-                // Dynamic Suggested Follow-ups
-                if (message.suggestedFollowUps.isNotEmpty()) {
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
-                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-                    ) {
-                        message.suggestedFollowUps.forEach { followUp ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                                    .background(CardBackgroundElevated)
-                                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                                    .clickable { onFollowUp(followUp) }
-                                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
-                            ) {
-                                Text(
-                                    text = followUp,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = PurpleGlow,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = AlgoType.microSize
-                                )
-                            }
+            // Dynamic Suggested Follow-ups
+            if (message.suggestedFollowUps.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                ) {
+                    message.suggestedFollowUps.forEach { followUp ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .background(CardBackgroundElevated)
+                                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                                .clickable { onFollowUp(followUp) }
+                                .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
+                        ) {
+                            Text(
+                                text = followUp,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = PurpleGlow,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = AlgoType.microSize
+                            )
                         }
                     }
                 }
@@ -926,6 +1217,7 @@ private fun CodeSnippetBlock(
             text = highlightedCode,
             style = MaterialTheme.typography.bodySmall,
             fontFamily = JetBrainsMono,
+            color = TextPrimary,
             fontSize = AlgoType.microSize,
             lineHeight = AlgoType.leadingMicroRelaxed,
             modifier = Modifier
@@ -998,6 +1290,8 @@ private fun ChatInputDock(
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     isThinking: Boolean,
+    isEditing: Boolean = false,
+    onCancelEdit: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val canSend = inputText.isNotBlank() && !isThinking
@@ -1007,10 +1301,46 @@ private fun ChatInputDock(
             .fillMaxWidth()
             .background(CardBackgroundElevated)
             .border(AlgoTokens.strokeThin, BorderSubtle)
-            .navigationBarsPadding()
-            .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space3),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
     ) {
+        if (isEditing) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                    .background(PrimaryCyan.copy(alpha = 0.12f))
+                    .border(AlgoTokens.strokeThin, BorderCyan.copy(alpha = 0.35f), RoundedCornerShape(AlgoTokens.radiusSm))
+                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                ) {
+                    Icon(
+                        imageVector = AlgoGlyphs.EditPencil,
+                        contentDescription = null,
+                        tint = PrimaryCyan,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "Editing message",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PrimaryCyan,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = "Cancel",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    modifier = Modifier.clickable { onCancelEdit() }
+                )
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -1020,10 +1350,11 @@ private fun ChatInputDock(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                    .defaultMinSize(minHeight = 46.dp)
+                    .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                     .background(CanvasBackground)
-                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                    .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
+                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusMd))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 if (inputText.isEmpty()) {
@@ -1046,8 +1377,9 @@ private fun ChatInputDock(
                         fontSize = AlgoType.labelSize
                     ),
                     cursorBrush = SolidColor(PrimaryCyan),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    singleLine = false,
+                    maxLines = 4,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
                     keyboardActions = KeyboardActions(onSend = { if (canSend) onSend() })
                 )
             }
@@ -1055,13 +1387,13 @@ private fun ChatInputDock(
             // Send Button
             Box(
                 modifier = Modifier
-                    .size(AlgoTokens.iconButtonMd)
-                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                     .background(if (canSend) PrimaryCyan else CardBackground)
                     .border(
                         AlgoTokens.strokeThin,
                         if (canSend) PrimaryCyan else BorderSubtle,
-                        RoundedCornerShape(AlgoTokens.radiusSm)
+                        RoundedCornerShape(AlgoTokens.radiusMd)
                     )
                     .clickable(enabled = canSend) { onSend() },
                 contentAlignment = Alignment.Center

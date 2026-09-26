@@ -1,4 +1,4 @@
-﻿package com.example.algolens.ui.visualizer
+package com.example.algolens.ui.visualizer
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -14,6 +14,7 @@ import com.example.algolens.ui.theme.CyanGlow
 import com.example.algolens.ui.theme.PrimaryCyan
 import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextMuted
+import com.example.algolens.ui.theme.TextPrimary
 
 /**
  * Syntax highlighting parser for code trace snippets.
@@ -105,7 +106,9 @@ object SyntaxHighlighter {
                             pop()
                         }
                         else -> {
+                            pushStyle(SpanStyle(color = TextPrimary))
                             append(word)
+                            pop()
                         }
                     }
                     i = wordEnd
@@ -120,7 +123,9 @@ object SyntaxHighlighter {
                         pop()
                     }
                     else -> {
+                        pushStyle(SpanStyle(color = TextPrimary))
                         append(code[i].toString())
+                        pop()
                     }
                 }
                 i++

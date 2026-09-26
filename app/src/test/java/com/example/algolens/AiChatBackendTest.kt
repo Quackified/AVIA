@@ -4,13 +4,17 @@ import com.example.algolens.data.chat.AiChatEngine
 import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.chat.ChatAction
 import com.example.algolens.model.chat.ChatSender
+import com.example.algolens.data.TraceLanguage
 import com.example.algolens.ui.chat.ChatSessionManager
 import com.example.algolens.ui.chat.FlowchartShape
 import com.example.algolens.ui.chat.TableAlignment
 import com.example.algolens.ui.chat.parseFlowchart
 import com.example.algolens.ui.chat.parseMarkdownInline
 import com.example.algolens.ui.chat.parseMarkdownTable
+import com.example.algolens.ui.theme.TextPrimary
+import com.example.algolens.ui.visualizer.SyntaxHighlighter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -310,5 +314,96 @@ class AiChatBackendTest {
         assertTrue("Content must contain markdown table for metrics", response.content.contains("| Metric | Bound / Property |"))
         assertTrue("Content must contain Best Case row", response.content.contains("| Best Case | `O(n log n)` |"))
         assertTrue("Content must include TIP callout", response.content.contains("> [!TIP]"))
+    }
+
+    // ── 4. Pinning, Forking, Editing & Syntax Highlighting ───────────────
+
+    @Test
+    fun sessionManager_pinsAndFiltersConversations() {
+        runBlocking {
+            val manager = ChatSessionManager(scope = this)
+            val initialId = manager.activeConversationId
+            assertFalse(manager.activeConversation.isPinned)
+
+            // Pin the active conversation
+            manager.togglePinConversation()
+            assertTrue(manager.activeConversation.isPinned)
+
+            // Filter pinned only
+            assertFalse(manager.filterPinnedOnly)
+            manager.toggleFilterPinnedOnly()
+            assertTrue(manager.filterPinnedOnly)
+            assertTrue(manager.filteredConversations.all { it.isPinned })
+            assertTrue(manager.filteredConversations.any { it.id == initialId })
+
+            // Unpin
+            manager.togglePinConversation()
+            assertFalse(manager.activeConversation.isPinned)
+            // Now with filterPinnedOnly active, this conversation should be filtered out
+            assertFalse(manager.filteredConversations.any { it.id == initialId })
+        }
+    }
+
+    @Test
+    fun sessionManager_forksConversationAtSpecificMessage() {
+        runBlocking {
+            val manager = ChatSessionManager(scope = this)
+            manager.sendMessage("What is Bubble Sort?")
+            delay(500)
+
+            val userMsg = manager.messages.first { it.sender == ChatSender.USER }
+            val forkedId = manager.forkConversationAt(userMsg.id)
+            assertNotNull("Forked conversation ID must not be null", forkedId)
+            assertEquals(forkedId, manager.activeConversationId)
+            assertTrue("Forked title should indicate branched conversation", manager.activeConversation.title.contains("Branch"))
+            // Forked conversation should have the initial greeting plus the user message
+            assertTrue(manager.messages.any { it.id == userMsg.id })
+        }
+    }
+
+    @Test
+    fun sessionManager_editsMessageAndTruncatesDownstreamTurns() {
+        runBlocking {
+            val manager = ChatSessionManager(scope = this)
+            manager.sendMessage("What is linear search?")
+            delay(500)
+            val firstUserMsg = manager.messages.first { it.sender == ChatSender.USER }
+
+            manager.sendMessage("Now compare it with binary search")
+            delay(500)
+            val messageCountBeforeEdit = manager.messages.size
+            assertTrue("Should have multiple message turns", messageCountBeforeEdit >= 4)
+
+            // Start editing the first question
+            manager.startEditingMessage(firstUserMsg.id)
+            assertEquals(firstUserMsg.id, manager.editingMessageId)
+            assertEquals("What is linear search?", manager.inputText)
+
+            // Modify and send
+            manager.onInputChange("Explain Bubble Sort instead")
+            manager.sendMessage()
+            delay(500)
+
+            // editingMessageId should now be cleared
+            assertEquals(null, manager.editingMessageId)
+            // First user message content should be updated
+            val updatedUserMsg = manager.messages.first { it.id == firstUserMsg.id }
+            assertEquals("Explain Bubble Sort instead", updatedUserMsg.content)
+            // Downstream turns from after the edit point should have been removed
+            assertFalse(manager.messages.any { it.content.contains("binary search", ignoreCase = true) })
+        }
+    }
+
+    @Test
+    fun syntaxHighlighter_wrapsPunctuationAndIdentifiersInTextPrimary() {
+        val snippet = "val count: Int = 10"
+        val highlighted = SyntaxHighlighter.highlight(snippet, TraceLanguage.KOTLIN)
+
+        assertEquals("val count: Int = 10", highlighted.text)
+        assertTrue("Highlighted string must have span styles", highlighted.spanStyles.isNotEmpty())
+
+        // Ensure that operators like '=' and ':' are styled with TextPrimary (not unstyled/black)
+        val textPrimarySpans = highlighted.spanStyles.filter { it.item.color == TextPrimary }
+        assertTrue("Must include TextPrimary spans for non-keyword tokens", textPrimarySpans.isNotEmpty())
     }
 }

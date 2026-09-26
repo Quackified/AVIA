@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,8 +38,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.algolens.model.AlgorithmId
@@ -75,12 +81,13 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Gemini App-inspired slide-over Conversation Sidebar featuring:
- * - Minimalist top bar ("AVIA" + borderless close icon)
- * - Full-width pill-shaped "New chat" primary button with leading compose/edit icon
- * - Clean borderless menu rows (Search chats, Algorithm planner, Complexity compare, Code library)
- * - "Workspace" section with vertical indicator bar + "+ New project plan"
- * - "Recents" section with clean single-line threads and subtle right-aligned inline actions
+ * Modern AVIA Slide-over Conversation Sidebar.
+ * Designed with Profile Option Item styling:
+ * - RoundedCornerShape(AlgoTokens.radiusSm)
+ * - heightIn(min = 44.dp)
+ * - Clear spacing and divider
+ * - Useful functional buttons: New chat, Search, Pinned filter toggle, Browse catalog
+ * - Recents list with pin indicators and inline actions
  */
 @Composable
 fun ChatHistorySidebar(
@@ -90,13 +97,16 @@ fun ChatHistorySidebar(
     onSearchQueryChange: (String) -> Unit,
     onSelectConversation: (String) -> Unit,
     onNewChat: () -> Unit,
-    onOpenPlanner: () -> Unit,
     onRenameConversation: (String, String) -> Unit,
     onDeleteConversation: (String) -> Unit,
     onClearAllHistory: () -> Unit,
-    onQuickPrompt: (String) -> Unit = {},
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    filterPinnedOnly: Boolean = false,
+    onToggleFilterPinnedOnly: () -> Unit = {},
+    onNavigateToCatalog: () -> Unit = {},
+    onOpenPlanner: () -> Unit = {},
+    onQuickPrompt: (String) -> Unit = {}
 ) {
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
     var confirmClearAll by remember { mutableStateOf(false) }
@@ -112,14 +122,14 @@ fun ChatHistorySidebar(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .fillMaxWidth(0.84f)
+                .fillMaxWidth(0.85f)
                 .background(CanvasBackground)
                 .border(AlgoTokens.strokeThin, BorderSubtle)
                 .clickable(enabled = false) { }
                 .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space4),
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
         ) {
-            // ── 1. Top Gemini-style Header ("AVIA" + Close "✕") ──
+            // ── 1. Header ("AVIA CHATS" + Close "✕") ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -127,17 +137,32 @@ fun ChatHistorySidebar(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "AVIA",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(PrimaryCyan)
+                    )
+                    Text(
+                        text = "AVIA CHATS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = AlgoType.trackSection
+                    )
+                }
 
                 Box(
                     modifier = Modifier
-                        .size(AlgoTokens.iconButtonSm)
-                        .clip(CircleShape)
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                        .background(CardBackgroundElevated)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                         .clickable { onDismiss() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -145,73 +170,42 @@ fun ChatHistorySidebar(
                         imageVector = AlgoGlyphs.Close,
                         contentDescription = "Close Sidebar",
                         tint = TextSecondary,
-                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
-            // ── 2. Primary "New chat" Pill Button ──
+            // ── 2. Search Conversations Field ──
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                     .background(CardBackgroundElevated)
-                    .border(AlgoTokens.strokeThin, BorderSubtle, CircleShape)
-                    .clickable { onNewChat() }
-                    .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space4)
+                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                    .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
-                ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.EditPencil,
-                        contentDescription = null,
-                        tint = TextPrimary,
-                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
-                    )
-                    Text(
-                        text = "New chat",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            // ── 3. Clean Borderless Menu List (Gemini App Style) ──
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-            ) {
-                // "Search chats" inline borderless search row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(CircleShape)
-                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space3),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                 ) {
                     Icon(
                         imageVector = AlgoGlyphs.Search,
                         contentDescription = "Search chats",
                         tint = TextSecondary,
-                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
+                        modifier = Modifier.size(16.dp)
                     )
                     Box(modifier = Modifier.weight(1f)) {
                         if (searchQuery.isEmpty()) {
                             Text(
-                                text = "Search chats",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextPrimary
+                                text = "Search conversations...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextMuted
                             )
                         }
                         BasicTextField(
                             value = searchQuery,
                             onValueChange = onSearchQueryChange,
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextPrimary),
+                            textStyle = MaterialTheme.typography.bodySmall.copy(color = TextPrimary),
                             cursorBrush = SolidColor(PrimaryCyan),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
@@ -220,7 +214,7 @@ fun ChatHistorySidebar(
                     if (searchQuery.isNotEmpty()) {
                         Box(
                             modifier = Modifier
-                                .size(AlgoTokens.inlineIconMd)
+                                .size(18.dp)
                                 .clip(CircleShape)
                                 .clickable { onSearchQueryChange("") },
                             contentAlignment = Alignment.Center
@@ -229,74 +223,54 @@ fun ChatHistorySidebar(
                                 imageVector = AlgoGlyphs.Close,
                                 contentDescription = "Clear search",
                                 tint = TextMuted,
-                                modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                                modifier = Modifier.size(12.dp)
                             )
                         }
                     }
                 }
-
-                GeminiSidebarMenuItem(
-                    icon = AlgoGlyphs.Compass,
-                    label = "Algorithm planner",
-                    onClick = onOpenPlanner
-                )
-
-                GeminiSidebarMenuItem(
-                    icon = AlgoGlyphs.Spark,
-                    label = "Complexity compare",
-                    onClick = { onQuickPrompt("Compare Quick Sort and Merge Sort") }
-                )
-
-                GeminiSidebarMenuItem(
-                    icon = AlgoGlyphs.Code,
-                    label = "Code library",
-                    onClick = { onQuickPrompt("Show Binary Search implementation in Kotlin") }
-                )
             }
 
-            // ── 4. "Workspace" Section (Replicating Gemini's "Notebooks" Section) ──
+            // ── 3. Functional Buttons (ProfileOptionItem Style) ──
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
             ) {
-                Text(
-                    text = "Workspace",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = TextMuted,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = AlgoTokens.space3)
+                SidebarOptionItem(
+                    icon = AlgoGlyphs.EditPencil,
+                    title = "New chat",
+                    onClick = {
+                        onNewChat()
+                        onDismiss()
+                    }
                 )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(CircleShape)
-                        .clickable { onOpenPlanner() }
-                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(AlgoTokens.space1)
-                            .height(AlgoTokens.space6)
-                            .background(BorderSubtle, CircleShape)
-                    )
-                    Icon(
-                        imageVector = AlgoGlyphs.Plus,
-                        contentDescription = null,
-                        tint = TextSecondary,
-                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
-                    )
-                    Text(
-                        text = "New project plan",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextPrimary
-                    )
-                }
+                SidebarOptionItem(
+                    icon = AlgoGlyphs.Pin,
+                    title = "Pinned chats",
+                    trailingText = if (filterPinnedOnly) "Active" else null,
+                    isActive = filterPinnedOnly,
+                    onClick = onToggleFilterPinnedOnly
+                )
+
+                SidebarOptionItem(
+                    icon = AlgoGlyphs.Code,
+                    title = "Browse catalog",
+                    trailingIcon = AlgoGlyphs.ChevronRight,
+                    onClick = {
+                        onNavigateToCatalog()
+                        onDismiss()
+                    }
+                )
             }
 
-            // Confirmation Banner for Delete or Clear All
+            // ── 4. Elegant Section Divider ──
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = AlgoTokens.space1),
+                color = BorderSubtle,
+                thickness = 0.5.dp
+            )
+
+            // ── 5. Confirmation Banner for Delete or Clear All ──
             if (pendingDeleteId != null || confirmClearAll) {
                 Box(
                     modifier = Modifier
@@ -362,19 +336,21 @@ fun ChatHistorySidebar(
                 }
             }
 
-            // ── 5. "Recents" Section (Replicating Gemini's "Recents" List) ──
+            // ── 6. "Recents" Section Header ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = AlgoTokens.space3),
+                    .padding(horizontal = AlgoTokens.space1),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Recents",
-                    style = MaterialTheme.typography.labelMedium,
+                    text = if (filterPinnedOnly) "PINNED CONVERSATIONS" else "RECENTS",
+                    style = MaterialTheme.typography.labelSmall,
                     color = TextMuted,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = AlgoType.trackSection
                 )
 
                 if (conversations.isNotEmpty()) {
@@ -382,6 +358,7 @@ fun ChatHistorySidebar(
                         text = "Clear all",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextMuted,
+                        fontSize = 11.sp,
                         modifier = Modifier
                             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                             .clickable { confirmClearAll = true }
@@ -390,114 +367,151 @@ fun ChatHistorySidebar(
                 }
             }
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-            ) {
-                items(conversations, key = { it.id }) { conv ->
-                    val isActive = conv.id == activeConversationId
-                    val isRenaming = renamingConversationId == conv.id
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(CircleShape)
-                            .background(
-                                if (isActive) CardBackgroundElevated else CanvasBackground
-                            )
-                            .clickable { onSelectConversation(conv.id) }
-                            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space3),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (isRenaming) {
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-                            ) {
-                                BasicTextField(
-                                    value = renameBuffer,
-                                    onValueChange = { renameBuffer = it },
-                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                        color = TextPrimary,
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    cursorBrush = SolidColor(PrimaryCyan),
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .background(CardBackground, RoundedCornerShape(AlgoTokens.radiusXs))
-                                        .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .size(AlgoTokens.iconButtonSm)
-                                        .clip(CircleShape)
-                                        .clickable {
-                                            onRenameConversation(conv.id, renameBuffer)
-                                            renamingConversationId = null
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = AlgoGlyphs.Check,
-                                        contentDescription = "Save Thread Name",
-                                        tint = AccentGreen,
-                                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
-                                    )
-                                }
-                            }
-                        } else {
-                            Text(
-                                text = conv.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isActive) PrimaryCyan else TextPrimary,
-                                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+            // ── 7. Recents Conversations Stream ──
+            if (conversations.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(top = AlgoTokens.space6),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Text(
+                        text = if (filterPinnedOnly) "No pinned chats" else "No recent conversations",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextDark
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                ) {
+                    items(conversations, key = { it.id }) { conv ->
+                        val isActive = conv.id == activeConversationId
+                        val isRenaming = renamingConversationId == conv.id
 
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 44.dp)
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .background(if (isActive) CyanSubtle else Color.Transparent)
+                                .border(
+                                    AlgoTokens.strokeThin,
+                                    if (isActive) BorderCyan.copy(alpha = 0.35f) else Color.Transparent,
+                                    RoundedCornerShape(AlgoTokens.radiusSm)
+                                )
+                                .clickable {
+                                    onSelectConversation(conv.id)
+                                    onDismiss()
+                                }
+                                .padding(horizontal = AlgoTokens.space3, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (!isRenaming) {
+                            if (isRenaming) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                                ) {
+                                    BasicTextField(
+                                        value = renameBuffer,
+                                        onValueChange = { renameBuffer = it },
+                                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                            color = TextPrimary,
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        cursorBrush = SolidColor(PrimaryCyan),
+                                        singleLine = true,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .background(CardBackground, RoundedCornerShape(AlgoTokens.radiusXs))
+                                            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(AlgoTokens.iconButtonSm)
+                                            .clip(CircleShape)
+                                            .clickable {
+                                                onRenameConversation(conv.id, renameBuffer)
+                                                renamingConversationId = null
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = AlgoGlyphs.Check,
+                                            contentDescription = "Save Thread Name",
+                                            tint = AccentGreen,
+                                            modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                                        )
+                                    }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (conv.isPinned) {
+                                        Icon(
+                                            imageVector = AlgoGlyphs.Pin,
+                                            contentDescription = "Pinned",
+                                            tint = PrimaryCyan,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = conv.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (isActive) PrimaryCyan else TextPrimary,
+                                        fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                            ) {
+                                if (!isRenaming) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                            .clickable {
+                                                renamingConversationId = conv.id
+                                                renameBuffer = conv.title
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = AlgoGlyphs.EditPencil,
+                                            contentDescription = "Rename Conversation",
+                                            tint = TextDark,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
+                                }
                                 Box(
                                     modifier = Modifier
-                                        .size(AlgoTokens.inlineIconLg)
-                                        .clip(CircleShape)
+                                        .size(28.dp)
+                                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                                         .clickable {
-                                            renamingConversationId = conv.id
-                                            renameBuffer = conv.title
+                                            pendingDeleteId = conv.id
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = AlgoGlyphs.EditPencil,
-                                        contentDescription = "Rename Conversation",
-                                        tint = TextMuted,
-                                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                                        imageVector = AlgoGlyphs.Trash,
+                                        contentDescription = "Delete Conversation",
+                                        tint = TextDark,
+                                        modifier = Modifier.size(13.dp)
                                     )
                                 }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .size(AlgoTokens.inlineIconLg)
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        pendingDeleteId = conv.id
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = AlgoGlyphs.Trash,
-                                    contentDescription = "Delete Conversation",
-                                    tint = TextMuted,
-                                    modifier = Modifier.size(AlgoTokens.inlineIconSm)
-                                )
                             }
                         }
                     }
@@ -507,32 +521,68 @@ fun ChatHistorySidebar(
     }
 }
 
+/**
+ * Clean, modern sidebar option row matching ProfileOptionItem design.
+ */
 @Composable
-private fun GeminiSidebarMenuItem(
+private fun SidebarOptionItem(
     icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailingText: String? = null,
+    trailingIcon: ImageVector? = null,
+    isActive: Boolean = false,
+    isDestructive: Boolean = false
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clip(CircleShape)
-            .clickable { onClick() }
-            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space3),
+            .heightIn(min = 44.dp)
+            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+            .background(if (isActive) CyanSubtle else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = AlgoTokens.space3, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = label,
-            tint = TextSecondary,
-            modifier = Modifier.size(AlgoTokens.inlineIconMd)
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = when {
+                isDestructive -> AccentRed
+                isActive -> PrimaryCyan
+                else -> TextSecondary
+            }
         )
         Text(
-            text = label,
+            text = title,
             style = MaterialTheme.typography.bodyMedium,
-            color = TextPrimary
+            color = when {
+                isDestructive -> AccentRed
+                isActive -> PrimaryCyan
+                else -> TextPrimary
+            },
+            fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.weight(1f)
         )
+        if (trailingText != null) {
+            Text(
+                text = trailingText,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted,
+                fontSize = AlgoType.labelSize
+            )
+        }
+        if (trailingIcon != null) {
+            Icon(
+                imageVector = trailingIcon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = if (isDestructive) AccentRed.copy(alpha = 0.6f) else TextDark
+            )
+        }
     }
 }
 

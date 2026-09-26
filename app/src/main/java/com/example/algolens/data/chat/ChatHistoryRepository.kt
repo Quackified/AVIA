@@ -61,12 +61,18 @@ class ChatHistoryRepository(
         val normalizedOwner = ownerId.ifBlank { DEFAULT_GUEST_OWNER }
         val existing = memoryStore[normalizedOwner]
         if (existing != null) {
-            return existing.sortedByDescending { it.updatedAt }
+            return existing.sortedWith(
+                compareByDescending<ChatConversation> { it.isPinned }
+                    .thenByDescending { it.updatedAt }
+            )
         }
 
         val loadedFromDisk = readFromDisk(normalizedOwner)
         val initialList = if (loadedFromDisk.isNotEmpty()) {
-            loadedFromDisk.sortedByDescending { it.updatedAt }.take(maxConversations).toMutableList()
+            loadedFromDisk.sortedWith(
+                compareByDescending<ChatConversation> { it.isPinned }
+                    .thenByDescending { it.updatedAt }
+            ).take(maxConversations).toMutableList()
         } else {
             val defaultConv = createDefaultConversation(normalizedOwner)
             mutableListOf(defaultConv)
@@ -89,7 +95,10 @@ class ChatHistoryRepository(
             list.add(0, conversation)
         }
         val trimmed = list
-            .sortedByDescending { it.updatedAt }
+            .sortedWith(
+                compareByDescending<ChatConversation> { it.isPinned }
+                    .thenByDescending { it.updatedAt }
+            )
             .take(maxConversations)
             .toMutableList()
         memoryStore[owner] = trimmed
@@ -134,9 +143,76 @@ class ChatHistoryRepository(
             updatedAt = System.currentTimeMillis()
         )
         list[idx] = updated
-        memoryStore[owner] = list.sortedByDescending { it.updatedAt }.toMutableList()
+        memoryStore[owner] = list.sortedWith(
+            compareByDescending<ChatConversation> { it.isPinned }
+                .thenByDescending { it.updatedAt }
+        ).toMutableList()
         writeToDisk(owner, memoryStore[owner]!!)
         return updated
+    }
+
+    @Synchronized
+    fun togglePinConversation(
+        ownerId: String = DEFAULT_GUEST_OWNER,
+        conversationId: String
+    ): ChatConversation? {
+        val owner = ownerId.ifBlank { DEFAULT_GUEST_OWNER }
+        val list = loadConversations(owner).toMutableList()
+        val idx = list.indexOfFirst { it.id == conversationId }
+        if (idx < 0) return null
+        val target = list[idx]
+        val updated = target.copy(
+            isPinned = !target.isPinned,
+            updatedAt = System.currentTimeMillis()
+        )
+        list[idx] = updated
+        val sorted = list.sortedWith(
+            compareByDescending<ChatConversation> { it.isPinned }
+                .thenByDescending { it.updatedAt }
+        ).toMutableList()
+        memoryStore[owner] = sorted
+        writeToDisk(owner, sorted)
+        return updated
+    }
+
+    @Synchronized
+    fun forkConversation(
+        ownerId: String = DEFAULT_GUEST_OWNER,
+        sourceConversationId: String,
+        upToMessageId: String,
+        branchTitle: String? = null
+    ): ChatConversation? {
+        val owner = ownerId.ifBlank { DEFAULT_GUEST_OWNER }
+        val list = loadConversations(owner).toMutableList()
+        val source = list.firstOrNull { it.id == sourceConversationId } ?: return null
+        val msgIdx = source.messages.indexOfFirst { it.id == upToMessageId }
+        if (msgIdx < 0) return null
+
+        val subMessages = source.messages.take(msgIdx + 1)
+        val now = System.currentTimeMillis()
+        val derivedTitle = branchTitle ?: run {
+            val base = source.title.removePrefix("Branch: ").take(40)
+            "Branch: $base"
+        }
+        val forked = ChatConversation(
+            id = UUID.randomUUID().toString(),
+            ownerId = owner,
+            title = derivedTitle,
+            preview = subMessages.lastOrNull()?.content?.take(90) ?: source.preview,
+            createdAt = now,
+            updatedAt = now,
+            messages = subMessages,
+            draftText = "",
+            isPinned = false
+        )
+        list.add(0, forked)
+        val sorted = list.sortedWith(
+            compareByDescending<ChatConversation> { it.isPinned }
+                .thenByDescending { it.updatedAt }
+        ).take(maxConversations).toMutableList()
+        memoryStore[owner] = sorted
+        writeToDisk(owner, sorted)
+        return forked
     }
 
     @Synchronized
@@ -264,6 +340,7 @@ class ChatHistoryRepository(
             obj.put("createdAt", conv.createdAt)
             obj.put("updatedAt", conv.updatedAt)
             obj.put("draftText", conv.draftText)
+            obj.put("isPinned", conv.isPinned)
 
             val msgsArray = JSONArray()
             conv.messages.forEach { msg ->
@@ -467,7 +544,8 @@ class ChatHistoryRepository(
                 createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
                 updatedAt = obj.optLong("updatedAt", System.currentTimeMillis()),
                 messages = msgs,
-                draftText = obj.optString("draftText", "")
+                draftText = obj.optString("draftText", ""),
+                isPinned = obj.optBoolean("isPinned", false)
             )
         }
     }

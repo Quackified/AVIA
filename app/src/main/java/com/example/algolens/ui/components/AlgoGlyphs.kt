@@ -594,5 +594,33 @@ object AlgoGlyphs {
         quadTo(16.5f, 7.5f, 16.5f, 12f)
         quadTo(16.5f, 16.5f, 12f, 21f)
     }
+
+    /** Share glyph for exporting conversation transcripts. */
+    val Share: ImageVector = glyph("AlgoGlyphs.Share") {
+        circle(18f, 5f, 3f)
+        circle(6f, 12f, 3f)
+        circle(18f, 19f, 3f)
+        line(8.59f, 13.51f, 15.42f, 17.49f)
+        line(15.41f, 6.51f, 8.59f, 10.49f)
+    }
+
+    /** Pin glyph for pinning important chat threads. */
+    val Pin: ImageVector = glyph("AlgoGlyphs.Pin") {
+        line(12f, 17f, 12f, 22f)
+        moveTo(5f, 9f); lineTo(19f, 9f)
+        moveTo(7f, 9f); lineTo(8f, 4f); lineTo(16f, 4f); lineTo(17f, 9f)
+        moveTo(9f, 9f); lineTo(9f, 17f); lineTo(15f, 17f); lineTo(15f, 9f)
+    }
+
+    /** Fork / Branch glyph for branching conversations. */
+    val Fork: ImageVector = glyph("AlgoGlyphs.Fork") {
+        circle(6f, 18f, 3f)
+        circle(18f, 6f, 3f)
+        circle(6f, 6f, 3f)
+        line(6f, 9f, 6f, 15f)
+        moveTo(18f, 9f)
+        quadTo(18f, 12f, 12f, 12f)
+        quadTo(6f, 12f, 6f, 15f)
+    }
 }
 

@@ -157,7 +157,8 @@ data class ChatConversation(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val messages: List<ChatMessage> = emptyList(),
-    val draftText: String = ""
+    val draftText: String = "",
+    val isPinned: Boolean = false
 )
 
 /**

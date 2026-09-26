@@ -61,6 +61,12 @@ class ChatSessionManager(
     var showProjectPlanner by mutableStateOf(false)
         private set
 
+    var editingMessageId by mutableStateOf<String?>(null)
+        private set
+
+    var filterPinnedOnly by mutableStateOf(false)
+        private set
+
     private var thinkingConversationIds by mutableStateOf<Set<String>>(emptySet())
     private val inFlightJobs = mutableMapOf<String, Job>()
 
@@ -84,9 +90,10 @@ class ChatSessionManager(
 
     val filteredConversations: List<ChatConversation>
         get() {
+            val base = if (filterPinnedOnly) conversations.filter { it.isPinned } else conversations
             val q = searchQuery.trim().lowercase()
-            if (q.isEmpty()) return conversations
-            return conversations.filter { conv ->
+            if (q.isEmpty()) return base
+            return base.filter { conv ->
                 conv.title.lowercase().contains(q) ||
                     conv.preview.lowercase().contains(q) ||
                     conv.messages.any { it.content.lowercase().contains(q) }
@@ -188,19 +195,56 @@ class ChatSessionManager(
         }
     }
 
+    fun toggleFilterPinnedOnly() {
+        filterPinnedOnly = !filterPinnedOnly
+    }
+
+    fun startEditingMessage(messageId: String) {
+        val target = activeConversation.messages.firstOrNull { it.id == messageId } ?: return
+        editingMessageId = messageId
+        onInputChange(target.content)
+    }
+
+    fun cancelEditing() {
+        editingMessageId = null
+        onInputChange("")
+    }
+
+    fun togglePinConversation(conversationId: String = activeConversationId) {
+        repository.togglePinConversation(currentOwnerId, conversationId) ?: return
+        conversations = repository.loadConversations(currentOwnerId)
+    }
+
+    fun forkConversationAt(messageId: String): String? {
+        val forked = repository.forkConversation(
+            ownerId = currentOwnerId,
+            sourceConversationId = activeConversationId,
+            upToMessageId = messageId
+        ) ?: return null
+        conversations = repository.loadConversations(currentOwnerId)
+        activeConversationId = forked.id
+        return forked.id
+    }
+
     fun sendMessage(text: String = inputText) {
         val trimmed = text.trim()
         val targetId = activeConversationId
         if (trimmed.isEmpty() || thinkingConversationIds.contains(targetId)) return
 
+        val currentEditId = editingMessageId
+        editingMessageId = null
+
         val userMessage = ChatMessage(
+            id = currentEditId ?: java.util.UUID.randomUUID().toString(),
             sender = ChatSender.USER,
             content = trimmed,
             status = ChatStatus.COMPLETE
         )
 
         updateConversation(targetId, bumpTimestamp = true) { conv ->
-            val updatedMessages = conv.messages + userMessage
+            val msgIdx = if (currentEditId != null) conv.messages.indexOfFirst { it.id == currentEditId } else -1
+            val baseMessages = if (msgIdx >= 0) conv.messages.take(msgIdx) else conv.messages
+            val updatedMessages = baseMessages + userMessage
             val isDefaultTitle = conv.title == "New Conversation" || conv.title == "Algorithm Workspace Chat"
             val updatedTitle = if (isDefaultTitle) deriveConversationTitle(trimmed) else conv.title
             conv.copy(

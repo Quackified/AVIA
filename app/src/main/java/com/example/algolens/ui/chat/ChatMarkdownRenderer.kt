@@ -11,11 +11,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import com.example.algolens.data.TraceLanguage
+import com.example.algolens.ui.visualizer.SyntaxHighlighter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -166,7 +171,7 @@ fun ChatMarkdownMessage(
                 if (parsedFlowchart != null) {
                     ChatFlowchartBlock(flowchart = parsedFlowchart)
                 } else {
-                    ChatEmbeddedCodeBlock(code = blockText)
+                    ChatEmbeddedCodeBlock(code = blockText, language = fenceDirective)
                 }
                 continue
             }
@@ -361,8 +366,20 @@ private fun ChatCalloutBlock(
 @Composable
 private fun ChatEmbeddedCodeBlock(
     code: String,
+    language: String = "",
     modifier: Modifier = Modifier
 ) {
+    val traceLang = when (language.lowercase().trim()) {
+        "kotlin", "kt" -> TraceLanguage.KOTLIN
+        "python", "py" -> TraceLanguage.PYTHON
+        "java" -> TraceLanguage.JAVA
+        "c++", "cpp" -> TraceLanguage.CPP
+        else -> TraceLanguage.KOTLIN
+    }
+    val highlighted = remember(code, traceLang) {
+        SyntaxHighlighter.highlight(code, traceLang)
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -372,12 +389,13 @@ private fun ChatEmbeddedCodeBlock(
             .padding(AlgoTokens.space3)
     ) {
         Text(
-            text = code,
+            text = highlighted,
             style = MaterialTheme.typography.bodySmall,
             color = TextPrimary,
             fontFamily = JetBrainsMono,
             fontSize = AlgoType.microSize,
-            lineHeight = AlgoType.leadingMicroRelaxed
+            lineHeight = AlgoType.leadingMicroRelaxed,
+            modifier = Modifier.horizontalScroll(rememberScrollState())
         )
     }
 }
