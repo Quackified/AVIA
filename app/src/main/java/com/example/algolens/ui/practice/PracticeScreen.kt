@@ -31,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.algolens.data.practice.PracticeQuestionRepository
 import com.example.algolens.model.practice.PracticeDifficulty
 import com.example.algolens.ui.components.AlgoGlyphs
@@ -90,37 +92,47 @@ fun PracticeScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space3),
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-                ) {
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                    ) {
+                        Text(
+                            text = "Explore: Practice",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = PrimaryCyan,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.5).sp
+                        )
+                    }
                     Text(
-                        text = "Explore: Practice",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold
+                        text = "Interactive challenge mode · ${manager.questions.size} questions available",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
 
                 // Score & Streak Badges
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (manager.streak > 1) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                 .background(OrangeSubtle)
-                                .border(AlgoTokens.bezelInset, AccentOrange, RoundedCornerShape(AlgoTokens.radiusXs))
-                                .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                                .border(AlgoTokens.strokeThin, AccentOrange.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusSm))
+                                .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
                         ) {
                             Text(
                                 text = "${manager.streak}x STREAK",
@@ -134,10 +146,10 @@ fun PracticeScreen(
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(CyanSubtle)
-                            .border(AlgoTokens.bezelInset, BorderCyan, RoundedCornerShape(AlgoTokens.radiusXs))
-                            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                            .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
+                            .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
                     ) {
                         Text(
                             text = "${manager.score} PTS",

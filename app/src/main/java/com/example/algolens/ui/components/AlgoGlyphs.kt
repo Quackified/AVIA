@@ -542,5 +542,57 @@ object AlgoGlyphs {
         line(12.5f, 9f, 17.5f, 9f)
         line(12.5f, 13f, 17.5f, 13f)
     }
+
+    /** Camera icon for profile avatar photo selection. */
+    val Camera: ImageVector = glyph("AlgoGlyphs.Camera") {
+        moveTo(21f, 19f)
+        quadTo(21f, 20f, 20f, 20f)
+        lineTo(4f, 20f)
+        quadTo(3f, 20f, 3f, 19f)
+        lineTo(3f, 9f)
+        quadTo(3f, 8f, 4f, 8f)
+        lineTo(7.5f, 8f)
+        lineTo(9f, 5f)
+        lineTo(15f, 5f)
+        lineTo(16.5f, 8f)
+        lineTo(20f, 8f)
+        quadTo(21f, 8f, 21f, 9f)
+        close()
+        circle(12f, 13.5f, 3.5f)
+    }
+
+    /** History / Clock icon for clearing history or displaying timestamps. */
+    val History: ImageVector = glyph("AlgoGlyphs.History") {
+        circle(12f, 12f, 8.5f)
+        line(12f, 7.5f, 12f, 12f)
+        lineTo(15.5f, 14f)
+    }
+
+    /** Log out / exit glyph with bracket door frame and forward arrow. */
+    val LogOut: ImageVector = glyph("AlgoGlyphs.LogOut") {
+        moveTo(9f, 21f)
+        lineTo(5f, 21f)
+        quadTo(3.5f, 21f, 3.5f, 19.5f)
+        lineTo(3.5f, 4.5f)
+        quadTo(3.5f, 3f, 5f, 3f)
+        lineTo(9f, 3f)
+        moveTo(16f, 17f)
+        lineTo(21f, 12f)
+        lineTo(16f, 7f)
+        moveTo(21f, 12f)
+        lineTo(9f, 12f)
+    }
+
+    /** Globe icon for language and internationalization. */
+    val Globe: ImageVector = glyph("AlgoGlyphs.Globe") {
+        circle(12f, 12f, 9f)
+        line(3f, 12f, 21f, 12f)
+        moveTo(12f, 3f)
+        quadTo(7.5f, 7.5f, 7.5f, 12f)
+        quadTo(7.5f, 16.5f, 12f, 21f)
+        moveTo(12f, 3f)
+        quadTo(16.5f, 7.5f, 16.5f, 12f)
+        quadTo(16.5f, 16.5f, 12f, 21f)
+    }
 }
 

@@ -40,8 +40,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.algolens.data.auth.*
 import com.example.algolens.ui.components.AlgoGlyphs
+import com.example.algolens.ui.components.DoubleBezelShell
 import com.example.algolens.ui.components.pressPhysics
 import com.example.algolens.ui.theme.*
 import kotlinx.coroutines.Dispatchers
@@ -163,22 +166,88 @@ fun ProfileAvatar(
 }
 
 @Composable
-fun AccountStatusCard(authRepository: AuthRepository, modifier: Modifier = Modifier) {
-    val signedIn = authRepository.state as? AuthAccountState.SignedIn
-    Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(AlgoTokens.radiusMd))
-            .background(CardBackground).padding(AlgoTokens.space6),
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
+fun AccountStatusCard(
+    authRepository: AuthRepository,
+    modifier: Modifier = Modifier
+) {
+    val accountState = authRepository.state
+
+    DoubleBezelShell(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(AlgoTokens.space4)
     ) {
-        Icon(if (signedIn == null) AlgoGlyphs.Offline else AlgoGlyphs.Person, null,
-            Modifier.size(AlgoTokens.space7), tint = TextSecondary)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
-            Text(if (signedIn == null) "Saved on this device" else "Signed in",
-                style = MaterialTheme.typography.titleSmall, color = TextPrimary)
-            Text(signedIn?.profile?.email ?: "Your profile, saved algorithms and conversations stay here. Account sync is not available yet.",
-                style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-            if (signedIn != null) {
-                TextButton(onClick = authRepository::signOut) { Text("Sign out", color = AccentRed) }
+        when (accountState) {
+            is AuthAccountState.SignedIn -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                    ) {
+                        Text(
+                            text = "Signed In · ${accountState.profile.provider?.displayName ?: "Account"}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = AccentGreen,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = accountState.profile.email,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .background(RedSubtle)
+                            .clickable { authRepository.signOut() }
+                            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Sign Out",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = AccentRed,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+            else -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                ) {
+                    Icon(
+                        imageVector = AlgoGlyphs.Offline,
+                        contentDescription = null,
+                        tint = PrimaryCyan,
+                        modifier = Modifier
+                            .padding(top = AlgoTokens.space1)
+                            .size(AlgoTokens.inlineIconMd)
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                    ) {
+                        Text(
+                            text = "Local Guest Workspace · On-Device Storage",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Your profile, bookmarks, settings, and chat threads are saved on this device. Optional Google Sign-In (Firebase Auth) is not enabled in this offline build.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted
+                        )
+                    }
+                }
             }
         }
     }
