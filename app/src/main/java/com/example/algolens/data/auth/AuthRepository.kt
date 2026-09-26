@@ -267,7 +267,7 @@ class UnavailableFirebaseAuthRepository(
     override fun updateProfile(displayName: String, handle: String, roleTitle: String) {
         val safeName = displayName.trim().ifEmpty { guestProfile.displayName }.take(36)
         val safeHandle = ProfileValidator.normalizeHandle(handle.ifEmpty { guestProfile.handle })
-        val safeRole = roleTitle.trim().ifEmpty { guestProfile.roleTitle }.take(48)
+        val safeRole = roleTitle.trim().take(48)
         AppSettings.guestDisplayName = safeName
         AppSettings.guestHandle = safeHandle
         AppSettings.guestRoleTitle = safeRole
@@ -470,7 +470,7 @@ class FakeAuthRepository(
         val safeName = displayName.trim().ifEmpty { currentProfile.displayName }.take(36)
         val rawHandle = handle.trim().ifEmpty { currentProfile.handle }.take(24)
         val safeHandle = if (rawHandle.startsWith("@")) rawHandle else "@$rawHandle"
-        val safeRole = roleTitle.trim().ifEmpty { currentProfile.roleTitle }.take(48)
+        val safeRole = roleTitle.trim().take(48)
         when (val s = state) {
             is AuthAccountState.SignedIn -> {
                 val updated = s.profile.copy(

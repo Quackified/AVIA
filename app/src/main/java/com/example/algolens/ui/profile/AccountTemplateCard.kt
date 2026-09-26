@@ -2,612 +2,290 @@ package com.example.algolens.ui.profile
 
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
-import com.example.algolens.data.auth.AuthAccountState
-import com.example.algolens.data.auth.AuthRepository
-import com.example.algolens.data.auth.ProfileValidator
-import com.example.algolens.data.auth.UserProfile
+import com.example.algolens.data.auth.*
 import com.example.algolens.ui.components.AlgoGlyphs
-import com.example.algolens.ui.components.DoubleBezelShell
 import com.example.algolens.ui.components.pressPhysics
-import com.example.algolens.ui.theme.AccentGreen
-import com.example.algolens.ui.theme.AccentRed
-import com.example.algolens.ui.theme.AccentYellow
-import com.example.algolens.ui.theme.AlgoTokens
-import com.example.algolens.ui.theme.BorderCyan
-import com.example.algolens.ui.theme.BorderSubtle
-import com.example.algolens.ui.theme.CanvasBackground
-import com.example.algolens.ui.theme.CardBackground
-import com.example.algolens.ui.theme.CardBackgroundElevated
-import com.example.algolens.ui.theme.CyanSubtle
-import com.example.algolens.ui.theme.DarkBackground
-import com.example.algolens.ui.theme.GreenSubtle
-import com.example.algolens.ui.theme.PrimaryCyan
-import com.example.algolens.ui.theme.RedSubtle
-import com.example.algolens.ui.theme.TextDark
-import com.example.algolens.ui.theme.TextMuted
-import com.example.algolens.ui.theme.TextPrimary
-import com.example.algolens.ui.theme.TextSecondary
-import com.example.algolens.ui.theme.YellowSubtle
+import com.example.algolens.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-/**
- * Testable draft state for the Edit Profile flow.
- * Tracks edits against the initial [UserProfile], validates fields, and detects unsaved changes.
- */
+/** A draft stays separate from persisted identity until Save is explicitly chosen. */
 @Stable
-class ProfileEditorDraft(
-    private val initialProfile: UserProfile
-) {
+class ProfileEditorDraft(private val initialProfile: UserProfile) {
     var displayName by mutableStateOf(initialProfile.displayName)
     var handle by mutableStateOf(initialProfile.handle)
     var roleTitle by mutableStateOf(initialProfile.roleTitle)
     var avatarUri by mutableStateOf(initialProfile.avatarUri)
     var showDiscardConfirm by mutableStateOf(false)
 
-    val displayNameError: String?
-        get() = ProfileValidator.validateDisplayName(displayName)
-
-    val handleError: String?
-        get() = ProfileValidator.validateHandle(handle)
-
-    val roleTitleError: String?
-        get() = ProfileValidator.validateRoleTitle(roleTitle)
-
-    val isValid: Boolean
-        get() = displayNameError == null && handleError == null && roleTitleError == null
-
+    val displayNameError: String? get() = ProfileValidator.validateDisplayName(displayName)
+    val handleError: String? get() = ProfileValidator.validateHandle(handle)
+    val roleTitleError: String? get() = ProfileValidator.validateRoleTitle(roleTitle)
+    val isValid: Boolean get() = displayNameError == null && handleError == null && roleTitleError == null
     val hasUnsavedChanges: Boolean
         get() = displayName.trim() != initialProfile.displayName.trim() ||
             ProfileValidator.normalizeHandle(handle) != ProfileValidator.normalizeHandle(initialProfile.handle) ||
-            roleTitle.trim() != initialProfile.roleTitle.trim() ||
-            avatarUri != initialProfile.avatarUri
+            roleTitle.trim() != initialProfile.roleTitle.trim() || avatarUri != initialProfile.avatarUri
 
     fun copy(
         displayName: String = this.displayName,
         handle: String = this.handle,
         roleTitle: String = this.roleTitle,
         avatarUri: String? = this.avatarUri
-    ): ProfileEditorDraft {
-        return ProfileEditorDraft(initialProfile).also { draft ->
-            draft.displayName = displayName
-            draft.handle = handle
-            draft.roleTitle = roleTitle
-            draft.avatarUri = avatarUri
-        }
+    ): ProfileEditorDraft = ProfileEditorDraft(initialProfile).also {
+        it.displayName = displayName
+        it.handle = handle
+        it.roleTitle = roleTitle
+        it.avatarUri = avatarUri
     }
 
-    /**
-     * Attempts to save validated changes into [authRepository].
-     * Returns `true` if valid and saved, `false` otherwise.
-     */
     fun saveTo(authRepository: AuthRepository): Boolean {
         if (!isValid) return false
+        authRepository.updateProfile(displayName.trim(), ProfileValidator.normalizeHandle(handle), roleTitle.trim())
         authRepository.updateAvatar(avatarUri)
-        authRepository.updateProfile(
-            displayName = displayName.trim(),
-            handle = ProfileValidator.normalizeHandle(handle),
-            roleTitle = roleTitle.trim().ifEmpty { "CS Student · AVIA Workspace" }
-        )
         showDiscardConfirm = false
         return true
     }
 
     fun commitTo(authRepository: AuthRepository): Boolean = saveTo(authRepository)
 
-    /**
-     * Handles a Cancel/Back request. If there are unsaved changes, prompts for confirmation first.
-     * Returns `true` if the sheet can dismiss immediately.
-     */
     fun requestCancel(): Boolean {
-        return if (hasUnsavedChanges && !showDiscardConfirm) {
-            showDiscardConfirm = true
-            false
-        } else {
-            showDiscardConfirm = false
-            true
-        }
+        if (!hasUnsavedChanges) return true
+        showDiscardConfirm = true
+        return false
     }
 
     companion object {
         fun from(profile: UserProfile): ProfileEditorDraft = ProfileEditorDraft(profile)
+
+        fun saver(profile: UserProfile) = listSaver<ProfileEditorDraft, Any>(
+            save = { listOf(it.displayName, it.handle, it.roleTitle, it.avatarUri.orEmpty(), it.showDiscardConfirm) },
+            restore = { values ->
+                ProfileEditorDraft(profile).also {
+                    it.displayName = values[0] as String
+                    it.handle = values[1] as String
+                    it.roleTitle = values[2] as String
+                    it.avatarUri = (values[3] as String).ifEmpty { null }
+                    it.showDiscardConfirm = values[4] as Boolean
+                }
+            }
+        )
     }
 }
 
-/**
- * Renders the user's profile avatar.
- * If [avatarUri] points to a readable image via [android.content.ContentResolver],
- * decodes and displays the cropped bitmap; otherwise renders a clean 2-letter monogram placeholder.
- */
 @Composable
 fun ProfileAvatar(
     avatarUri: String?,
     displayName: String,
     modifier: Modifier = Modifier,
     size: Dp = AlgoTokens.avatarHeroSize,
-    shape: Shape = RoundedCornerShape(AlgoTokens.radiusLg),
-    onClick: (() -> Unit)? = null
+    shape: Shape = CircleShape,
+    onClick: (() -> Unit)? = null,
+    actionLabel: String = "Change profile photo"
 ) {
     val context = LocalContext.current
-    val decodedBitmap: ImageBitmap? = remember(avatarUri) {
-        if (avatarUri.isNullOrBlank()) {
-            null
-        } else {
-            runCatching {
-                val uri = Uri.parse(avatarUri)
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
+    // Photo-picker images can be very large. Decode a sampled thumbnail off the UI thread.
+    val decoded by produceState<ImageBitmap?>(null, avatarUri) {
+        value = null
+        value = withContext(Dispatchers.IO) {
+            if (avatarUri.isNullOrBlank()) null else runCatching {
+                val uri = avatarUri.toUri()
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+                var sample = 1
+                while (maxOf(bounds.outWidth, bounds.outHeight) / sample > 512) sample *= 2
+                val options = BitmapFactory.Options().apply { inSampleSize = sample }
+                context.contentResolver.openInputStream(uri)?.use {
+                    BitmapFactory.decodeStream(it, null, options)?.asImageBitmap()
                 }
             }.getOrNull()
         }
     }
-
     val initials = remember(displayName) {
-        displayName.trim().take(2).uppercase().ifEmpty { "AV" }
+        displayName.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+            .take(2).joinToString("") { it.take(1) }.uppercase().ifEmpty { "AV" }
     }
-
-    val borderColor = if (avatarUri != null) PrimaryCyan else BorderCyan
-    val clickMod = if (onClick != null) {
-        Modifier
-            .pressPhysics(shape = shape, accent = PrimaryCyan)
-            .clickable { onClick() }
-    } else {
-        Modifier
-    }
-
     Box(
-        modifier = modifier
-            .size(size)
-            .clip(shape)
-            .background(if (avatarUri != null) CyanSubtle else CardBackgroundElevated)
-            .border(AlgoTokens.strokeMedium, borderColor, shape)
-            .then(clickMod),
+        modifier.size(size).clip(shape).background(CardBackground)
+            .border(AlgoTokens.strokeThin, BorderCyan, shape)
+            .then(if (onClick != null) Modifier.pressPhysics(shape = shape)
+                .clickable(role = Role.Button, onClickLabel = actionLabel, onClick = onClick)
+                .semantics { contentDescription = actionLabel } else Modifier),
         contentAlignment = Alignment.Center
     ) {
-        if (decodedBitmap != null) {
-            Image(
-                bitmap = decodedBitmap,
-                contentDescription = "Profile photo for $displayName",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+        val bitmap = decoded
+        if (bitmap != null) {
+            Image(bitmap, if (onClick == null) "Profile photo for $displayName" else null,
+                Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         } else {
-            Text(
-                text = initials,
-                style = MaterialTheme.typography.titleLarge,
-                color = PrimaryCyan,
-                fontWeight = FontWeight.Bold
-            )
+            Text(initials, style = MaterialTheme.typography.headlineMedium,
+                color = PrimaryCyan, fontWeight = FontWeight.Medium)
         }
     }
 }
 
-/**
- * Concise, honest Account & Local Storage status card displayed on [ProfileScreen].
- *
- * Makes clear that the workspace runs offline on-device and that optional account sign-in
- * (Google Sign-In via Firebase Authentication) is not enabled in this build, without collecting
- * any credentials or displaying non-functional sign-in forms.
- */
 @Composable
-fun AccountStatusCard(
-    authRepository: AuthRepository,
-    modifier: Modifier = Modifier
-) {
-    val accountState = authRepository.state
-
-    DoubleBezelShell(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(AlgoTokens.space4)
+fun AccountStatusCard(authRepository: AuthRepository, modifier: Modifier = Modifier) {
+    val signedIn = authRepository.state as? AuthAccountState.SignedIn
+    Row(
+        modifier.fillMaxWidth().clip(RoundedCornerShape(AlgoTokens.radiusMd))
+            .background(CardBackground).padding(AlgoTokens.space6),
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
     ) {
-        when (accountState) {
-            is AuthAccountState.SignedIn -> {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-                    ) {
-                        Text(
-                            text = "Signed In · ${accountState.profile.provider?.displayName ?: "Account"}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = AccentGreen,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = accountState.profile.email,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                            .background(RedSubtle)
-                            .border(AlgoTokens.strokeThin, AccentRed.copy(alpha = 0.45f), RoundedCornerShape(AlgoTokens.radiusSm))
-                            .clickable { authRepository.signOut() }
-                            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Sign Out",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = AccentRed,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-            else -> {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-                ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Offline,
-                        contentDescription = null,
-                        tint = PrimaryCyan,
-                        modifier = Modifier
-                            .padding(top = AlgoTokens.space1)
-                            .size(AlgoTokens.inlineIconMd)
-                    )
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-                    ) {
-                        Text(
-                            text = "Local Guest Workspace · On-Device Storage",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Your profile, bookmarks, settings, and chat threads are saved on this device. Optional Google Sign-In (Firebase Auth) is not enabled in this offline build.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextMuted
-                        )
-                    }
-                }
+        Icon(if (signedIn == null) AlgoGlyphs.Offline else AlgoGlyphs.Person, null,
+            Modifier.size(AlgoTokens.space7), tint = TextSecondary)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
+            Text(if (signedIn == null) "Saved on this device" else "Signed in",
+                style = MaterialTheme.typography.titleSmall, color = TextPrimary)
+            Text(signedIn?.profile?.email ?: "Your profile, saved algorithms and conversations stay here. Account sync is not available yet.",
+                style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            if (signedIn != null) {
+                TextButton(onClick = authRepository::signOut) { Text("Sign out", color = AccentRed) }
             }
         }
     }
 }
 
-/**
- * Focused, native-feeling Edit Profile sheet (`EditProfileSheet`).
- *
- * Edits local profile identity (`displayName`, `handle`, `roleTitle`) and avatar photo
- * via the Android System Photo Picker (`PickVisualMedia`) with validation and unsaved-change
- * protection. Contains no speculative cloud-sync or credential collection forms.
- */
+/** Full-screen editor. Kept under the existing name for call-site compatibility. */
 @Composable
-fun EditProfileSheet(
-    authRepository: AuthRepository,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun EditProfileSheet(authRepository: AuthRepository, onDismiss: () -> Unit, modifier: Modifier = Modifier) = ProfileTheme {
     val context = LocalContext.current
+    val focus = LocalFocusManager.current
     val profile = authRepository.currentProfile
-    val draft = remember(profile) { ProfileEditorDraft(profile) }
-
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
+    val draft = rememberSaveable(profile.uid, saver = ProfileEditorDraft.saver(profile)) { ProfileEditorDraft(profile) }
+    var photoNotice by rememberSaveable { mutableStateOf<String?>(null) }
+    var saveError by rememberSaveable { mutableStateOf<String?>(null) }
+    val canSave = draft.isValid && draft.hasUnsavedChanges && authRepository.state !is AuthAccountState.Loading
+    val save: () -> Unit = {
+        if (canSave) {
+            runCatching { draft.saveTo(authRepository) }.onSuccess { saved ->
+                if (saved) { focus.clearFocus(); onDismiss() }
+            }.onFailure { saveError = "Your changes could not be saved. Please try again." }
+        }
+    }
+    val cancel: () -> Unit = { if (draft.requestCancel()) onDismiss() }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+            val permission = runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeStream(stream, null, bounds)
+                    check(bounds.outWidth > 0 && bounds.outHeight > 0)
+                } ?: error("Unreadable photo")
             }
-            draft.avatarUri = uri.toString()
+            if (permission.isSuccess) {
+                draft.avatarUri = uri.toString()
+                photoNotice = null
+            } else {
+                photoNotice = "This photo could not be opened. Please choose another image."
+            }
         }
     }
+    val choosePhoto: () -> Unit = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+    BackHandler(onBack = cancel)
 
-    BackHandler {
-        if (draft.requestCancel()) {
-            onDismiss()
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(DarkBackground.copy(alpha = 0.92f))
-            .statusBarsPadding()
+    Column(
+        modifier.fillMaxSize().background(CanvasBackground).statusBarsPadding()
+            .navigationBarsPadding().imePadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        ProfileTopBar("Edit Profile", onBack = cancel, trailing = {
+            TextButton(onClick = save, enabled = canSave, contentPadding = PaddingValues(AlgoTokens.space2)) {
+                Text("Save", fontWeight = FontWeight.SemiBold)
+            }
+        })
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(CanvasBackground)
+            Modifier.widthIn(max = AlgoTokens.profileContentMaxWidth).fillMaxWidth().weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(AlgoTokens.space5),
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                .padding(horizontal = AlgoTokens.space7, vertical = AlgoTokens.space6),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space7)
         ) {
-            // ── 1. Top Bar: Cancel | Edit Profile | Save ──
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                        .background(CardBackgroundElevated)
-                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                        .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusSm))
-                        .clickable {
-                            if (draft.requestCancel()) {
-                                onDismiss()
-                            }
-                        }
-                        .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Cancel",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = TextSecondary,
-                        fontWeight = FontWeight.Medium
-                    )
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box {
+                    ProfileAvatar(draft.avatarUri, draft.displayName, size = AlgoTokens.profileAvatarSize,
+                        onClick = choosePhoto)
+                    Icon(AlgoGlyphs.EditPencil, null,
+                        Modifier.align(Alignment.BottomEnd).clip(CircleShape).background(PrimaryCyan)
+                            .padding(AlgoTokens.space3).size(AlgoTokens.inlineIconLg), tint = CanvasBackground)
                 }
-
-                Text(
-                    text = "Edit Profile",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-
-                val canSave = draft.isValid
-                Box(
-                    modifier = Modifier
-                        .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                        .alpha(if (canSave) 1f else AlgoTokens.disabledAlpha)
-                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                        .background(if (canSave) PrimaryCyan else CardBackground)
-                        .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusSm), enabled = canSave)
-                        .clickable(enabled = canSave) {
-                            if (draft.saveTo(authRepository)) {
-                                onDismiss()
-                            }
-                        }
-                        .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Save",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (canSave) DarkBackground else TextMuted,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            // ── Unsaved Changes Confirmation Banner ──
-            AnimatedVisibility(visible = draft.showDiscardConfirm) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                        .background(YellowSubtle)
-                        .border(AlgoTokens.strokeThin, AccentYellow.copy(alpha = 0.55f), RoundedCornerShape(AlgoTokens.radiusSm))
-                        .padding(AlgoTokens.space4),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Discard unsaved profile changes?",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                                .background(CardBackground)
-                                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
-                                .clickable { draft.showDiscardConfirm = false }
-                                .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
-                        ) {
-                            Text(
-                                text = "Keep Editing",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                                .background(AccentRed)
-                                .clickable {
-                                    draft.showDiscardConfirm = false
-                                    onDismiss()
-                                }
-                                .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
-                        ) {
-                            Text(
-                                text = "Discard",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                TextButton(onClick = choosePhoto) { Text(if (draft.avatarUri == null) "Choose photo" else "Change photo") }
+                if (draft.avatarUri != null) {
+                    TextButton(onClick = { draft.avatarUri = null; photoNotice = null }) {
+                        Text("Remove photo", color = TextSecondary)
                     }
                 }
+                photoNotice?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = AccentRed) }
             }
-
-            // ── 2. Avatar Preview & Photo Picker Trigger ──
-            DoubleBezelShell(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(AlgoTokens.space5)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-                ) {
-                    ProfileAvatar(
-                        avatarUri = draft.avatarUri,
-                        displayName = draft.displayName,
-                        size = AlgoTokens.avatarHeroSize,
-                        shape = CircleShape,
-                        onClick = {
-                            photoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        }
-                    )
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                                .background(CyanSubtle)
-                                .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
-                                .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusSm), accent = PrimaryCyan)
-                                .clickable {
-                                    photoPickerLauncher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                }
-                                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
-                        ) {
-                            Text(
-                                text = if (draft.avatarUri != null) "Change Photo" else "Choose Photo",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = PrimaryCyan,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-
-                        if (draft.avatarUri != null) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                                    .background(CardBackgroundElevated)
-                                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                                    .clickable { draft.avatarUri = null }
-                                    .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
-                            ) {
-                                Text(
-                                    text = "Remove Photo",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = TextSecondary
-                                )
-                            }
-                        }
-                    }
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space6)) {
+                ProfileField("Display name", draft.displayName, "Your name", draft.displayNameError,
+                    hint = "Up to 36 characters", capitalization = KeyboardCapitalization.Words,
+                    onNext = { focus.moveFocus(FocusDirection.Down) }) { draft.displayName = it }
+                ProfileField("Username", draft.handle, "@username", draft.handleError,
+                    hint = "2–23 letters, numbers, dots or underscores",
+                    onNext = { focus.moveFocus(FocusDirection.Down) }) { draft.handle = it }
+                ProfileField("Study focus", draft.roleTitle, "What are you learning?", draft.roleTitleError,
+                    hint = "Optional · up to 48 characters", capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Done, onNext = { focus.clearFocus(); save() }) { draft.roleTitle = it }
             }
-
-            // ── 3. Profile Identity Fields ──
-            DoubleBezelShell(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(AlgoTokens.space5)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)) {
-                    ProfileField(
-                        label = "Display Name",
-                        value = draft.displayName,
-                        placeholder = "Duke Ducky",
-                        errorText = draft.displayNameError,
-                        onValueChange = { draft.displayName = it }
-                    )
-
-                    ProfileField(
-                        label = "Username Handle",
-                        value = draft.handle,
-                        placeholder = "@quacky",
-                        errorText = draft.handleError,
-                        onValueChange = { draft.handle = it }
-                    )
-
-                    ProfileField(
-                        label = "Role or Study Focus (Optional)",
-                        value = draft.roleTitle,
-                        placeholder = "CS Student · AVIA Workspace",
-                        errorText = draft.roleTitleError,
-                        onValueChange = { draft.roleTitle = it }
-                    )
-                }
-            }
+            Text(if (profile.isGuest) "This is your local AVIA profile. Changes are saved on this device."
+                else "Your profile details are managed by your account.",
+                style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            saveError?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = AccentRed) }
         }
+    }
+    if (draft.showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { draft.showDiscardConfirm = false },
+            title = { Text("Discard changes?") },
+            text = { Text("Your profile has unsaved changes.") },
+            confirmButton = { TextButton(onClick = onDismiss) { Text("Discard", color = AccentRed) } },
+            dismissButton = { TextButton(onClick = { draft.showDiscardConfirm = false }) { Text("Keep editing") } }
+        )
     }
 }
 
-/**
- * Backwards-compatible alias delegating to [EditProfileSheet].
- */
 @Composable
-fun EditProfileAndAccountSheet(
-    authRepository: AuthRepository,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    EditProfileSheet(
-        authRepository = authRepository,
-        onDismiss = onDismiss,
-        modifier = modifier
-    )
+fun EditProfileAndAccountSheet(authRepository: AuthRepository, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    EditProfileSheet(authRepository, onDismiss, modifier)
 }
 
 @Composable
@@ -615,47 +293,33 @@ private fun ProfileField(
     label: String,
     value: String,
     placeholder: String,
-    errorText: String? = null,
+    errorText: String?,
+    hint: String,
+    capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
+    imeAction: ImeAction = ImeAction.Next,
+    onNext: () -> Unit,
     onValueChange: (String) -> Unit
 ) {
-    val borderColor = if (errorText != null) AccentRed else BorderSubtle
-    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = TextSecondary,
-            fontWeight = FontWeight.SemiBold
+    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)) {
+        Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = TextPrimary)
+        TextField(
+            value = value, onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = label },
+            placeholder = { Text(placeholder, color = TextSecondary) },
+            singleLine = true, isError = errorText != null,
+            textStyle = MaterialTheme.typography.bodyLarge,
+            shape = RoundedCornerShape(AlgoTokens.radiusMd),
+            keyboardOptions = KeyboardOptions(capitalization = capitalization, autoCorrectEnabled = false, imeAction = imeAction),
+            keyboardActions = KeyboardActions(onNext = { onNext() }, onDone = { onNext() }),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = CardBackground, unfocusedContainerColor = CardBackground,
+                errorContainerColor = CardBackground,
+                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                focusedIndicatorColor = PrimaryCyan, unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = PrimaryCyan
+            )
         )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                .background(CardBackgroundElevated)
-                .border(AlgoTokens.strokeThin, borderColor, RoundedCornerShape(AlgoTokens.radiusSm))
-                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3)
-        ) {
-            if (value.isEmpty()) {
-                Text(
-                    text = placeholder,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextDark
-                )
-            }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextPrimary),
-                cursorBrush = SolidColor(PrimaryCyan),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        if (errorText != null) {
-            Text(
-                text = errorText,
-                style = MaterialTheme.typography.bodySmall,
-                color = AccentRed
-            )
-        }
+        Text(errorText ?: hint, style = MaterialTheme.typography.bodySmall,
+            color = if (errorText != null) AccentRed else TextSecondary)
     }
 }

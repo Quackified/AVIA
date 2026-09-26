@@ -165,6 +165,10 @@ object AlgoTokens {
     val bootMarkSize: Dp = 32.dp
     /** Profile hero avatar container size. */
     val avatarHeroSize: Dp = 56.dp
+    val profileAvatarSize: Dp = 96.dp
+    val profileContentMaxWidth: Dp = 560.dp
+    val profileHeroStackWidth: Dp = 320.dp
+    val profileRowMinHeight: Dp = 72.dp
 
     // ── Corner Radii ──
     /** Tightest radius for chips / small badges (between 4dp xs and 8dp sm). */

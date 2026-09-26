@@ -15,6 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -53,7 +55,7 @@ fun AlgoLensApp(
     var replayingOnboarding by remember { mutableStateOf(false) }
     val showOnboarding = !UserPreferences.hasCompletedOnboarding || replayingOnboarding
 
-    var activeTab by remember { mutableStateOf(NavTab.HOME) }
+    var activeTab by rememberSaveable { mutableStateOf(NavTab.HOME) }
     var selectedAlgorithm by remember { mutableStateOf<Algorithm?>(null) }
     var showingSettings by remember { mutableStateOf(false) }
 
@@ -138,9 +140,16 @@ private fun AppShell(
 ) {
     val chatManager = com.example.algolens.ui.chat.rememberChatSessionManager()
     val authRepository = remember { com.example.algolens.data.auth.UnavailableFirebaseAuthRepository() }
+    var editingProfile by rememberSaveable { mutableStateOf(false) }
+    val profileState = rememberSaveableStateHolder()
 
     Box(modifier = modifier.fillMaxSize().background(CanvasBackground)) {
-        if (selectedAlgorithm != null) {
+        if (editingProfile) {
+            com.example.algolens.ui.profile.EditProfileSheet(
+                authRepository = authRepository,
+                onDismiss = { editingProfile = false },
+            )
+        } else if (selectedAlgorithm != null) {
             VisualizerScreen(
                 algorithm = selectedAlgorithm,
                 onBack = onAlgorithmCleared,
@@ -173,12 +182,17 @@ private fun AppShell(
                             )
                         }
                         NavTab.PROFILE -> {
+                            profileState.SaveableStateProvider("profile") {
                             ProfileScreen(
                                 onAlgorithmClick = onAlgorithmSelected,
                                 onSettingsClick = onOpenSettings,
                                 onNavigateToCatalog = { onTabSelected(NavTab.HOME) },
                                 authRepository = authRepository,
+                                onEditProfileClick = { editingProfile = true },
+                                onNavigateToPractice = { onTabSelected(NavTab.EXPLORE) },
+                                onNavigateToChat = { onTabSelected(NavTab.CHAT) },
                             )
+                            }
                         }
                     }
                 }
