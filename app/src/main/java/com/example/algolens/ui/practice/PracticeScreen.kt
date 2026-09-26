@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -78,8 +79,16 @@ import com.example.algolens.ui.theme.YellowSubtle
 @Composable
 fun PracticeScreen(
     modifier: Modifier = Modifier,
+    initialCategory: String? = null,
+    onBack: (() -> Unit)? = null,
     manager: PracticeSessionManager = rememberPracticeSessionManager()
 ) {
+    androidx.compose.runtime.LaunchedEffect(initialCategory) {
+        if (!initialCategory.isNullOrBlank()) {
+            manager.selectCategory(initialCategory)
+        }
+    }
+
     val q = manager.currentQuestion
 
     Column(
@@ -100,11 +109,24 @@ fun PracticeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-                    ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                ) {
+                    if (onBack != null) {
+                        com.example.algolens.ui.components.RailIconButton(
+                            icon = AlgoGlyphs.Back,
+                            contentDescription = "Back to Catalog",
+                            boxSize = AlgoTokens.iconButtonSm,
+                            iconSize = AlgoTokens.inlineIconMd,
+                            tint = TextSecondary,
+                            container = CardBackground,
+                            borderColor = BorderSubtle,
+                            onClick = onBack
+                        )
+                    }
+
+                    Column {
                         Text(
                             text = "Explore: Practice",
                             style = MaterialTheme.typography.titleLarge,
@@ -112,13 +134,13 @@ fun PracticeScreen(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.5).sp
                         )
+                        Text(
+                            text = "Interactive challenge mode · ${manager.questions.size} questions available",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
                     }
-                    Text(
-                        text = "Interactive challenge mode · ${manager.questions.size} questions available",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
                 }
 
                 // Score & Streak Badges
@@ -226,7 +248,7 @@ fun PracticeScreen(
                 progress = { manager.progressFraction },
                 accent = PrimaryCyan,
                 modifier = Modifier.fillMaxWidth(),
-                height = AlgoTokens.space2
+                height = 6.dp
             )
         }
 
@@ -342,21 +364,46 @@ fun PracticeScreen(
                         }
 
                         // Action Buttons
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                                .background(PrimaryCyan)
-                                .clickable { manager.restartSession() }
-                                .padding(vertical = AlgoTokens.space4),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                         ) {
-                            Text(
-                                text = "Practice Again",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = DarkBackground,
-                                fontWeight = FontWeight.Bold
-                            )
+                            if (onBack != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                        .background(CardBackgroundElevated)
+                                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                                        .clickable { onBack() }
+                                        .padding(vertical = AlgoTokens.space4),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Back to Catalog",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = TextSecondary,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                    .background(PrimaryCyan)
+                                    .clickable { manager.restartSession() }
+                                    .padding(vertical = AlgoTokens.space4),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Practice Again",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = DarkBackground,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -437,39 +484,51 @@ fun PracticeScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                .heightIn(min = 48.dp)
+                                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                                 .background(optBg)
                                 .border(
                                     width = if (isSelected || (isSubmitted && opt.isCorrect)) AlgoTokens.bezelInset * 1.5f else AlgoTokens.bezelInset,
                                     color = optBorder,
-                                    shape = RoundedCornerShape(AlgoTokens.radiusSm)
+                                    shape = RoundedCornerShape(AlgoTokens.radiusMd)
                                 )
                                 .clickable(enabled = !isSubmitted) {
                                     manager.selectOption(opt.id)
                                 }
-                                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space4),
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = opt.label,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = optText,
-                                fontWeight = if (isSelected || (isSubmitted && opt.isCorrect)) FontWeight.Bold else FontWeight.Normal,
+                                fontWeight = if (isSelected || (isSubmitted && opt.isCorrect)) FontWeight.SemiBold else FontWeight.Normal,
                                 modifier = Modifier.weight(1f)
                             )
 
                             Box(
                                 modifier = Modifier
-                                    .size(AlgoTokens.inlineIconMd)
+                                    .padding(start = AlgoTokens.space3)
+                                    .size(20.dp)
                                     .clip(CircleShape)
                                     .background(DarkBackground)
                                     .border(
-                                        width = if (isSelected || (isSubmitted && opt.isCorrect)) AlgoTokens.space1 else AlgoTokens.bezelInset,
+                                        width = if (isSelected || (isSubmitted && opt.isCorrect)) 2.dp else 1.dp,
                                         color = optBorder,
                                         shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected || (isSubmitted && opt.isCorrect)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(optBorder)
                                     )
-                            )
+                                }
+                            }
                         }
                     }
                 }
@@ -480,7 +539,8 @@ fun PracticeScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .heightIn(min = 48.dp)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                             .background(if (canSubmit) PrimaryCyan else CardBackgroundElevated)
                             .clickable(enabled = canSubmit) { manager.submitAnswer() }
                             .padding(vertical = AlgoTokens.space4),

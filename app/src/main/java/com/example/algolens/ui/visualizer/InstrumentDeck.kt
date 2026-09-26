@@ -55,7 +55,7 @@ import com.example.algolens.ui.theme.TextPrimary
  * docked terminal frame, plus the height of the attached window tabs row (~26.dp).
  */
 internal val TERMINAL_PEEK_HEIGHT = 126.dp
-internal val TERMINAL_EXPANDED_HEIGHT = 285.dp
+internal val TERMINAL_EXPANDED_HEIGHT = 228.dp
 internal val ATTACHED_TAB_VISUAL_HEIGHT = 26.dp
 internal val ATTACHED_TABS_HEIGHT = ATTACHED_TAB_VISUAL_HEIGHT + AlgoTokens.space1
 internal val DOCK_PEEK_TOTAL_HEIGHT = TERMINAL_PEEK_HEIGHT + ATTACHED_TABS_HEIGHT + 8.dp
@@ -67,7 +67,7 @@ internal val DOCK_EXPANDED_TOTAL_HEIGHT = TERMINAL_EXPANDED_HEIGHT + ATTACHED_TA
  *
  * - **Always docked**: rests at [TERMINAL_PEEK_HEIGHT] (126.dp, showing the
  *   terminal titlebar + 3 lines of code or live state) and expands to
- *   [TERMINAL_EXPANDED_HEIGHT] (285.dp) when `state.deckExpanded` is true.
+ *   [TERMINAL_EXPANDED_HEIGHT] (228.dp) when `state.deckExpanded` is true.
  * - **Attached window tabs**: `Trace` and `State` sit directly on top of the
  *   terminal frame (`26.dp` visual height inside a `44.dp` touch target) and
  *   serve as the sole explicit expand/collapse affordance.
@@ -120,15 +120,15 @@ fun InstrumentDeck(
             }
         )
 
-        // Unified Terminal UI Frame (126.dp 3-line peek <-> 285.dp expanded)
+        // Unified Terminal UI Frame (126.dp 3-line peek <-> 228.dp expanded)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(terminalHeight)
                 .clip(
                     RoundedCornerShape(
-                        topStart = AlgoTokens.radiusXs,
-                        topEnd = AlgoTokens.radiusMd,
+                        topStart = 0.dp,
+                        topEnd = 0.dp,
                         bottomStart = AlgoTokens.radiusMd,
                         bottomEnd = AlgoTokens.radiusMd
                     )
@@ -138,8 +138,8 @@ fun InstrumentDeck(
                     AlgoTokens.strokeThin,
                     if (state.deckExpanded) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
                     RoundedCornerShape(
-                        topStart = AlgoTokens.radiusXs,
-                        topEnd = AlgoTokens.radiusMd,
+                        topStart = 0.dp,
+                        topEnd = 0.dp,
                         bottomStart = AlgoTokens.radiusMd,
                         bottomEnd = AlgoTokens.radiusMd
                     )
@@ -161,6 +161,9 @@ fun InstrumentDeck(
                 DeckPage.STATE -> StateDeckPage(
                     algorithmName = algorithm.name,
                     step = currentStep,
+                    timeComplexity = algorithm.timeComplexity,
+                    spaceComplexity = algorithm.spaceComplexity,
+                    onComplexityClick = { state.showTheorySheet = true },
                     isExpanded = state.deckExpanded,
                     onToggleExpand = { state.deckExpanded = !state.deckExpanded },
                     modifier = Modifier.fillMaxSize()

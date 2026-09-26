@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -215,25 +216,20 @@ private fun BufferStageControls(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-            .background(CardBackground)
-            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
-            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+            .padding(horizontal = AlgoTokens.space1, vertical = AlgoTokens.space1),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Value chip (tap to cycle next value, 44dp minimum touch target)
+        // Value chip (tap to cycle next value)
         Row(
             modifier = Modifier
-                .sizeIn(
-                    minWidth = AlgoTokens.minTouchTarget,
-                    minHeight = AlgoTokens.minTouchTarget
-                )
+                .heightIn(min = 28.dp)
                 .clip(pillShape)
                 .background(DarkBackground)
+                .border(AlgoTokens.strokeHairline, BorderSubtle, pillShape)
                 .pressPhysics(shape = pillShape, accent = PrimaryCyan)
                 .clickable { onCycleValue() }
-                .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
+                .padding(horizontal = AlgoTokens.space2, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
         ) {
@@ -252,27 +248,29 @@ private fun BufferStageControls(
             )
         }
 
-        // Action pills (44dp minimum touch targets)
+        // Action pills (compact, shorter vertically)
         Row(
-            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // + PUSH / + ENQUEUE
             Box(
                 modifier = Modifier
-                    .sizeIn(
-                        minWidth = AlgoTokens.minTouchTarget,
-                        minHeight = AlgoTokens.minTouchTarget
-                    )
+                    .heightIn(min = 28.dp)
                     .clip(pillShape)
                     .background(if (!isFull) CyanSubtle else DarkBackground)
+                    .border(
+                        AlgoTokens.strokeHairline,
+                        if (!isFull) PrimaryCyan.copy(alpha = 0.4f) else BorderSubtle,
+                        pillShape
+                    )
                     .pressPhysics(shape = pillShape, accent = PrimaryCyan, enabled = !isFull)
                     .clickable(enabled = !isFull) { onPushOrEnqueue() }
-                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                    .padding(horizontal = AlgoTokens.space2, vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (isStack) "+ PUSH($nextValue)" else "+ ENQUEUE($nextValue)",
+                    text = if (isStack) "+ PUSH($nextValue)" else "+ ENQ($nextValue)",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (!isFull) PrimaryCyan else TextDark,
                     fontSize = AlgoType.microSize,
@@ -283,19 +281,21 @@ private fun BufferStageControls(
             // - POP / - DEQUEUE
             Box(
                 modifier = Modifier
-                    .sizeIn(
-                        minWidth = AlgoTokens.minTouchTarget,
-                        minHeight = AlgoTokens.minTouchTarget
-                    )
+                    .heightIn(min = 28.dp)
                     .clip(pillShape)
                     .background(if (canRemove) RedSubtle else DarkBackground)
+                    .border(
+                        AlgoTokens.strokeHairline,
+                        if (canRemove) AccentRed.copy(alpha = 0.4f) else BorderSubtle,
+                        pillShape
+                    )
                     .pressPhysics(shape = pillShape, accent = AccentRed, enabled = canRemove)
                     .clickable(enabled = canRemove) { onPopOrDequeue() }
-                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                    .padding(horizontal = AlgoTokens.space2, vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (isStack) "− POP()" else "− DEQUEUE()",
+                    text = if (isStack) "− POP()" else "− DEQ()",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (canRemove) AccentRed else TextDark,
                     fontSize = AlgoType.microSize,
@@ -307,15 +307,17 @@ private fun BufferStageControls(
             if (onPeek != null) {
                 Box(
                     modifier = Modifier
-                        .sizeIn(
-                            minWidth = AlgoTokens.minTouchTarget,
-                            minHeight = AlgoTokens.minTouchTarget
-                        )
+                        .heightIn(min = 28.dp)
                         .clip(pillShape)
                         .background(if (canRemove) PurpleSubtle else DarkBackground)
+                        .border(
+                            AlgoTokens.strokeHairline,
+                            if (canRemove) SecondaryPurple.copy(alpha = 0.4f) else BorderSubtle,
+                            pillShape
+                        )
                         .pressPhysics(shape = pillShape, accent = SecondaryPurple, enabled = canRemove)
                         .clickable(enabled = canRemove) { onPeek() }
-                        .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
+                        .padding(horizontal = AlgoTokens.space2, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

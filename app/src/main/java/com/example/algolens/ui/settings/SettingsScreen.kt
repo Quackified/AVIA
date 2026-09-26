@@ -298,7 +298,7 @@ fun SettingsScreen(
                         progress = { 1.0f },
                         accent = PrimaryCyan,
                         modifier = Modifier.fillMaxWidth(),
-                        height = AlgoTokens.space4
+                        height = 6.dp
                     )
 
                     Row(

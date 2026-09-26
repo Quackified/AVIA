@@ -30,7 +30,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
@@ -91,35 +93,61 @@ fun DoubleBezelShell(
 }
 
 /**
- * Tick-based progress meter. Reads [progress] inside the draw lambda so the
- * transport advances it every frame without recomposing any text.
+ * Progress meter supporting continuous rounded track rendering (default)
+ * or legacy tick-based rendering when [tickCount] is provided.
+ * Reads [progress] inside the draw lambda so the transport advances it every frame
+ * without recomposing any text.
  */
 @Composable
 fun InstrumentMeter(
     progress: () -> Float,
     accent: Color,
     modifier: Modifier = Modifier,
-    tickCount: Int = AlgoTokens.meterTickCount,
-    height: Dp = AlgoTokens.space5
+    tickCount: Int? = null,
+    trackColor: Color = Color(0xFF131D2E),
+    height: Dp = 6.dp
 ) {
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
     ) {
-        val ticks = tickCount.coerceAtLeast(2)
-        val pitch = size.width / ticks
-        val filled = progress().coerceIn(0f, 1f) * ticks
-        val activeWidth = (pitch * 0.42f).coerceAtLeast(1f)
+        val fraction = progress().coerceIn(0f, 1f)
+        val cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
 
-        for (i in 0 until ticks) {
-            val x = i * pitch + pitch / 2f
-            drawLine(
-                color = if (i < filled) accent else AlgoTokens.strokeBorderMedium,
-                start = Offset(x, 0f),
-                end = Offset(x, size.height),
-                strokeWidth = activeWidth
+        if (tickCount != null && tickCount > 0) {
+            val ticks = tickCount.coerceAtLeast(2)
+            val pitch = size.width / ticks
+            val filled = fraction * ticks
+            val activeWidth = (pitch * 0.42f).coerceAtLeast(1f)
+
+            for (i in 0 until ticks) {
+                val x = i * pitch + pitch / 2f
+                drawLine(
+                    color = if (i < filled) accent else AlgoTokens.strokeBorderMedium,
+                    start = Offset(x, 0f),
+                    end = Offset(x, size.height),
+                    strokeWidth = activeWidth
+                )
+            }
+        } else {
+            // Draw continuous rounded track background
+            drawRoundRect(
+                color = trackColor,
+                topLeft = Offset.Zero,
+                size = size,
+                cornerRadius = cornerRadius
             )
+            // Draw filled progress capsule
+            if (fraction > 0f) {
+                val progressWidth = (size.width * fraction).coerceIn(size.height, size.width)
+                drawRoundRect(
+                    color = accent,
+                    topLeft = Offset.Zero,
+                    size = Size(progressWidth, size.height),
+                    cornerRadius = cornerRadius
+                )
+            }
         }
     }
 }

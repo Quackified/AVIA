@@ -365,8 +365,6 @@ internal data class GraphCanvasGeometry(
                 nodeRadius = MAX_READABLE_RADIUS,
                 panOffset = panOffset
             )
-            if (nodes.size <= 1) return initial
-
             // Measure pairwise distance in the base world
             val baseOffsets = nodes.map { initial.copy(panOffset = Offset.Zero).toCanvasOffset(it.x, it.y) }
             var minDist = Float.MAX_VALUE
@@ -398,14 +396,29 @@ internal data class GraphCanvasGeometry(
                 MAX_READABLE_RADIUS
             }
 
-            // Center expanded horizontal world by default when panOffset == Zero
-            val autoCenterOffsetX = if (worldExpansion > 1f) -(expandedWidth - baseDrawWidth) * 0.5f else 0f
+            // Center all graph nodes properly at initialization relative to the viewport center
+            val actualMinX = nodes.minOfOrNull { it.x } ?: 50f
+            val actualMaxX = nodes.maxOfOrNull { it.x } ?: 50f
+            val actualMinY = nodes.minOfOrNull { it.y } ?: 50f
+            val actualMaxY = nodes.maxOfOrNull { it.y } ?: 50f
+
+            val nodeCenterX = (actualMinX + actualMaxX) / 2f
+            val nodeCenterY = (actualMinY + actualMaxY) / 2f
+
+            val initialCanvasCenterX = padding + ((nodeCenterX - minX + 15f) / spanX) * expandedWidth
+            val initialCanvasCenterY = padding + ((nodeCenterY - minY + 15f) / spanY) * expandedHeight
+
+            val targetCenterX = drawSize.width / 2f
+            val targetCenterY = drawSize.height / 2f
+
+            val autoCenterOffsetX = targetCenterX - initialCanvasCenterX
+            val autoCenterOffsetY = targetCenterY - initialCanvasCenterY
 
             return initial.copy(
                 drawWidth = expandedWidth,
                 drawHeight = expandedHeight,
                 nodeRadius = adaptiveRadius,
-                panOffset = Offset(panOffset.x + autoCenterOffsetX, panOffset.y)
+                panOffset = Offset(panOffset.x + autoCenterOffsetX, panOffset.y + autoCenterOffsetY)
             )
         }
     }

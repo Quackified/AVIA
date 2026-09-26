@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
 
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -278,88 +280,127 @@ private fun BufferOpEditor(
                 }
             }
 
-            // ── 1. Operation presets LazyRow ──
-            Text(
-                text = "OPERATION PRESETS:",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextMuted,
-                fontSize = AlgoType.microSize,
-                letterSpacing = AlgoType.trackSection,
-                fontWeight = FontWeight.Bold
-            )
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 2.dp)
-            ) {
-                items(presets) { (label, rawRows) ->
-                    FilterChip(
-                        selected = false,
-                        onClick = {
-                            rows = rawRows.map { spec ->
-                                val (k, v) = if (spec.contains(":")) {
-                                    val parts = spec.split(":")
-                                    parts[0] to parts[1]
-                                } else spec to ""
-                                OpRowData(k, v)
-                            }
-                        },
-                        label = {
-                            Text(label, style = MaterialTheme.typography.labelSmall, fontSize = AlgoType.microSize)
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = CanvasBackground,
-                            labelColor = TextSecondary,
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = false,
-                            borderColor = BorderSubtle,
-                            borderWidth = 1.dp
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                }
-            }
-
-            // ── 2. Operation rows ──
-            Text(
-                text = "OPERATIONS (${rows.size} / $MAX_ROWS):",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextMuted,
-                fontSize = AlgoType.microSize,
-                letterSpacing = AlgoType.trackSection,
-                fontWeight = FontWeight.Bold
-            )
+            // ── Scrollable Body Area (overflow scroll when operations increase) ──
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                rows.forEachIndexed { idx, row ->
-                    OpRow(
-                        row = row,
-                        kinds = kinds,
-                        accent = accent,
-                        valueAccent = valueAccent,
-                        onChange = { newRow -> rows = rows.toMutableList().also { it[idx] = newRow } },
-                        onDelete = { rows = rows.toMutableList().also { it.removeAt(idx) } },
-                    )
+                // ── 1. Operation presets LazyRow ──
+                Text(
+                    text = "OPERATION PRESETS:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    fontSize = AlgoType.microSize,
+                    letterSpacing = AlgoType.trackSection,
+                    fontWeight = FontWeight.Bold
+                )
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 2.dp)
+                ) {
+                    items(presets) { (label, rawRows) ->
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                rows = rawRows.map { spec ->
+                                    val (k, v) = if (spec.contains(":")) {
+                                        val parts = spec.split(":")
+                                        parts[0] to parts[1]
+                                    } else spec to ""
+                                    OpRowData(k, v)
+                                }
+                            },
+                            label = {
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontSize = AlgoType.microSize)
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = CanvasBackground,
+                                labelColor = TextSecondary,
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = false,
+                                borderColor = BorderSubtle,
+                                borderWidth = 1.dp
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
                 }
-            }
 
-            // ── 3. Add row button ──
-            if (rows.size < MAX_ROWS) {
+                // ── 2. Operation rows ──
+                Text(
+                    text = "OPERATIONS (${rows.size} / $MAX_ROWS):",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    fontSize = AlgoType.microSize,
+                    letterSpacing = AlgoType.trackSection,
+                    fontWeight = FontWeight.Bold
+                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    rows.forEachIndexed { idx, row ->
+                        OpRow(
+                            row = row,
+                            kinds = kinds,
+                            accent = accent,
+                            valueAccent = valueAccent,
+                            onChange = { newRow -> rows = rows.toMutableList().also { it[idx] = newRow } },
+                            onDelete = { rows = rows.toMutableList().also { it.removeAt(idx) } },
+                        )
+                    }
+                }
+
+                // ── 3. Add row button ──
+                if (rows.size < MAX_ROWS) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(CanvasBackground)
+                            .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                            .clickable {
+                                val defaultKind = kinds.first()  // "PUSH" or "ENQ"
+                                rows = rows + OpRowData(defaultKind, "")
+                            }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = AlgoGlyphs.Plus,
+                                contentDescription = null,
+                                tint = PrimaryCyan,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = "Add operation",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PrimaryCyan,
+                                fontSize = AlgoType.microSize,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                // ── 4. Reset button ──
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(CanvasBackground)
                         .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-                        .clickable {
-                            val defaultKind = kinds.first()  // "PUSH" or "ENQ"
-                            rows = rows + OpRowData(defaultKind, "")
-                        }
-                        .padding(vertical = 8.dp),
+                        .clickable { rows = initialRows }
+                        .padding(vertical = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
@@ -367,89 +408,59 @@ private fun BufferOpEditor(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = AlgoGlyphs.Plus,
+                            imageVector = AlgoGlyphs.Reset,
                             contentDescription = null,
-                            tint = PrimaryCyan,
+                            tint = AccentYellow,
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
-                            text = "Add operation",
+                            text = "Reset to default",
                             style = MaterialTheme.typography.labelSmall,
-                            color = PrimaryCyan,
+                            color = AccentYellow,
                             fontSize = AlgoType.microSize,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
-            }
 
-            // ── 4. Reset button ──
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-                    .clickable { rows = initialRows }
-                    .padding(vertical = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Reset,
-                        contentDescription = null,
-                        tint = AccentYellow,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Text(
-                        text = "Reset to default",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AccentYellow,
-                        fontSize = AlgoType.microSize,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            // ── 5. Validation feedback ──
-            val res = validation
-            if (res is InputValidationResult.Error) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Alert,
-                        contentDescription = null,
-                        tint = AccentRed,
-                        modifier = Modifier.size(11.dp)
-                    )
-                    Text(
-                        text = res.message,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AccentRed,
-                        fontSize = AlgoType.microSize
-                    )
-                }
-            } else if (isValid) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.CheckCircle,
-                        contentDescription = null,
-                        tint = AccentGreen,
-                        modifier = Modifier.size(11.dp)
-                    )
-                    Text(
-                        text = "Ready: ${rows.size} operations",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AccentGreen,
-                        fontSize = AlgoType.microSize
-                    )
+                // ── 5. Validation feedback ──
+                val res = validation
+                if (res is InputValidationResult.Error) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = AlgoGlyphs.Alert,
+                            contentDescription = null,
+                            tint = AccentRed,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Text(
+                            text = res.message,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AccentRed,
+                            fontSize = AlgoType.microSize
+                        )
+                    }
+                } else if (isValid) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = AlgoGlyphs.CheckCircle,
+                            contentDescription = null,
+                            tint = AccentGreen,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Text(
+                            text = "Ready: ${rows.size} operations",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AccentGreen,
+                            fontSize = AlgoType.microSize
+                        )
+                    }
                 }
             }
 

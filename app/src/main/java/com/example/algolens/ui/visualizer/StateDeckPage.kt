@@ -65,6 +65,9 @@ import com.example.algolens.ui.components.pressPhysics
 fun StateDeckPage(
     algorithmName: String,
     step: VisualizerStep,
+    timeComplexity: String = "",
+    spaceComplexity: String = "",
+    onComplexityClick: (() -> Unit)? = null,
     isExpanded: Boolean = false,
     onToggleExpand: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -164,6 +167,40 @@ fun StateDeckPage(
                 .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
         ) {
+            // ── Invariant Complexity Badges (Time & Space) ──
+            if (timeComplexity.isNotBlank() || spaceComplexity.isNotBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = AlgoTokens.space1),
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (timeComplexity.isNotBlank()) {
+                        ComplexityStatePill(
+                            label = "TIME",
+                            value = timeComplexity,
+                            accent = PrimaryCyan,
+                            container = CyanSubtle,
+                            borderColor = PrimaryCyan.copy(alpha = 0.35f),
+                            onClick = onComplexityClick
+                        )
+                    }
+                    if (spaceComplexity.isNotBlank()) {
+                        ComplexityStatePill(
+                            label = "SPACE",
+                            value = spaceComplexity,
+                            accent = PurpleGlow,
+                            container = PurpleSubtle,
+                            borderColor = SecondaryPurple.copy(alpha = 0.35f),
+                            onClick = onComplexityClick
+                        )
+                    }
+                }
+
+                AlgoHairline()
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)) {
                 SectionLabel(
                     icon = AlgoGlyphs.Code,
@@ -339,6 +376,48 @@ private fun StackInfoBadge(label: String, value: String) {
         Text(
             text = value,
             style = valueStyle
+        )
+    }
+}
+
+@Composable
+private fun ComplexityStatePill(
+    label: String,
+    value: String,
+    accent: androidx.compose.ui.graphics.Color,
+    container: androidx.compose.ui.graphics.Color,
+    borderColor: androidx.compose.ui.graphics.Color,
+    onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(AlgoTokens.radiusXs)
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(container)
+            .border(AlgoTokens.strokeThin, borderColor, shape)
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            )
+            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextMuted,
+            fontWeight = FontWeight.Bold,
+            fontSize = AlgoType.microSize,
+            fontFamily = FontFamily.Monospace
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelSmall,
+            color = accent,
+            fontWeight = FontWeight.Bold,
+            fontSize = AlgoType.microSize,
+            fontFamily = FontFamily.Monospace
         )
     }
 }

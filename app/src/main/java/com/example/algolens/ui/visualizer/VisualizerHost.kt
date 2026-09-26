@@ -216,6 +216,7 @@ private fun GraphTreeCanvas(
         GraphTreeVisualizer(
             step = currentStep,
             algorithmKey = algorithmId.name,
+            builderEnabled = spec.builderEnabled,
             telemetryMode = spec.graphTelemetryMode,
             isCustomGraph = state.customGraph != null,
             challengeTargetNodeIds = challengeNodeIds,

@@ -73,6 +73,7 @@ fun GraphTreeVisualizer(
     step: VisualizerStep,
     modifier: Modifier = Modifier,
     algorithmKey: String = "",
+    builderEnabled: Boolean = false,
     telemetryMode: com.example.algolens.model.GraphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.NONE,
     isCustomGraph: Boolean = false,
     challengeTargetNodeIds: Set<String> = emptySet(),
@@ -83,13 +84,6 @@ fun GraphTreeVisualizer(
     var dynamicEdges by remember(algorithmKey) { mutableStateOf(step.edges) }
     var hasLocalEdits by remember(algorithmKey) { mutableStateOf(false) }
 
-    LaunchedEffect(step.nodes, step.edges, hasLocalEdits) {
-        if (!hasLocalEdits) {
-            dynamicNodes = step.nodes
-            dynamicEdges = step.edges
-        }
-    }
-
     // Gesture builder + viewport pan state
     var selectedNodeId by remember { mutableStateOf<String?>(null) }
     var dragStartNode by remember { mutableStateOf<GraphNodeState?>(null) }
@@ -98,6 +92,13 @@ fun GraphTreeVisualizer(
     var isBuilderActive by remember { mutableStateOf(false) }
     var panOffset by remember(algorithmKey) { mutableStateOf(Offset.Zero) }
     var maxObservedCanvasHeightPx by remember(algorithmKey) { mutableStateOf(0f) }
+
+    LaunchedEffect(step.nodes, step.edges, isBuilderActive) {
+        if (!isBuilderActive) {
+            dynamicNodes = step.nodes
+            dynamicEdges = step.edges
+        }
+    }
 
     // ── Per-node "first visit" / "just became active" scale pop ──
     val nodeScales = remember { mutableMapOf<String, Animatable<Float, *>>() }
@@ -154,30 +155,48 @@ fun GraphTreeVisualizer(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
         ) {
-            // ── Top Interactive Builder Toolbar ──
-            GraphBuilderToolbar(
-                isBuilderActive = isBuilderActive,
-                onToggleBuilder = { isBuilderActive = !isBuilderActive },
-                dynamicNodeCount = dynamicNodes.size,
-                dynamicEdgeCount = dynamicEdges.size,
-                isPanned = panOffset != Offset.Zero,
-                onResetPan = { panOffset = Offset.Zero },
-                canReset = isCustomGraph || hasLocalEdits || dynamicNodes != step.nodes || dynamicEdges != step.edges,
-                onReset = {
-                    selectedNodeId = null
-                    dragStartNode = null
-                    currentDragPos = null
-                    hoveredTargetNodeId = null
-                    panOffset = Offset.Zero
-                    hasLocalEdits = false
-                    if (onGraphModified != null) {
-                        onGraphModified(emptyList(), emptyList())
-                    } else {
-                        dynamicNodes = step.nodes
-                        dynamicEdges = step.edges
+            // ── Top Interactive Builder Toolbar (Shown only for algorithms with builderEnabled, e.g. BFS/DFS) ──
+            if (builderEnabled) {
+                GraphBuilderToolbar(
+                    isBuilderActive = isBuilderActive,
+                    onToggleBuilder = { isBuilderActive = !isBuilderActive },
+                    dynamicNodeCount = dynamicNodes.size,
+                    dynamicEdgeCount = dynamicEdges.size,
+                    isPanned = panOffset != Offset.Zero,
+                    onResetPan = { panOffset = Offset.Zero },
+                    canReset = isCustomGraph || hasLocalEdits || dynamicNodes != step.nodes || dynamicEdges != step.edges,
+                    onReset = {
+                        selectedNodeId = null
+                        dragStartNode = null
+                        currentDragPos = null
+                        hoveredTargetNodeId = null
+                        panOffset = Offset.Zero
+                        hasLocalEdits = false
+                        if (onGraphModified != null) {
+                            onGraphModified(emptyList(), emptyList())
+                        } else {
+                            dynamicNodes = step.nodes
+                            dynamicEdges = step.edges
+                        }
+                    },
+                    onAddNode = {
+                        val nextLabel = getNextNodeLabel(dynamicNodes)
+                        val count = dynamicNodes.size
+                        val offsetStep = (count % 5) * 8f
+                        val newNode = GraphNodeState(
+                            id = nextLabel,
+                            label = nextLabel,
+                            x = 50f + (count % 3 - 1) * 20f + offsetStep,
+                            y = 50f + (count / 3) * 16f,
+                            state = ElementState.ACTIVE
+                        )
+                        val updated = dynamicNodes + newNode
+                        dynamicNodes = updated
+                        hasLocalEdits = true
+                        onGraphModified?.invoke(updated, dynamicEdges)
                     }
-                }
-            )
+                )
+            }
 
             // ── Main Canvas with Gesture Detectors + Renderer ──
             Box(
@@ -200,15 +219,15 @@ fun GraphTreeVisualizer(
                 GraphBuilderGestures(
                     dynamicNodes = dynamicNodes,
                     dynamicEdges = dynamicEdges,
-                    isBuilderActive = isBuilderActive,
+                    isBuilderActive = isBuilderActive && builderEnabled,
                     selectedNodeId = selectedNodeId,
                     dragStartNode = dragStartNode,
                     hoveredTargetNodeId = hoveredTargetNodeId,
                     panOffset = panOffset,
                     referenceHeight = maxObservedCanvasHeightPx,
                     onPanChanged = { panOffset = it },
-                    onNodesChanged = { dynamicNodes = it; if (onGraphModified == null) hasLocalEdits = true },
-                    onEdgesChanged = { dynamicEdges = it; if (onGraphModified == null) hasLocalEdits = true },
+                    onNodesChanged = { dynamicNodes = it; hasLocalEdits = true },
+                    onEdgesChanged = { dynamicEdges = it; hasLocalEdits = true },
                     onSelectedNodeIdChanged = { selectedNodeId = it },
                     onDragStartNodeChanged = { dragStartNode = it },
                     onCurrentDragPosChanged = { currentDragPos = it },
@@ -236,10 +255,13 @@ fun GraphTreeVisualizer(
                 )
 
                 // Builder instruction banner overlay
-                GraphBuilderBanner(
-                    isBuilderActive = isBuilderActive,
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                )
+                if (builderEnabled) {
+                    GraphBuilderBanner(
+                        isBuilderActive = isBuilderActive,
+                        selectedNodeId = selectedNodeId,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
+                }
             }
 
             // ── Synchronized Bottom Stage Telemetry (Heap Array Strip OR Graph Frontier Strip) ──

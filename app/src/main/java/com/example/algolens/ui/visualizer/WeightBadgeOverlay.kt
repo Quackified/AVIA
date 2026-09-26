@@ -64,66 +64,8 @@ object WeightBadgeOverlay : VisualizerOverlay {
         state: VisualizerScreenState,
         modifier: Modifier,
     ) {
-        if (step.edges.isEmpty() || step.edges.none { it.weight != null }) return
-        if (step.nodes.isEmpty()) return
-
-        val minX = step.nodes.minOf { it.x }
-        val minY = step.nodes.minOf { it.y }
-        val spanX = (step.nodes.maxOf { it.x } - minX).coerceAtLeast(1f)
-        val spanY = (step.nodes.maxOf { it.y } - minY).coerceAtLeast(1f)
-
-        Box(modifier = modifier.fillMaxSize()) {
-            Canvas(modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxSize()
-            ) {
-                val drawWidth = size.width - (PADDING * 2)
-                val drawHeight = size.height - (PADDING * 2)
-
-                fun toCanvasOffset(nx: Float, ny: Float): Offset {
-                    val cx = PADDING + ((nx - minX + AXIS_INSET) / spanX) * drawWidth
-                    val cy = PADDING + ((ny - minY + AXIS_INSET) / spanY) * drawHeight
-                    return Offset(cx, cy)
-                }
-
-                for (edge in step.edges) {
-                    val weight = edge.weight ?: continue
-                    val fromNode = step.nodes.find { it.id == edge.from } ?: continue
-                    val toNode = step.nodes.find { it.id == edge.to } ?: continue
-                    val start = toCanvasOffset(fromNode.x, fromNode.y)
-                    val end = toCanvasOffset(toNode.x, toNode.y)
-                    val midX = (start.x + end.x) / 2f
-                    val midY = (start.y + end.y) / 2f
-
-                    // Badge background
-                    val bgColor = CanvasBackground
-                    val borderColor = if (edge.isHighlighted) AccentGreen else GraphEdgeDefault
-                    val textColor = if (edge.isHighlighted) AccentGreen else TextMuted
-
-                    drawRect(
-                        color = bgColor,
-                        topLeft = Offset(midX - 14f, midY - 10f),
-                        size = Size(28f, 20f),
-                    )
-                    drawRect(
-                        color = borderColor,
-                        topLeft = Offset(midX - 14f, midY - 10f),
-                        size = Size(28f, 20f),
-                        style = Stroke(width = 1f),
-                    )
-
-                    drawContext.canvas.nativeCanvas.apply {
-                        val paint = Paint().apply {
-                            isAntiAlias = true
-                            color = textColor.toArgb()
-                            textSize = 18f
-                            textAlign = Paint.Align.CENTER
-                            typeface = Typeface.MONOSPACE
-                        }
-                        drawText(weight.toString(), midX, midY + 6f, paint)
-                    }
-                }
-            }
-        }
+        // Edge weights are natively and accurately rendered directly on-canvas
+        // by GraphTreeRenderer with full pan/zoom transformation.
+        // This overlay Content is a no-op to eliminate duplicate overlay boxes on screen.
     }
 }

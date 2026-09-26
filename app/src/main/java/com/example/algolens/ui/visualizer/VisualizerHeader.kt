@@ -17,9 +17,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.example.algolens.ui.components.CompactIconButton
+import com.example.algolens.ui.theme.CardBackgroundElevated
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
@@ -162,6 +165,7 @@ private fun HeaderTitle(
             color = TextPrimary,
             fontWeight = FontWeight.Bold,
             letterSpacing = AlgoType.trackHeader,
+            fontSize = 15.sp
         )
     }
     val stepCounterStyle = remember(counterBase) {
@@ -246,87 +250,31 @@ private fun HeaderActions(
     menuOpen: Boolean,
     onMenuOpenChange: (Boolean) -> Unit
 ) {
-    // Static per-algorithm text values used in the action cluster and
-    // dropdown — cache once per algorithm so they're not re-built every
-    // recomposition during playback (algorithm id / timeComplexity /
-    // spaceComplexity never change between steps).
-    val timeLabel = remember(algorithm.id) {
-        "TIME ${algorithm.timeComplexity}"
-    }
-    val spaceLabel = remember(algorithm.id) {
-        "SPACE ${algorithm.spaceComplexity}"
-    }
     val isBookmarked = com.example.algolens.data.AppSettings.isBookmarked(algorithm.id.name)
-    val showComplexity = com.example.algolens.data.AppSettings.showComplexityBadges
 
     Row(
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (showComplexity) {
-            CompactHeaderPill(
-                label = timeLabel,
-                accent = PrimaryCyan,
-                accentContainer = CyanSubtle,
-                borderColor = PrimaryCyan.copy(alpha = 0.28f),
-                onClick = { state.showTheorySheet = true }
-            )
-
-            CompactHeaderPill(
-                label = spaceLabel,
-                accent = PurpleGlow,
-                accentContainer = PurpleSubtle,
-                borderColor = SecondaryPurple.copy(alpha = 0.28f),
-                onClick = { state.showTheorySheet = true }
-            )
-        }
-
-        val helpIcon by remember {
-            derivedStateOf { AlgoGlyphs.Help }
-        }
-        val actionButtonSize by remember {
-            derivedStateOf { AlgoTokens.iconButtonSm }
-        }
-        val actionGlyphSize by remember {
-            derivedStateOf { AlgoTokens.inlineIconSm }
-        }
-
-        RailIconButton(
+        CompactIconButton(
             icon = if (isBookmarked) AlgoGlyphs.BookmarkFilled else AlgoGlyphs.Bookmark,
             contentDescription = if (isBookmarked) "Remove Bookmark" else "Bookmark Algorithm",
-            boxSize = actionButtonSize,
-            iconSize = actionGlyphSize,
+            onClick = { com.example.algolens.data.AppSettings.toggleBookmark(algorithm.id.name) },
             tint = if (isBookmarked) PrimaryCyan else TextSecondary,
-            container = if (isBookmarked) CyanSubtle else Color.Transparent,
+            container = if (isBookmarked) CyanSubtle else CardBackgroundElevated,
             borderColor = if (isBookmarked) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
-            onClick = { com.example.algolens.data.AppSettings.toggleBookmark(algorithm.id.name) }
-        )
-
-        RailIconButton(
-            icon = helpIcon,
-            contentDescription = "Guided Tour",
-            boxSize = actionButtonSize,
-            iconSize = actionGlyphSize,
-            tint = PrimaryCyan,
-            container = Color.Transparent,
-            borderColor = BorderSubtle,
-            onClick = { state.showGuidedTour = true }
+            visualSize = 32.dp
         )
 
         Box(contentAlignment = Alignment.Center) {
-            val kebabIcon by remember {
-                derivedStateOf { AlgoGlyphs.More }
-            }
-
-            RailIconButton(
-                icon = kebabIcon,
-                contentDescription = "More actions",
-                boxSize = actionButtonSize,
-                iconSize = actionGlyphSize,
-                tint = TextSecondary,
-                container = Color.Transparent,
-                borderColor = Color.Transparent,
-                onClick = { onMenuOpenChange(!menuOpen) }
+            CompactIconButton(
+                icon = AlgoGlyphs.More,
+                contentDescription = "More options",
+                onClick = { onMenuOpenChange(!menuOpen) },
+                tint = if (menuOpen) PrimaryCyan else TextSecondary,
+                container = CardBackgroundElevated,
+                borderColor = if (menuOpen) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
+                visualSize = 32.dp
             )
             HeaderOverflowMenuHost(
                 algorithm = algorithm,
@@ -377,15 +325,8 @@ private fun CompactHeaderPill(
 }
 
 /**
- * Kebab popover. Standard Material 3 dropdown: one [DropdownMenuItem]
- * row per action (leading icon + label), separated by [AlgoHairline]s.
- *
- * Holds exactly two actions: the theory sheet and the family-aware
- * customize-input entry. It used to also carry "Variable Inspector" and
- * "Memory Call Stack" disclosure rows; those readouts moved to the Focus
- * Deck's State page (Phase 5A), because a menu is the wrong home for the
- * app's only per-step variable surface and the same content was two taps
- * deep behind a popover.
+ * Redesigned compact dropdown menu host matching the AVIA chat style.
+ * Houses Guided Tour, Theory Sheet, and family-aware Customize Input actions.
  */
 @Composable
 private fun HeaderOverflowMenuHost(
@@ -396,16 +337,6 @@ private fun HeaderOverflowMenuHost(
     menuOpen: Boolean,
     onMenuOpenChange: (Boolean) -> Unit
 ) {
-    // Static per-algorithm cache for the dropdown's static labels and icons.
-    // These never change across playback steps for a given algorithm — caching
-    // them here avoids rebuilding the text / icon objects every recomposition.
-    val algoTitleLabelText = remember { "Theory Sheet" }
-    val algoTitleIcon = remember { AlgoGlyphs.Book }
-    val algoTitleIconSize = remember { AlgoTokens.inlineIconLg }
-    val dropdownChevronIcon = remember { AlgoGlyphs.ChevronDown }
-
-    val customizeIcon = remember { AlgoGlyphs.Tune }
-    val customizeIconSize = remember { AlgoTokens.inlineIconLg }
     val customizeLabel = remember(spec?.id) {
         if (spec == null) "Customize Array"
         else when (spec.id) {
@@ -422,52 +353,80 @@ private fun HeaderOverflowMenuHost(
     DropdownMenu(
         expanded = menuOpen,
         onDismissRequest = { onMenuOpenChange(false) },
-        modifier = Modifier.background(CardBackground)
+        modifier = Modifier
+            .background(CardBackgroundElevated)
+            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
     ) {
-        // THEORY — opens the theory sheet, dismisses the popover.
-        DropdownMenuItem(
-            text = { Text(algoTitleLabelText, color = TextPrimary, fontSize = AlgoType.bodySize) },
-            leadingIcon = {
-                Icon(
-                    algoTitleIcon,
-                    contentDescription = null,
-                    tint = PurpleGlow,
-                    modifier = Modifier.size(algoTitleIconSize)
-                )
-            },
+        // 1. Guided Tour (relocated from top header bar)
+        CompactDropdownMenuItem(
+            icon = AlgoGlyphs.Help,
+            label = "Guided Tour",
+            iconTint = PrimaryCyan,
+            onClick = {
+                onMenuOpenChange(false)
+                state.showGuidedTour = true
+            }
+        )
+
+        // 2. Theory & Complexity
+        CompactDropdownMenuItem(
+            icon = AlgoGlyphs.Book,
+            label = "Theory Sheet",
+            iconTint = PurpleGlow,
             onClick = {
                 onMenuOpenChange(false)
                 state.showTheorySheet = true
             }
         )
 
-        AlgoHairline()
-
-        // CUSTOMIZE — only for algorithms that support custom input.
-        // The label is family-aware so the user sees "Customize Stack" /
-        // "Customize Queue" / "Customize BST" / "Customize Traversal"
-        // instead of the generic "Customize Array". The screen-level
-        // dispatcher in `VisualizerScreen.kt` reads `spec.id.family` to
-        // decide which sheet (`CustomizeInputSheet` / `CustomizeBufferSheet`
-        // / `CustomizeGraphSheet`) to render.
+        // 3. Customize Input (if supported)
         if (spec?.supportsCustomInput == true) {
-            AlgoHairline()
-            DropdownMenuItem(
-                text = { Text(customizeLabel, color = TextPrimary, fontSize = AlgoType.bodySize) },
-                leadingIcon = {
-                    Icon(
-                        customizeIcon,
-                        contentDescription = null,
-                        tint = PrimaryCyan,
-                        modifier = Modifier.size(customizeIconSize)
-                    )
-                },
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = BorderSubtle,
+                thickness = 0.5.dp
+            )
+            CompactDropdownMenuItem(
+                icon = AlgoGlyphs.Tune,
+                label = customizeLabel,
+                iconTint = PrimaryCyan,
                 onClick = {
                     onMenuOpenChange(false)
                     state.showInputSheet = true
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun CompactDropdownMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    iconTint: Color = TextSecondary,
+    textColor: Color = TextPrimary
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = textColor,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 

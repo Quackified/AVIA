@@ -30,6 +30,7 @@ import com.example.algolens.ui.components.BottomNavBar
 import com.example.algolens.ui.components.NavTab
 import com.example.algolens.ui.dashboard.DashboardScreen
 import com.example.algolens.ui.onboarding.OnboardingScreen
+import com.example.algolens.ui.practice.ExploreCatalogScreen
 import com.example.algolens.ui.practice.PracticeScreen
 import com.example.algolens.ui.profile.ProfileScreen
 import com.example.algolens.ui.settings.SettingsScreen
@@ -58,15 +59,17 @@ fun AlgoLensApp(
     var activeTab by rememberSaveable { mutableStateOf(NavTab.HOME) }
     var selectedAlgorithm by remember { mutableStateOf<Algorithm?>(null) }
     var showingSettings by remember { mutableStateOf(false) }
+    var activePracticeCategory by rememberSaveable { mutableStateOf<String?>(null) }
 
     // System back press handling: child routes first, then non-Home root tabs -> HOME
     BackHandler(
-        enabled = replayingOnboarding || selectedAlgorithm != null || showingSettings || activeTab != NavTab.HOME
+        enabled = replayingOnboarding || selectedAlgorithm != null || showingSettings || activePracticeCategory != null || activeTab != NavTab.HOME
     ) {
         when {
             replayingOnboarding -> replayingOnboarding = false
             selectedAlgorithm != null -> selectedAlgorithm = null
             showingSettings -> showingSettings = false
+            activePracticeCategory != null -> activePracticeCategory = null
             activeTab != NavTab.HOME -> activeTab = NavTab.HOME
         }
     }
@@ -114,6 +117,9 @@ fun AlgoLensApp(
                         onOpenSettings = { showingSettings = true },
                         onCloseSettings = { showingSettings = false },
                         onReplayOnboarding = { replayingOnboarding = true },
+                        activePracticeCategory = activePracticeCategory,
+                        onStartPracticeCategory = { activePracticeCategory = it },
+                        onPracticeCategoryCleared = { activePracticeCategory = null },
                     )
                 }
             }
@@ -136,6 +142,9 @@ private fun AppShell(
     onOpenSettings: () -> Unit,
     onCloseSettings: () -> Unit,
     onReplayOnboarding: () -> Unit,
+    activePracticeCategory: String?,
+    onStartPracticeCategory: (String) -> Unit,
+    onPracticeCategoryCleared: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val chatManager = com.example.algolens.ui.chat.rememberChatSessionManager()
@@ -159,6 +168,11 @@ private fun AppShell(
                 onBack = onCloseSettings,
                 onReplayOnboarding = onReplayOnboarding,
             )
+        } else if (activePracticeCategory != null) {
+            PracticeScreen(
+                initialCategory = activePracticeCategory,
+                onBack = onPracticeCategoryCleared,
+            )
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
                 Box(
@@ -173,7 +187,9 @@ private fun AppShell(
                             )
                         }
                         NavTab.EXPLORE -> {
-                            PracticeScreen()
+                            ExploreCatalogScreen(
+                                onStartPractice = onStartPracticeCategory,
+                            )
                         }
                         NavTab.CHAT -> {
                             ChatScreen(

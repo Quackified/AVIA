@@ -252,9 +252,9 @@
     "semantic_hash": "06a54cd18775a6e5d55fadc1498392d8"
   },
   "app/src/main/java/com/example/algolens/ui/profile/ProfileScreen.kt": {
-    "mtime": 1790386656.5749674,
-    "seen": 1790387723.3362515,
-    "ast_hash": "559c02765cd621ff1b2c24a398c7f5b9",
+    "mtime": 1790388745.2729125,
+    "seen": 1790390411.6009405,
+    "ast_hash": "42f2662d05cec29d908488b4ce688b16",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/settings/SettingsScreen.kt": {
@@ -684,9 +684,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/example/algolens/ProfileFlowTest.kt": {
-    "mtime": 1790354255.7948904,
-    "seen": 1790383501.3549137,
-    "ast_hash": "ea946f6282f5fc4b6e0d0ae9f7f6425a",
+    "mtime": 1790388766.079321,
+    "seen": 1790390411.6008496,
+    "ast_hash": "ede99329110c3f3b1505f31b38f323cb",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/auth/AuthRepository.kt": {
@@ -714,9 +714,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/profile/AccountTemplateCard.kt": {
-    "mtime": 1790386602.2007911,
-    "seen": 1790387723.33625,
-    "ast_hash": "a0f6962a65c77ca5d50cd0ce75a75286",
+    "mtime": 1790388663.8456047,
+    "seen": 1790390411.600939,
+    "ast_hash": "6fb141b384e100aaa13bb447eb72bc5f",
     "semantic_hash": ""
   },
   "app/src/test/java/com/example/algolens/ProfileEditorDraftTest.kt": {
