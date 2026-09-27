@@ -108,9 +108,9 @@
     "semantic_hash": "c67e3b52f10e14214077b1a3dff6a0bc"
   },
   "app/src/main/java/com/example/algolens/model/chat/ChatMessage.kt": {
-    "mtime": 1790326025.2167413,
-    "seen": 1790383501.3549771,
-    "ast_hash": "f8dd27645d2d53469a065dac5642aed2",
+    "mtime": 1790391680.073034,
+    "seen": 1790403622.2018611,
+    "ast_hash": "3185545c92fd0773a3ca2e84dc9f306a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/model/practice/PracticeQuestion.kt": {
@@ -150,21 +150,21 @@
     "semantic_hash": "35d50a420258cb113db2e9f27939c6a9"
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatMarkdownRenderer.kt": {
-    "mtime": 1790350821.8775456,
-    "seen": 1790383501.3549957,
-    "ast_hash": "7420630286358d22c047f749ad4102bf",
+    "mtime": 1790391816.320982,
+    "seen": 1790403622.2018816,
+    "ast_hash": "8fab215399e61de9947eedb1274d5320",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatScreen.kt": {
-    "mtime": 1790352729.7116966,
-    "seen": 1790383501.354998,
-    "ast_hash": "0d4c7c797be8c34c553333aa37a3dd18",
+    "mtime": 1790393710.7563493,
+    "seen": 1790403622.2018843,
+    "ast_hash": "23a6e0ae520c8b7edf4f208c9dcf7726",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatSessionState.kt": {
-    "mtime": 1790327409.5988686,
-    "seen": 1790383501.3550005,
-    "ast_hash": "8c5326daf9e73280595951aabcc30f40",
+    "mtime": 1790393974.008607,
+    "seen": 1790403622.2018867,
+    "ast_hash": "550a81bfdbf3040d3672a461fb93ea2f",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatTableRenderer.kt": {
@@ -180,9 +180,9 @@
     "semantic_hash": "2cfb6fc4d8510358b434c0b83556f112"
   },
   "app/src/main/java/com/example/algolens/ui/components/AlgoGlyphs.kt": {
-    "mtime": 1790386571.2404585,
-    "seen": 1790387723.3362305,
-    "ast_hash": "e0bf8a129a5e2021e42846eebf3529ff",
+    "mtime": 1790392321.3029995,
+    "seen": 1790403622.2018974,
+    "ast_hash": "5305db3806c0e663ca90e8bb52adfbf7",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/components/AviaLogo.kt": {
@@ -480,10 +480,10 @@
     "semantic_hash": "a8a6710ce991f502e5b3e94b928fbacc"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/SyntaxHighlighter.kt": {
-    "mtime": 1788183010.7996657,
-    "seen": 1790252910.8602872,
-    "ast_hash": "999905f3bb36172ec7da34393ea68f44",
-    "semantic_hash": "999905f3bb36172ec7da34393ea68f44"
+    "mtime": 1790391785.1489925,
+    "seen": 1790403622.2020512,
+    "ast_hash": "de59b39fc996132ba3e904546a2d7e24",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/TraceStrip.kt": {
     "mtime": 1790232450.1477082,
@@ -552,10 +552,10 @@
     "semantic_hash": "b9fc314cb1ba468fd83e966970910e79"
   },
   "app/src/test/java/com/example/algolens/AiChatBackendTest.kt": {
-    "mtime": 1789960656.2369819,
-    "seen": 1790252910.8603027,
-    "ast_hash": "6bdb106213c1189a271d3d92b83f0e3d",
-    "semantic_hash": "6bdb106213c1189a271d3d92b83f0e3d"
+    "mtime": 1790393763.0523043,
+    "seen": 1790403622.2020864,
+    "ast_hash": "630b3ef2b1310b881ffe8157e6eb17f0",
+    "semantic_hash": ""
   },
   "app/src/test/java/com/example/algolens/AlgorithmStepRepositoryTest.kt": {
     "mtime": 1788262009.4496388,
@@ -696,9 +696,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/chat/ChatHistoryRepository.kt": {
-    "mtime": 1790326254.4971712,
-    "seen": 1790383501.3549514,
-    "ast_hash": "19edc3d48e6790d6ee7faab765128579",
+    "mtime": 1790391740.0544982,
+    "seen": 1790403622.201833,
+    "ast_hash": "c0d9099c173aab6e0540cab4792d956d",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/chat/ProjectAlgorithmRecommender.kt": {
@@ -708,9 +708,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/chat/ChatSidebarAndPlanner.kt": {
-    "mtime": 1790352876.2912352,
-    "seen": 1790383501.3550029,
-    "ast_hash": "f1925a64b3941481d25e5f67fea52a33",
+    "mtime": 1790392691.5144682,
+    "seen": 1790403622.201889,
+    "ast_hash": "8ebefb022c04c3328df0f45a64f207a3",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/profile/AccountTemplateCard.kt": {

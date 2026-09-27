@@ -18,8 +18,8 @@ import com.example.algolens.ui.theme.AlgoLensTheme
  *     mark). The library polyfills the API 31+ SplashScreen contract down to
  *     minSdk 24.
  *  2. setKeepOnScreenCondition holds the splash on screen until [BootController]
- *     reports `ready == true`. That flips after the first composition settles
- *     (LaunchedEffect-driven delay, ~600ms — the panelSpring ceiling).
+ *     reports `ready == true`. That flips after the in-Compose boot overlay
+ *     settles (LaunchedEffect-driven delay of `BootController.DEFAULT_HOLD_MS`).
  *  3. enableEdgeToEdge + setContent swap the activity onto Theme.AlgoLens
  *     via the splash library's postSplashScreenTheme handoff.
  *  4. AlgoLensTheme + AlgoLensApp render the in-Compose BootOverlay which

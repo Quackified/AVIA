@@ -14,7 +14,8 @@ import androidx.compose.runtime.setValue
  *
  * Holds user preferences and workspace flags across cold launches:
  *  - [preferredLanguage]: Default Trace Language (`Kotlin`, `Java`, `Python`, `C++`)
- *  - [defaultPlaybackSpeedMs]: Default Playback Speed (`800L` Slow, `480L` Normal, `220L` Fast)
+ *  - [defaultPlaybackSpeedMs]: Default Playback Speed (`1_000L` Slow, `600L` Normal, `300L` Fast —
+ *    the same trio the header speed toggle cycles through)
  *  - [highContrastNodeOutlines]: High-Contrast Node Outlines & Bar Labels
  *  - [autoOpenDeckOnPlay]: Auto-Open Instrument Deck when playback starts
  *  - [showComplexityBadges]: Display inline TIME / SPACE complexity pills in VisualizerHeader

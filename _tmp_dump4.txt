@@ -1,0 +1,131 @@
+68| 
+69| /**
+70|  * Explore / Practice Mode Screen in AlgoLens.
+71|  *
+72|  * Connected to [PracticeSessionManager] and [PracticeQuestionRepository].
+73|  * Features:
+74|  *  - Category filter pills (All, Sorting, Searching, Data Structures, Graph Traversal).
+75|  *  - Adaptive multi-family visual snapshots via [PracticeVisualCanvas].
+76|  *  - Interactive multiple-choice selection with educational feedback.
+77|  *  - In-session scoring, consecutive streak tracking, and completion summary.
+78|  */
+79| @Composable
+80| fun PracticeScreen(
+81|     modifier: Modifier = Modifier,
+82|     initialCategory: String? = null,
+83|     onBack: (() -> Unit)? = null,
+84|     manager: PracticeSessionManager = rememberPracticeSessionManager()
+85| ) {
+86|     androidx.compose.runtime.LaunchedEffect(initialCategory) {
+87|         if (!initialCategory.isNullOrBlank()) {
+88|             manager.selectCategory(initialCategory)
+89|         }
+90|     }
+91| 
+92|     val q = manager.currentQuestion
+93| 
+94|     Column(
+95|         modifier = modifier
+96|             .fillMaxSize()
+97|             .background(CanvasBackground)
+98|             .statusBarsPadding()
+99|     ) {
+100|         // ── 1. Root Destination Header & Category Filter ──
+101|         Column(
+102|             modifier = Modifier
+103|                 .fillMaxWidth()
+104|                 .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
+105|             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+106|         ) {
+107|             Row(
+108|                 modifier = Modifier.fillMaxWidth(),
+109|                 horizontalArrangement = Arrangement.SpaceBetween,
+110|                 verticalAlignment = Alignment.CenterVertically
+111|             ) {
+112|                 Row(
+113|                     verticalAlignment = Alignment.CenterVertically,
+114|                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+115|                 ) {
+116|                     if (onBack != null) {
+117|                         com.example.algolens.ui.components.RailIconButton(
+118|                             icon = AlgoGlyphs.Back,
+119|                             contentDescription = "Back to Catalog",
+120|                             boxSize = AlgoTokens.iconButtonSm,
+121|                             iconSize = AlgoTokens.inlineIconMd,
+122|                             tint = TextSecondary,
+123|                             container = CardBackground,
+124|                             borderColor = BorderSubtle,
+125|                             onClick = onBack
+126|                         )
+127|                     }
+128| 
+129|                     Column {
+130|                         Text(
+131|                             text = "Explore: Practice",
+132|                             style = MaterialTheme.typography.titleLarge,
+133|                             color = PrimaryCyan,
+134|                             fontWeight = FontWeight.Bold,
+135|                             letterSpacing = (-0.5).sp
+136|                         )
+137|                         Text(
+138|                             text = "Interactive challenge mode · ${manager.questions.size} questions available",
+139|                             style = MaterialTheme.typography.bodySmall,
+140|                             color = TextMuted,
+141|                             modifier = Modifier.padding(top = 2.dp)
+142|                         )
+143|                     }
+144|                 }
+145| 
+146|                 // Score & Streak Badges
+147|                 Row(
+148|                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+149|                     verticalAlignment = Alignment.CenterVertically
+150|                 ) {
+151|                     if (manager.streak > 1) {
+152|                         Box(
+153|                             modifier = Modifier
+154|                                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+155|                                 .background(OrangeSubtle)
+156|                                 .border(AlgoTokens.strokeThin, AccentOrange.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusSm))
+157|                                 .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
+158|                         ) {
+159|                             Text(
+160|                                 text = "${manager.streak}x STREAK",
+161|                                 style = MaterialTheme.typography.labelSmall,
+162|                                 color = AccentOrange,
+163|                                 fontWeight = FontWeight.Bold,
+164|                                 fontSize = AlgoType.microSize
+165|                             )
+166|                         }
+167|                     }
+168| 
+169|                     Box(
+170|                         modifier = Modifier
+171|                             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+172|                             .background(CyanSubtle)
+173|                             .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
+174|                             .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
+175|                     ) {
+176|                         Text(
+177|                             text = "${manager.score} PTS",
+178|                             style = MaterialTheme.typography.labelSmall,
+179|                             color = PrimaryCyan,
+180|                             fontWeight = FontWeight.Bold,
+181|                             fontSize = AlgoType.microSize
+182|                         )
+183|                     }
+184|                 }
+185|             }
+186| 
+187|             // Category Filter Pills
+188|             Row(
+189|                 modifier = Modifier
+190|                     .fillMaxWidth()
+191|                     .horizontalScroll(rememberScrollState()),
+192|                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+193|             ) {
+194|                 PracticeQuestionRepository.categories.forEach { cat ->
+195|                     val isSelected = manager.selectedCategory.equals(cat, ignoreCase = true)
+196|                     val chipBg = if (isSelected) CyanSubtle else CardBackground
+197|                     val chipBorder = if (isSelected) PrimaryCyan else BorderSubtle
+198|                     val chipText = if (isSelected) PrimaryCyan else TextSecondary

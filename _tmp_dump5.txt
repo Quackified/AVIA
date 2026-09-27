@@ -1,0 +1,54 @@
+243|         // ── 2. Track Catalogs List ──
+244|         LazyColumn(
+245|             modifier = Modifier
+246|                 .weight(1f)
+247|                 .fillMaxWidth(),
+248|             contentPadding = PaddingValues(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space2),
+249|             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+250|         ) {
+251|             items(displayedTracks, key = { it.category }) { track ->
+252|                 TrackCatalogCard(
+253|                     track = track,
+254|                     onStartPractice = { onStartPractice(track.category) }
+255|                 )
+256|             }
+257| 
+258|             item {
+259|                 Spacer(modifier = Modifier.height(AlgoTokens.space6))
+260|             }
+261|         }
+262|     }
+263| }
+264| 
+265| /**
+266|  * Catalog track card rendered with subtle double-bezel styling.
+267|  */
+268| @Composable
+269| private fun TrackCatalogCard(
+270|     track: PracticeTrack,
+271|     onStartPractice: () -> Unit
+272| ) {
+273|     DoubleBezelShell(
+274|         modifier = Modifier
+275|             .fillMaxWidth()
+276|             .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusMd), accent = track.accent)
+277|             .clickable { onStartPractice() },
+278|         contentPadding = PaddingValues(AlgoTokens.space5)
+279|     ) {
+280|         Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
+281|             // Header Row: Icon + Title & Category + Badge
+282|             Row(
+283|                 modifier = Modifier.fillMaxWidth(),
+284|                 horizontalArrangement = Arrangement.SpaceBetween,
+285|                 verticalAlignment = Alignment.CenterVertically
+286|             ) {
+287|                 Row(
+288|                     verticalAlignment = Alignment.CenterVertically,
+289|                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+290|                 ) {
+291|                     Box(
+292|                         modifier = Modifier
+293|                             .size(36.dp)
+294|                             .clip(CircleShape)
+295|                             .background(track.accentSubtle)
+296|                             .border(AlgoTokens.strokeThin, track.accent.copy(alpha = 0.45f), CircleShape),

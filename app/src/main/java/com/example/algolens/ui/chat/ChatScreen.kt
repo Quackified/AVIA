@@ -931,25 +931,15 @@ private fun AssistantMessageBubble(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-        ) {
-            Icon(
-                imageVector = AlgoGlyphs.Spark,
-                contentDescription = null,
-                tint = SecondaryPurple,
-                modifier = Modifier.size(AlgoTokens.inlineIconSm)
-            )
-            Text(
-                text = "AVIA CORE",
-                style = MaterialTheme.typography.labelSmall,
-                color = SecondaryPurple,
-                fontSize = AlgoType.microSize,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = AlgoType.trackSection
-            )
-        }
+        // Assistant identity: a single quiet spark glyph. The repeated
+        // "AVIA CORE" tracked-caps label was removed — every reply in the
+        // stream repeating the same wordmark read as chrome, not content.
+        Icon(
+            imageVector = AlgoGlyphs.Spark,
+            contentDescription = null,
+            tint = SecondaryPurple,
+            modifier = Modifier.size(AlgoTokens.inlineIconSm)
+        )
 
         // Direct borderless content flow with generous breathing room
         Column(
@@ -1047,7 +1037,7 @@ private fun AssistantMessageBubble(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                 .background(CardBackgroundElevated)
-                                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                                .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusSm), accent = SecondaryPurple)
                                 .clickable { onFollowUp(followUp) }
                                 .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
                         ) {
@@ -1076,14 +1066,13 @@ private fun ComplexityMatrixBlock(
             .fillMaxWidth()
             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
             .background(CardBackgroundElevated)
-            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
             .padding(AlgoTokens.space4),
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
     ) {
         Text(
             text = "COMPLEXITY TELEMETRY",
             style = MaterialTheme.typography.labelSmall,
-            color = TextDark,
+            color = TextSecondary,
             fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Bold,
             letterSpacing = AlgoType.trackSection
@@ -1144,7 +1133,6 @@ private fun CodeSnippetBlock(
             .fillMaxWidth()
             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
             .background(CardBackgroundElevated)
-            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
     ) {
         Row(
             modifier = Modifier
@@ -1238,49 +1226,22 @@ private fun ThinkingIndicatorBubble(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
     ) {
-        Box(
-            modifier = Modifier
-                .size(AlgoTokens.iconButtonSm)
-                .clip(CircleShape)
-                .background(CyanSubtle)
-                .border(AlgoTokens.strokeThin, BorderCyan, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = AlgoGlyphs.Spark,
-                contentDescription = null,
-                tint = PrimaryCyan,
-                modifier = Modifier.size(AlgoTokens.inlineIconSm)
-            )
-        }
+        Icon(
+            imageVector = AlgoGlyphs.Spark,
+            contentDescription = null,
+            tint = SecondaryPurple,
+            modifier = Modifier.size(AlgoTokens.inlineIconSm)
+        )
 
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                .background(CardBackgroundElevated)
-                .border(AlgoTokens.strokeThin, BorderCyan.copy(alpha = 0.3f), RoundedCornerShape(AlgoTokens.radiusSm))
-                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-            ) {
-                Text(
-                    text = "REASONING MATRIX RUNTIME",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PrimaryCyan,
-                    fontSize = AlgoType.microSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = AlgoType.trackSection
-                )
-                Text(
-                    text = "...",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PrimaryCyan,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+        // Single quiet line of intent instead of a bordered status chip —
+        // the transient "thinking" cue doesn't deserve the same chrome as
+        // persistent structured blocks.
+        Text(
+            text = "Thinking…",
+            style = MaterialTheme.typography.bodySmall,
+            color = TextMuted,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -1300,7 +1261,6 @@ private fun ChatInputDock(
         modifier = modifier
             .fillMaxWidth()
             .background(CardBackgroundElevated)
-            .border(AlgoTokens.strokeThin, BorderSubtle)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
     ) {
@@ -1359,9 +1319,9 @@ private fun ChatInputDock(
             ) {
                 if (inputText.isEmpty()) {
                     Text(
-                        text = "Query complexity, code, or compare...",
+                        text = "Ask about an algorithm…",
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextDark,
+                        color = TextMuted,
                         fontFamily = JetBrainsMono,
                         fontSize = AlgoType.labelSize
                     )

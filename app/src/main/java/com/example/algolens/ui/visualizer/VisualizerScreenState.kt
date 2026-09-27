@@ -148,9 +148,14 @@ class VisualizerScreenState(
     val displayStepIdx: Int
         get() = scrubTarget?.coerceIn(0, steps.lastIndex.coerceAtLeast(0)) ?: currentStepIdx
 
-    /** Safe to read regardless of [steps] size. */
+    /**
+     * Safe to read regardless of [steps] size. When the step stream is empty
+     * (the brief window before the first generation completes) this returns a
+     * neutral `STANDBY` frame — never a fabricated `PROCESSING` phase, which
+     * previously flashed a "work is happening" pill while nothing existed yet.
+     */
     val currentStep: VisualizerStep
-        get() = if (steps.isEmpty()) VisualizerStep() else steps[displayStepIdx.coerceIn(0, steps.lastIndex)]
+        get() = if (steps.isEmpty()) VisualizerStep(phaseLabel = "STANDBY") else steps[displayStepIdx.coerceIn(0, steps.lastIndex)]
 
     /**
      * Playhead position as 0f..1f. The transport reads this through a lambda so
@@ -178,8 +183,17 @@ class VisualizerScreenState(
     // ── Mutators ──
     fun togglePlay() {
         isPlaying = !isPlaying
-        if (isPlaying && AppSettings.autoOpenDeckOnPlay) {
-            deckExpanded = true
+        if (isPlaying) {
+            // Pressing play while parked on the final step restarts from the
+            // top. Previously a play press at the end started a tick that the
+            // loop immediately cancelled, which read as a dead button.
+            if (currentStepIdx >= steps.lastIndex) {
+                currentStepIdx = 0
+                scrubTarget = null
+            }
+            if (AppSettings.autoOpenDeckOnPlay) {
+                deckExpanded = true
+            }
         }
     }
     /** Used by the playback LaunchedEffect to step forward. */
@@ -493,6 +507,14 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
         val targetIdx = state.pendingStepAfterRegen
         state.pendingStepAfterRegen = null
         if (targetIdx != null && state.steps.isNotEmpty()) {
+            // A target was requested (live Stack/Queue op appended): land the
+            // playhead on the freshly generated operation. The -1 sentinel
+            // resolves to `lastIndex - 1`, which is correct by construction —
+            // the buffer generators always end with a single "…sequence
+            // complete" DONE frame, so the frame before it is the last op.
+            // Other input changes (array values, sort order, graph config)
+            // carry no target and intentionally fall through to reset():
+            // a full re-run deserves a fresh start at step 0.
             val resolved = if (targetIdx < 0) {
                 (state.steps.lastIndex - 1).coerceAtLeast(0)
             } else {
@@ -501,6 +523,11 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             state.scrubTo(resolved)
         } else {
             state.reset()
+            // The previous question/selection was scored against the *old*
+            // step stream; keeping it in flight would let a stale answer be
+            // evaluated against regenerated steps. Drop it so Challenge Mode
+            // re-poses against the new stream.
+            state.updateChallenge { it.copy(selectedIndices = emptySet(), feedback = null) }
         }
     }
 

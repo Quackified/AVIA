@@ -1,0 +1,30 @@
+211|             Row(
+212|                 modifier = Modifier
+213|                     .fillMaxWidth()
+214|                     .horizontalScroll(rememberScrollState()),
+215|                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+216|             ) {
+217|                 PracticeQuestionRepository.categories.forEach { cat ->
+218|                     val isSelected = selectedFilter.equals(cat, ignoreCase = true)
+219|                     val chipBg = if (isSelected) CyanSubtle else CardBackground
+220|                     val chipBorder = if (isSelected) PrimaryCyan else BorderSubtle
+221|                     val chipText = if (isSelected) PrimaryCyan else TextSecondary
+222| 
+223|                     Box(
+224|                         modifier = Modifier
+225|                             .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+226|                             .background(chipBg)
+227|                             .border(AlgoTokens.bezelInset, chipBorder, RoundedCornerShape(AlgoTokens.radiusXxs))
+228|                             .clickable { selectedFilter = cat }
+229|                             .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
+230|                     ) {
+231|                         Text(
+232|                             text = cat,
+233|                             style = MaterialTheme.typography.labelSmall,
+234|                             color = chipText,
+235|                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+236|                             fontSize = AlgoType.microSize
+237|                         )
+238|                     }
+239|                 }
+240|             }

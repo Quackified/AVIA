@@ -78,6 +78,36 @@ class VisualizerScreenStateTest {
     }
 
     @Test
+    fun currentStep_emptyStream_showsNeutralStandby_notProcessing() {
+        // The pre-generation window must not flash a "PROCESSING" phase pill —
+        // nothing is being processed yet, and the fabricated default step made
+        // the header claim work was happening on an empty canvas.
+        val state = VisualizerScreenState(makeAlgorithm())
+        assertTrue(state.steps.isEmpty())
+        assertEquals("STANDBY", state.currentStep.phaseLabel)
+    }
+
+    @Test
+    fun togglePlay_atLastStep_restartsFromBeginning() {
+        // Pressing play while parked on the final step used to start a tick
+        // the playback loop immediately cancelled — a dead-feeling button.
+        val state = makeState(3)
+        state.currentStepIdx = 2
+        state.togglePlay()
+        assertTrue(state.isPlaying)
+        assertEquals(0, state.currentStepIdx)
+    }
+
+    @Test
+    fun togglePlay_midStream_keepsPlayhead() {
+        val state = makeState(5)
+        state.currentStepIdx = 2
+        state.togglePlay()
+        assertTrue(state.isPlaying)
+        assertEquals(2, state.currentStepIdx)
+    }
+
+    @Test
     fun speedLabel_matchesPlaybackSpeed() {
         val state = makeState(1)
         assertEquals("0.5x", state.speedLabel)

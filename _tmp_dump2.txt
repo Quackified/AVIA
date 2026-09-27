@@ -1,0 +1,27 @@
+199| 
+200|                     Box(
+201|                         modifier = Modifier
+202|                             .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+203|                             .background(chipBg)
+204|                             .border(AlgoTokens.bezelInset, chipBorder, RoundedCornerShape(AlgoTokens.radiusXxs))
+205|                             .clickable { manager.selectCategory(cat) }
+206|                             .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
+207|                     ) {
+208|                         Text(
+209|                             text = cat,
+210|                             style = MaterialTheme.typography.labelSmall,
+211|                             color = chipText,
+212|                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+213|                             fontSize = AlgoType.microSize
+214|                         )
+215|                     }
+216|                 }
+217|             }
+218| 
+219|             // Progress Meter
+220|             val progressLabel = if (manager.isSessionCompleted) {
+221|                 "Session Completed (${manager.correctCount}/${manager.totalQuestions} Correct)"
+222|             } else {
+223|                 "Question ${manager.currentIndex + 1} of ${manager.totalQuestions}"
+224|             }
+225|             val percentText = "${(manager.progressFraction * 100).toInt()}%"

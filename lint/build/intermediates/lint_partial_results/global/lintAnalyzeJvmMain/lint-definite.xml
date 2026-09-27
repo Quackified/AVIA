@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 9.2.1" type="incidents">
+
+    <incident
+        id="LintImplTextFormat"
+        severity="warning"
+        message="&quot;Color(0x...)&quot; looks like a call; surround with backtics in string to display as symbol, e.g. \`Color(0x...)\`">
+        <fix-replace
+            description="Surround with backtics"
+            robot="true"
+            independent="true"
+            oldString="Color(0x...)"
+            replacement="`Color(0x...)`"
+            priority="0">
+            <range
+                file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+                startOffset="4522"
+                endOffset="4534"/>
+        </fix-replace>
+        <location
+            file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+            line="98"
+            column="33"
+            startOffset="4522"
+            endLine="98"
+            endColumn="45"
+            endOffset="4534"/>
+    </incident>
+
+    <incident
+        id="LintImplTextFormat"
+        severity="warning"
+        message="&quot;Color(0xFF...)&quot; looks like a call; surround with backtics in string to display as symbol, e.g. \`Color(0xFF...)\`">
+        <fix-replace
+            description="Surround with backtics"
+            robot="true"
+            independent="true"
+            oldString="Color(0xFF...)"
+            replacement="`Color(0xFF...)`"
+            priority="0">
+            <range
+                file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+                startOffset="4920"
+                endOffset="4934"/>
+        </fix-replace>
+        <location
+            file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+            line="107"
+            column="84"
+            startOffset="4920"
+            endLine="107"
+            endColumn="98"
+            endOffset="4934"/>
+    </incident>
+
+    <incident
+        id="LintImplTextFormat"
+        severity="warning"
+        message="&quot;RoundedCornerShape(*.dp) literal: use an AlgoTokens.radius* token (radiusXxs/xs/sm/md/lg/xl)&quot; looks like a call; surround with backtics in string to display as symbol, e.g. \`RoundedCornerShape(*.dp) literal: use an AlgoTokens.radius* token (radiusXxs/xs/sm/md/lg/xl)\`">
+        <fix-replace
+            description="Surround with backtics"
+            robot="true"
+            independent="true"
+            oldString="RoundedCornerShape(*.dp) literal: use an AlgoTokens.radius* token (radiusXxs/xs/sm/md/lg/xl)"
+            replacement="`RoundedCornerShape(*.dp) literal: use an AlgoTokens.radius* token (radiusXxs/xs/sm/md/lg/xl)`"
+            priority="0">
+            <range
+                file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+                startOffset="6073"
+                endOffset="6165"/>
+        </fix-replace>
+        <location
+            file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+            line="134"
+            column="22"
+            startOffset="6073"
+            endLine="134"
+            endColumn="114"
+            endOffset="6165"/>
+    </incident>
+
+    <incident
+        id="LintImplTextFormat"
+        severity="warning"
+        message="&quot;AlgoTokens&quot; looks like a code reference; surround with backtics in string to display as symbol, e.g. \`AlgoTokens\`">
+        <fix-replace
+            description="Surround with backtics"
+            robot="true"
+            independent="true"
+            oldString="AlgoTokens"
+            replacement="`AlgoTokens`"
+            priority="0">
+            <range
+                file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+                startOffset="6479"
+                endOffset="6489"/>
+        </fix-replace>
+        <location
+            file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+            line="143"
+            column="56"
+            startOffset="6479"
+            endLine="143"
+            endColumn="66"
+            endOffset="6489"/>
+    </incident>
+
+    <incident
+        id="LintImplTextFormat"
+        severity="warning"
+        message="&quot;AlgoTokens&quot; looks like a code reference; surround with backtics in string to display as symbol, e.g. \`AlgoTokens\`">
+        <fix-replace
+            description="Surround with backtics"
+            robot="true"
+            independent="true"
+            oldString="AlgoTokens"
+            replacement="`AlgoTokens`"
+            priority="0">
+            <range
+                file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+                startOffset="7830"
+                endOffset="7840"/>
+        </fix-replace>
+        <location
+            file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+            line="174"
+            column="77"
+            startOffset="7830"
+            endLine="174"
+            endColumn="87"
+            endOffset="7840"/>
+    </incident>
+
+    <incident
+        id="LintImplTextFormat"
+        severity="warning"
+        message="&quot;spacedBy&quot; looks like a code reference; surround with backtics in string to display as symbol, e.g. \`spacedBy\`">
+        <fix-replace
+            description="Surround with backtics"
+            robot="true"
+            independent="true"
+            oldString="spacedBy"
+            replacement="`spacedBy`"
+            priority="0">
+            <range
+                file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+                startOffset="8268"
+                endOffset="8276"/>
+        </fix-replace>
+        <location
+            file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+            line="185"
+            column="64"
+            startOffset="8268"
+            endLine="185"
+            endColumn="72"
+            endOffset="8276"/>
+    </incident>
+
+    <incident
+        id="LintImplTextFormat"
+        severity="warning"
+        message="&quot;VisualizerScreen&quot; looks like a code reference; surround with backtics in string to display as symbol, e.g. \`VisualizerScreen\`">
+        <fix-replace
+            description="Surround with backtics"
+            robot="true"
+            independent="true"
+            oldString="VisualizerScreen"
+            replacement="`VisualizerScreen`"
+            priority="0">
+            <range
+                file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+                startOffset="9472"
+                endOffset="9488"/>
+        </fix-replace>
+        <location
+            file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+            line="212"
+            column="53"
+            startOffset="9472"
+            endLine="212"
+            endColumn="69"
+            endOffset="9488"/>
+    </incident>
+
+    <incident
+        id="LintImplTextFormat"
+        severity="warning"
+        message="&quot;VisualizerScreen&quot; looks like a code reference; surround with backtics in string to display as symbol, e.g. \`VisualizerScreen\`">
+        <fix-replace
+            description="Surround with backtics"
+            robot="true"
+            independent="true"
+            oldString="VisualizerScreen"
+            replacement="`VisualizerScreen`"
+            priority="0">
+            <range
+                file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+                startOffset="10094"
+                endOffset="10110"/>
+        </fix-replace>
+        <location
+            file="${:lint*main*MAIN*sourceProvider*0*javaDir*1}/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
+            line="230"
+            column="28"
+            startOffset="10094"
+            endLine="230"
+            endColumn="44"
+            endOffset="10110"/>
+    </incident>
+
+</incidents>

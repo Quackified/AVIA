@@ -14,8 +14,8 @@ import kotlinx.coroutines.delay
  * `MainActivity` polls [ready] from a `setKeepOnScreenCondition` callback so
  * the OS-level splash dismisses only after the in-Compose boot overlay has
  * rendered its first frame and we have given the user a beat to perceive the
- * "workspace booting" crossfade. The default 300ms hold is intentionally
- * short — long enough for the bolt icon to register, short enough that the
+ * "workspace booting" crossfade. The default hold ([DEFAULT_HOLD_MS]) is kept
+ * short — long enough for the brand mark to register, short enough that the
  * launch doesn't read as laggy. Tuneable via the constructor for tests and
  * for callers who want a longer brand beat.
  *
@@ -53,10 +53,12 @@ class BootController(
 
     companion object {
         /**
-         * 1800ms — a considerate boot hold duration so the brand mark and
-         * loading animation register comfortably before crossfading into the workspace.
+         * 1200ms — a considerate but brisk boot hold so the brand mark and
+         * hairline progress sweep register once before the crossfade into the
+         * workspace. Previous 1800ms held a three-system animation long enough
+         * to read as a wait; the minimalist single-focal splash earns less time.
          */
-        const val DEFAULT_HOLD_MS: Long = 1800L
+        const val DEFAULT_HOLD_MS: Long = 1_200L
     }
 }
 

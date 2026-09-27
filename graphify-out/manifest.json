@@ -126,9 +126,9 @@
     "semantic_hash": "96736441fd85c939888b1eb238da28ee"
   },
   "app/src/main/java/com/example/algolens/ui/AlgoLensApp.kt": {
-    "mtime": 1790354088.4161825,
-    "seen": 1790383501.3549855,
-    "ast_hash": "a2ed98745bbd01d78376101e071c4456",
+    "mtime": 1790413019.2727046,
+    "seen": 1790414174.2686725,
+    "ast_hash": "eb164bbef456fbc7bc958ca38fc02147",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/boot/BootController.kt": {
@@ -210,9 +210,9 @@
     "semantic_hash": "d517363554ae258934389a397b7087dc"
   },
   "app/src/main/java/com/example/algolens/ui/components/Instrument.kt": {
-    "mtime": 1790350821.8810258,
-    "seen": 1790383501.3550231,
-    "ast_hash": "d88756ef8b39dc3c8c263acd2058f407",
+    "mtime": 1790407871.561199,
+    "seen": 1790414174.2686965,
+    "ast_hash": "b6ad73585e2b681e8524497606ee6376",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/components/WorkspaceControls.kt": {
@@ -234,9 +234,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/practice/PracticeScreen.kt": {
-    "mtime": 1790384819.9640255,
-    "seen": 1790387723.336245,
-    "ast_hash": "093f5daa557e6f258f51e41dd07dc850",
+    "mtime": 1790412950.552627,
+    "seen": 1790414174.2687058,
+    "ast_hash": "1cffea5a6f3711678594d10f06260ae1",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/practice/PracticeSessionState.kt": {
@@ -258,9 +258,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/settings/SettingsScreen.kt": {
-    "mtime": 1790338450.803811,
-    "seen": 1790383501.3550475,
-    "ast_hash": "57ed73c03aab5beeb2d3715ff74d0acf",
+    "mtime": 1790407924.082183,
+    "seen": 1790414174.2687144,
+    "ast_hash": "f665f49b28dfc249fac83504fe8d1973",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/theme/Color.kt": {
@@ -306,9 +306,9 @@
     "semantic_hash": "a04ff6e7cc779724542741072cb2eee8"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/BufferVisualizer.kt": {
-    "mtime": 1790318800.799176,
-    "seen": 1790383501.3550692,
-    "ast_hash": "d38078766edc52e4bc111fcc8935b12e",
+    "mtime": 1790413079.3194168,
+    "seen": 1790414174.268727,
+    "ast_hash": "3e86d1d082ccd5ea4741024f1d79e917",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/CellArrayVisualizer.kt": {
@@ -372,10 +372,10 @@
     "semantic_hash": "9d677d86045a49c1c80dbca7eb4e33f8"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/CustomizeBufferSheet.kt": {
-    "mtime": 1789569991.139288,
-    "seen": 1790252910.8602643,
-    "ast_hash": "0ab1bbaa52d9a29301c89b2ad4feb525",
-    "semantic_hash": "0ab1bbaa52d9a29301c89b2ad4feb525"
+    "mtime": 1790412847.618781,
+    "seen": 1790414174.268744,
+    "ast_hash": "dd06a389fb9d9f2dde84e402804c7348",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/CustomizeGraphSheet.kt": {
     "mtime": 1790317648.0208454,
@@ -396,21 +396,21 @@
     "semantic_hash": "569f33d31724b9b74ead4ec26f5541d2"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphBuilderOverlay.kt": {
-    "mtime": 1790330277.2634144,
-    "seen": 1790383501.3551135,
-    "ast_hash": "97728f5a80ad7c26ac9c9a5810e035f2",
+    "mtime": 1790408023.3367393,
+    "seen": 1790414174.2687502,
+    "ast_hash": "c95a3dffc1c889b576bbbecc6ef196b3",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphTreeRenderer.kt": {
-    "mtime": 1790325721.846999,
-    "seen": 1790383501.355116,
-    "ast_hash": "fdcc654aa20163525b36bdd13f5d94ad",
+    "mtime": 1790412896.1778748,
+    "seen": 1790414174.2687514,
+    "ast_hash": "4e3386b97c4d574e34980fbae30913ff",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphTreeVisualizer.kt": {
-    "mtime": 1790327287.2371535,
-    "seen": 1790383501.355118,
-    "ast_hash": "ff87ce5e4a420467c05673e2ad544d2b",
+    "mtime": 1790408215.2284422,
+    "seen": 1790414174.2687526,
+    "ast_hash": "ee1ff8b6bf4c1ecb0d2d5e52a0b051e5",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphVisualizer.kt": {
@@ -426,9 +426,9 @@
     "semantic_hash": "2b309c0f826219207bfe471c399e2736"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/InstrumentDeck.kt": {
-    "mtime": 1790352444.453793,
-    "seen": 1790383501.3551252,
-    "ast_hash": "731b36364869be4b33c78b3c20bd607b",
+    "mtime": 1790412819.0582993,
+    "seen": 1790414174.268757,
+    "ast_hash": "9090d1ff2382224e4e31d71b15f17c2b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/OffscreenPointerBanner.kt": {
@@ -468,9 +468,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/StateDeckPage.kt": {
-    "mtime": 1790352498.429266,
-    "seen": 1790383501.3551447,
-    "ast_hash": "226d87a41baca83f97f249374f05050d",
+    "mtime": 1790412807.667556,
+    "seen": 1790414174.268767,
+    "ast_hash": "60b9072904f58bb913a5122a760792c2",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/SwapFlight.kt": {
@@ -492,15 +492,15 @@
     "semantic_hash": "85294eeef3261ef55e5b2cbb9fe1d35f"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerHeader.kt": {
-    "mtime": 1790319585.1534765,
-    "seen": 1790383501.355157,
-    "ast_hash": "ff86c588b1bb17816d6c85594951a607",
+    "mtime": 1790412776.408671,
+    "seen": 1790414174.2687736,
+    "ast_hash": "c6392c6d2dead81666729f940eef3f81",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerHost.kt": {
-    "mtime": 1790317719.5530014,
-    "seen": 1790383501.3551598,
-    "ast_hash": "bf786b8fb21a4166266146156d2de6e6",
+    "mtime": 1790407932.3399708,
+    "seen": 1790414174.268775,
+    "ast_hash": "787a3627bc92a344da77590f358c87f7",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerOverlay.kt": {
@@ -528,10 +528,10 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/WeightBadgeOverlay.kt": {
-    "mtime": 1788007594.3596632,
-    "seen": 1790252910.8602984,
-    "ast_hash": "fdd6ce0abc8057fa883742a8f8f6901c",
-    "semantic_hash": "fdd6ce0abc8057fa883742a8f8f6901c"
+    "mtime": 1790412880.683642,
+    "seen": 1790414174.2687821,
+    "ast_hash": "52a1a3853768ee5d4b1c82e48a66fd7b",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/auxiliary/MergeBufferRow.kt": {
     "mtime": 1789398640.1945167,
@@ -762,9 +762,9 @@
     "semantic_hash": ""
   },
   "docs/TASK.md": {
-    "mtime": 1790336640.2691376,
-    "seen": 1790383501.355241,
-    "ast_hash": "1d3aaa17d4339e29e3908d912a09b285",
+    "mtime": 1790405473.7330883,
+    "seen": 1790414174.2688308,
+    "ast_hash": "313f8924f850e608718e2d642d2d993a",
     "semantic_hash": ""
   },
   "artifacts/profile/before.png": {
@@ -813,6 +813,12 @@
     "mtime": 1790353784.0561144,
     "seen": 1790383501.3552504,
     "ast_hash": "a2f9d4714c4802db8bbf0b78fce3048a",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/algolens/ui/practice/ExploreCatalogScreen.kt": {
+    "mtime": 1790413088.9902048,
+    "seen": 1790414174.268704,
+    "ast_hash": "9f325d32d2d2aaebfe3d22ca29a874bf",
     "semantic_hash": ""
   }
 }

@@ -1,4 +1,4 @@
-﻿package com.example.algolens.lint
+package com.example.algolens.lint
 
 import com.android.tools.lint.client.api.IssueRegistry
 import com.android.tools.lint.client.api.Vendor
@@ -95,7 +95,7 @@ class HardcodedHexColorDetector : Detector(), Detector.UastScanner {
                     ISSUE,
                     node,
                     context.getLocation(node),
-                    "Hard-coded Color(0x...) literal: add a named token in ui/theme/Color.kt and reference it instead.",
+                    "Hard-coded `Color(0x...)` literal: add a named token in ui/theme/Color.kt and reference it instead.",
                 )
             }
         }
@@ -104,7 +104,7 @@ class HardcodedHexColorDetector : Detector(), Detector.UastScanner {
         val ISSUE: Issue = Issue.create(
             id = "AlgolensHardcodedHexColor",
             briefDescription = "Hard-coded hex color outside the theme",
-            explanation = "AlgoLens tokens every color in ui/theme/Color.kt. A raw Color(0xFF...) literal bypasses the functional-accent rule and breaks dark-theme consistency. Add a named token and use it.",
+            explanation = "AlgoLens tokens every color in ui/theme/Color.kt. A raw `Color(0xFF...)` literal bypasses the functional-accent rule and breaks dark-theme consistency. Add a named token and use it.",
             category = Category.CUSTOM_LINT_CHECKS,
             priority = 6,
             severity = Severity.ERROR,
@@ -131,7 +131,7 @@ class RoundedCornerShapeLiteralDetector : Detector(), Detector.UastScanner {
                     ISSUE,
                     node,
                     context.getLocation(node),
-                    "RoundedCornerShape(*.dp) literal: use an AlgoTokens.radius* token (radiusXxs/xs/sm/md/lg/xl) instead.",
+                    "`RoundedCornerShape(*.dp) literal: use an AlgoTokens.radius* token (radiusXxs/xs/sm/md/lg/xl)` instead.",
                 )
             }
         }
@@ -140,7 +140,7 @@ class RoundedCornerShapeLiteralDetector : Detector(), Detector.UastScanner {
         val ISSUE: Issue = Issue.create(
             id = "AlgolensRoundedCornerShapeLiteral",
             briefDescription = "Raw dp radius instead of an AlgoTokens radius token",
-            explanation = "Corner radii must come from AlgoTokens.radius* so the workspace language stays consistent. Replace the raw dp literal with the closest radius token.",
+            explanation = "Corner radii must come from `AlgoTokens`.radius* so the workspace language stays consistent. Replace the raw dp literal with the closest radius token.",
             category = Category.CUSTOM_LINT_CHECKS,
             priority = 6,
             severity = Severity.ERROR,
@@ -171,7 +171,7 @@ class RawDpSpacingDetector : Detector(), Detector.UastScanner {
                     ISSUE,
                     node,
                     context.getLocation(node),
-                    "Raw .dp literal inside ${node.methodName}(...): use an AlgoTokens.space* / size token so spacing stays on the 4dp grid.",
+                    "Raw .dp literal inside ${node.methodName}(...): use an `AlgoTokens`.space* / size token so spacing stays on the 4dp grid.",
                 )
             }
         }
@@ -182,7 +182,7 @@ class RawDpSpacingDetector : Detector(), Detector.UastScanner {
         val ISSUE: Issue = Issue.create(
             id = "AlgolensRawDpSpacing",
             briefDescription = "Raw dp padding / spacing / size instead of a token",
-            explanation = "Layout metrics in Modifier.padding, spacedBy and size must come from AlgoTokens (space1-space8, iconButton*, inlineIcon*, minTouchTarget, ...) so the layout honors the 4dp grid.",
+            explanation = "Layout metrics in Modifier.padding, `spacedBy` and size must come from AlgoTokens (space1-space8, iconButton*, inlineIcon*, minTouchTarget, ...) so the layout honors the 4dp grid.",
             category = Category.CUSTOM_LINT_CHECKS,
             priority = 5,
             severity = Severity.ERROR,
@@ -209,7 +209,7 @@ class VisualizerScreenMutationDetector : Detector(), Detector.UastScanner {
                     ISSUE,
                     node,
                     context.getLocation(node),
-                    "${node.methodName}(...) inside VisualizerScreen.kt: hoist this state into VisualizerScreenState - the screen is a thin shell.",
+                    "${node.methodName}(...) inside `VisualizerScreen`.kt: hoist this state into VisualizerScreenState - the screen is a thin shell.",
                 )
             }
         }
@@ -227,7 +227,7 @@ class VisualizerScreenMutationDetector : Detector(), Detector.UastScanner {
         val ISSUE: Issue = Issue.create(
             id = "AlgolensVisualizerScreenMutation",
             briefDescription = "State created directly inside VisualizerScreen.kt",
-            explanation = "VisualizerScreen.kt is a thin shell; all playback state is owned by VisualizerScreenState. Creating mutableStateOf (or a sibling) directly in the screen breaks the state-hoisting contract.",
+            explanation = "`VisualizerScreen`.kt is a thin shell; all playback state is owned by VisualizerScreenState. Creating mutableStateOf (or a sibling) directly in the screen breaks the state-hoisting contract.",
             category = Category.CUSTOM_LINT_CHECKS,
             priority = 7,
             severity = Severity.ERROR,

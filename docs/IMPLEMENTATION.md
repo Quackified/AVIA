@@ -1,92 +1,80 @@
-# IMPLEMENTATION.md — Restore AVIA's Visual Identity and Simplify Chat & Profile
+﻿# IMPLEMENTATION.md - Chat UI cleanup, visualizer state audit, minimalist boot splash
 
-## 1. What Was Changed
+## 1. Visualizer state fixes (`ui/visualizer/VisualizerScreenState.kt`)
 
-### 1.1 Dual-Typeface Contract & Bundled JetBrains Mono (`Type.kt`)
-- **Restored bundled `R.font.jetbrains_mono_variable` (`JetBrainsMono`):** Replaced `FontFamily.Monospace` fallback with `FontFamily(Font(R.font.jetbrains_mono_variable, ...))` across weights `400 Normal`, `500 Medium`, `600 SemiBold`, and `700 Bold`.
-- **Proportional UI & prose (`AlgoSans`):** Mapped Material 3 `AlgoLensTypography` (`display*`, `headline*`, `title*`, `body*`, `label*`) to `AlgoSans` (`FontFamily.SansSerif`) with a strict `11.sp` label floor (`labelSmall` / `microSize = 11.sp`) and restrained tracking (`trackSection = 0.1.sp`, `trackHeader = 0.2.sp`) instead of wide `0.8sp` all-caps tracking.
-- **Dedicated monospace instrument & telemetry styles (`AlgoType`):** Preserved and exposed `AlgoType.codeTrace`, `AlgoType.telemetryMono`, and `AlgoType.micro` in `JetBrainsMono` with `fontFeatureSettings = "tnum"` for source code lines, complexity expressions (`O(...)`), step counters (`01/65`), speed chips (`1.0x`), and live variable/state readouts (`AlgoCard`, `ComplexityCard`, `CodeListing`, `StateDeckPage`, `PlaybackRail`, `VisualizerHeader`).
+- **Empty-stream phase flash**: `currentStep` now returns a neutral `VisualizerStep(phaseLabel = "STANDBY")`
+  while `steps` is empty instead of the data-class default, which rendered a fabricated PROCESSING pill
+  (PhaseBanner maps unknown labels to the cyan default style) before the first generation completed.
+- **Play-at-end restart**: `togglePlay()` now rewinds to step 0 when starting playback while parked on the
+  final step (and clears any in-flight scrub preview). Previously the playback loop's
+  `currentStepIdx < steps.lastIndex` guard cancelled the tick immediately, making the button feel dead.
+  Mid-stream play presses are unchanged (playhead preserved).
+- **Challenge/regen race**: when a regeneration carries no explicit landing target (array/sort/graph
+  changes) the effect now also clears `challengeState.selectedIndices` and `feedback`, so a question posed
+  against the old stream can no longer be scored against regenerated steps.
+- **Documented invariants** (comments, no behavior change): the `-1` regen sentinel resolving to
+  `lastIndex - 1` is correct by construction because the Stack/Queue generators always end with exactly one
+  "sequence complete" DONE frame (`AlgorithmStepRepository` stack/queue tails verified); the playhead-policy
+  split (live buffer ops land on the new op, other input changes restart at 0) is intentional and now stated.
+- **ElementState render coverage audit** (no code change needed): all nine `ElementState` values are
+  consumed by at least one canvas family; per-family `else ->` fallbacks cover the cross-family subsets
+  (e.g. `CellGrid` handles all nine; `BufferVisualizer` falls back sensibly for sort states that buffer
+  generators never emit). No orphan state found.
 
-### 1.2 Compact Visible Controls Inside 44dp Touch Targets (`WorkspaceControls.kt` & Call Sites)
-- Added `CompactIconButton` in [`WorkspaceControls.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/components/WorkspaceControls.kt), wrapping a compact `32dp` (`AlgoTokens.iconButtonMd`) visual button and `14dp` (`AlgoTokens.inlineIconMd`) `AlgoGlyphs` icon inside an outer `44dp` (`AlgoTokens.Spacing.minTouchTarget`) hit area with `Modifier.pressPhysics`.
-- Replaced oversized `44dp × 44dp` boxed header buttons across `SettingsScreen` (Back button), `ChatScreen` (`ChatHeader` history drawer toggle, new conversation button, and overflow action button), and `ProfileScreen` (Settings gear and Edit Profile pencil buttons) with `CompactIconButton`.
+## 2. Chat UI cleanup (`ui/chat/ChatScreen.kt`)
 
-### 1.3 Explore Root Tab Navigation Cleanup (`PracticeScreen.kt` & `AlgoLensApp.kt`)
-- Removed the redundant `onBack` callback and `44dp` `Back` button from `PracticeScreen` when displayed as the root `NavTab.EXPLORE` destination.
-- Updated the `PracticeScreen` header to present `Explore` (`Practice Mode · Complexity & Step Drills`) as a peer root destination alongside `Home`, `Chat`, and `Profile`, while keeping system Back navigation handled cleanly by `AlgoLensApp.kt`.
+- **Assistant identity**: the repeated "AVIA CORE" tracked-caps label row was replaced with a single quiet
+  purple Spark glyph per reply; the user-side "YOU" micro-label remains for asymmetry.
+- **Border noise**: removed decorative 1px `BorderSubtle` outlines from static/structural containers
+  (complexity matrix block, code-snippet block, follow-up chips, composer dock top edge). Background tone
+  + spacing now carry separation; borders remain on interactive affordances (starter chips keep press
+  feedback + border, Launch-Visualizer action keeps its cyan armed border).
+- **Unified affordances**: follow-up suggestion chips now use the shared `pressPhysics` modifier
+  (SecondaryPurple accent) like every other pressable in the app.
+- **Thinking cue**: the bordered "REASONING MATRIX RUNTIME..." chip was replaced with the Spark glyph plus
+  a quiet "Thinking..." line in `TextMuted` - a transient state no longer wears persistent-block chrome.
+- **Composer**: quieter "Ask about an algorithm..." placeholder; armed send button (cyan) vs resting outline
+  preserved; edit bar and layout untouched otherwise. Auto-scroll `LaunchedEffect` and IME handling unchanged.
 
-### 1.4 Chat Screen Redesign, Starter Collapse & Single-Owner Window Insets (`ChatScreen.kt`)
-- **Simplified `ChatHeader`:** Replaced the two-tier action bar (`+ NEW` + `CLEAR` + `HISTORY`) with a single clean header row: a compact `CompactIconButton(AlgoGlyphs.List)` drawer toggle on the left, the active conversation title + honest `"Offline catalog & project advisor"` subtitle in the center, and a restrained `CompactIconButton(AlgoGlyphs.Plus)` + `CompactIconButton(AlgoGlyphs.More)` overflow menu (`Reset current thread` with confirmation dialog) on the right.
-- **Collapsible starter prompts (`EmptyConversationStarters`):** Moved starter prompt cards and the `"Plan an algorithm for my project"` CTA out of a permanent sticky bar and into the `LazyColumn` so they appear only when a conversation has no user messages (`messages.none { it.isFromUser }`), collapsing automatically once the conversation starts.
-- **Editorial message stream (`UserMessageBubble` & `AssistantMessageBubble`):**
-  - Removed the outer `DoubleBezelShell` frame around ordinary assistant prose so markdown explanations read cleanly with proportional `AlgoType.readingBody` (`AlgoSans`, `13.5sp`, `20sp` leading).
-  - Kept structured attachments (`ComplexitySnapshot` cards, `CodeSnippetAttachment` blocks with `JetBrainsMono`, `ProjectRecommendationCard` cards, and `ProjectIntakeFormCard`) inside `DoubleBezelShell` instrument surfaces with direct `"Open in Visualizer"` CTAs.
-- **Multiline `ChatInputDock` & single-owner IME insets:**
-  - Upgraded the composer `BasicTextField` from `singleLine = true` monospace to a multiline proportional `AlgoSans` input (`minLines = 1`, `maxLines = 5`) with an accessible `44dp` hit target around the send button.
-  - Eliminated duplicate bottom inset ownership by applying `.windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))` once on `ChatScreen` and removing duplicate `navigationBarsPadding()` from `ChatInputDock`.
+## 3. Minimalist boot splash
 
-### 1.5 Separated Edit Profile Sheet & Honest Account Surface (`AppSettings.kt`, `AuthRepository.kt`, `AccountTemplateCard.kt`, `ProfileScreen.kt`)
-- **Local profile persistence (`AppSettings.kt` & `AuthRepository.kt`):**
-  - Persisted `guestDisplayName`, `guestHandle`, `guestRoleTitle`, and `guestAvatarUri` in `AppSettings` so local profile customizations survive app restarts in offline mode.
-  - Added `ProfileValidator` (validating display name `2..32` chars, `@handle` `[a-zA-Z0-9_.]`, and role/status `max 48` chars) and `AuthProviderType.GOOGLE_FIREBASE` (`signInWithGoogleIdToken`) for future Google Sign-In via Firebase Authentication.
-- **Real avatar rendering (`ProfileAvatar`):**
-  - Decodes persisted `content://` URIs via `ContentResolver.openInputStream` + `BitmapFactory.decodeStream` and requests `takePersistableUriPermission(uri, FLAG_GRANT_READ_URI_PERMISSION)` on selection from the Android System Photo Picker (`ActivityResultContracts.PickVisualMedia`), falling back cleanly to a 2-letter monogram when no avatar URI is set or readable.
-  - Rendered `ProfileAvatar` both in `ProfileScreen`'s hero header and inside `EditProfileSheet`.
-- **Separated `EditProfileSheet` vs `AccountStatusCard`:**
-  - Replaced `EditProfileAndAccountSheet` with `EditProfileSheet` (`ProfileEditorDraft` state holder with validation, Save/Cancel actions, and unsaved-change confirmation dialog) containing **only** profile identity fields (avatar picker/remove, display name, `@handle`, and role/study focus).
-  - Added a separate, concise `AccountStatusCard` on `ProfileScreen` that clearly states that bookmarks, settings, and profile data are stored locally on-device and that optional Google Sign-In via Firebase Auth is not enabled in this offline build — without collecting email/password credentials or presenting fake sign-in forms.
+- `ui/boot/BootOverlay.kt` rewritten to a single focal system: AVIA mark + wordmark fade/settle in over
+  520ms (0.94 -> 1.0 scale), one 120dp hairline progress line sweeping linearly across the hold,
+  `panelFadeSpring` exit into the workspace. Removed: orbital halo ring, 5-bar harmonic wave loader,
+  status readout text, and the "TAP ANYWHERE TO SKIP" caption (tap-to-skip gesture itself retained,
+  indication-free).
+- `BootController.DEFAULT_HOLD_MS` 1800 -> 1200ms; class doc corrected (it claimed "~300ms").
+  `BootControllerTest.defaultHoldIsSnappy` updated and passing.
+- Stale comments fixed: `AppSettings` header now lists the real speed ladder (1000/600/300);
+  `MainActivity` splash-handoff doc references `DEFAULT_HOLD_MS` instead of a hardcoded "~600ms".
 
----
+## 4. Tests
 
-## 2. Files Modified / Created / Deleted
+New regression tests in `VisualizerScreenStateTest`:
+`currentStep_emptyStream_showsNeutralStandby_notProcessing`,
+`togglePlay_atLastStep_restartsFromBeginning`,
+`togglePlay_midStream_keepsPlayhead`.
 
-### Modified:
-- [`app/src/main/java/com/example/algolens/ui/theme/Type.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/theme/Type.kt)
-- [`app/src/main/java/com/example/algolens/ui/components/WorkspaceControls.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/components/WorkspaceControls.kt)
-- [`app/src/main/java/com/example/algolens/ui/components/AlgoCard.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/components/AlgoCard.kt)
-- [`app/src/main/java/com/example/algolens/ui/components/CommonComponents.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/components/CommonComponents.kt)
-- [`app/src/main/java/com/example/algolens/ui/settings/SettingsScreen.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/settings/SettingsScreen.kt)
-- [`app/src/main/java/com/example/algolens/ui/practice/PracticeScreen.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/practice/PracticeScreen.kt)
-- [`app/src/main/java/com/example/algolens/ui/AlgoLensApp.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/AlgoLensApp.kt)
-- [`app/src/main/java/com/example/algolens/ui/chat/ChatScreen.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/chat/ChatScreen.kt)
-- [`app/src/main/java/com/example/algolens/data/AppSettings.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/data/AppSettings.kt)
-- [`app/src/main/java/com/example/algolens/data/auth/AuthRepository.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/data/auth/AuthRepository.kt)
-- [`app/src/main/java/com/example/algolens/ui/profile/AccountTemplateCard.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/profile/AccountTemplateCard.kt)
-- [`app/src/main/java/com/example/algolens/ui/profile/ProfileScreen.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/main/java/com/example/algolens/ui/profile/ProfileScreen.kt)
-- [`app/src/test/java/com/example/algolens/FeatureEnhancementsTest.kt`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/app/src/test/java/com/example/algolens/FeatureEnhancementsTest.kt)
-- [`docs/DESIGN.md`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/docs/DESIGN.md)
-- [`docs/ARCHITECTURE.md`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/docs/ARCHITECTURE.md)
-- [`docs/PROJECT.md`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/docs/PROJECT.md)
-- [`docs/IMPLEMENTATION.md`](file:///c:/Users/Quacky/Documents/Coding/Android%20Studio/Projects/AlgoLens/docs/IMPLEMENTATION.md)
+## 5. Verification
 
-### Created / Deleted:
-- None (all changes were implemented cleanly within the existing modular structure).
+- `compileDebugKotlin` and `testDebugUnitTest`: BUILD SUCCESSFUL, all suites green (results XML confirmed
+  the three new tests and updated `BootControllerTest` executed).
+- Not device-verified: no emulator/physical device attached this session. Boot-splash visuals, chat layout
+  rhythm, and play-at-end feel should get one manual pass on device.
 
----
+## 6. Deviations / known issues
 
-## 3. Important Implementation Decisions
+- Assistant identity glyph still renders once per message (kept as a left gutter anchor); showing it only
+  on the first reply was considered and rejected as it made later replies ambiguous after history scroll.
+- Speed-change playback jitter (loop restarts its delay mid-tick on speed cycle) left as-is: cosmetic, and
+  fixing it would require restructuring the tick loop for negligible gain.
+- **`lintDebug` fails pre-existing (not from this cycle).** 103 custom-rule errors
+  (`AlgolensRawDpSpacing`, `AlgolensHardcodedHexColor`) sit mostly in files untouched by this
+  cycle (ProfileScreen, AlgorithmTheorySheet, ChatSidebarAndPlanner, and pre-existing lines of
+  ChatScreen). The report also flags ~200 baseline entries "not found in the project" —
+  `lint-baseline.xml` has drifted out of sync with current line positions. None of the flagged
+  lines fall inside this cycle's diff hunks. **Do not blindly run `gradlew lintFix`:** its custom
+  quickfixes rewrote an unrelated file (`UserPreferences.kt`: `edit().putBoolean(...).apply()` to
+  `edit { }` without the `androidx.core.content.edit` import, breaking compilation; reverted).
+  Baseline refresh or manual token cleanup is a separate, deliberately scoped task.
 
-1. **Tokenized Custom Lint Compliance (`:lint`):** All new UI components (`CompactIconButton`, `ProfileAvatar`, `AccountStatusCard`, `EditProfileSheet`, `EmptyConversationStarters`, `ChatHeader`) strictly use `AlgoTokens.space1`–`space8`, `AlgoTokens.radius*`, `AlgoTokens.iconButton*`, and `AlgoTokens.inlineIcon*` with zero hardcoded `Color(0xFF...)` or raw `.dp` spacing/radius literals.
-2. **Testable Profile Draft State (`ProfileEditorDraft`):** Extracted profile editing state, validation (`ProfileValidator`), handle normalization (`@handle`), and unsaved-change tracking (`hasUnsavedChanges`) into `ProfileEditorDraft` so Save/Cancel and avatar state transitions are deterministically tested in JUnit unit tests.
-3. **Single-Owner Keyboard Insets on Chat:** `AppShell` owns `BottomNavBar` (`navigationBarsPadding()`), while `ChatScreen` applies `.windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))` once so the composer lifts smoothly above the software keyboard without double-counting the navigation bar height.
-
----
-
-## 4. Tests & Checks Performed
-
-- **`.\gradlew.bat testDebugUnitTest`:** Passed all unit tests in `AlgorithmStepRepositoryTest`, `VisualizerScreenStateTest`, and `FeatureEnhancementsTest` (including new tests `profileEditorDraft_validatesPersistsAndRestoresAvatarAndIdentityFields` and `authRepository_googleSignInContractReportsHonestUnavailableAndSupportsFakeProvider`).
-- **`.\gradlew.bat lintDebug`:** Passed with zero custom or Android lint errors (`AlgolensHardcodedHexColor`, `AlgolensRoundedCornerShapeLiteral`, `AlgolensRawDpSpacing`, `AlgolensVisualizerScreenMutation`).
-- **`.\gradlew.bat assembleDebug`:** Built `:app:assembleDebug` cleanly (`BUILD SUCCESSFUL`).
-- **`graphify update .`:** Updated the project knowledge graph in `graphify-out/` after all code edits.
-
----
-
-## 5. Deviations from TASK.md
-
-- None. All requirements in `docs/TASK.md` were implemented as specified.
-
----
-
-## 6. Known Issues or Limitations
-
-- No connected Android emulator or physical device was attached (`adb devices` empty) during this session, so verification was performed via unit tests (`testDebugUnitTest`), static/custom lint analysis (`lintDebug`), and full debug APK compilation (`assembleDebug`).

@@ -65,8 +65,8 @@ class BootControllerTest {
 
     @Test
     fun defaultHoldIsSnappy() {
-        assertEquals(1800L, BootController.DEFAULT_HOLD_MS)
-        assertEquals(1800L, BootController().holdDurationMs)
+        assertEquals(1_200L, BootController.DEFAULT_HOLD_MS)
+        assertEquals(1_200L, BootController().holdDurationMs)
     }
 
     @Test
