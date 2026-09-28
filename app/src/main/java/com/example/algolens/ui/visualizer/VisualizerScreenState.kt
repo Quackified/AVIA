@@ -312,6 +312,28 @@ class VisualizerScreenState(
             else -> "1.0x"
         }
 
+    /** True when the timeline scrubber is actively held or dragged by the user. */
+    val isScrubbing: Boolean
+        get() = scrubTarget != null
+
+    /** Relative playback speed factor (0.5x, 1.0x, 2.0x). */
+    val speedMultiplier: Float
+        get() = when (playbackSpeedMs) {
+            1_000L -> 0.5f
+            600L -> 1.0f
+            300L -> 2.0f
+            else -> 600f / playbackSpeedMs.toFloat().coerceAtLeast(1f)
+        }
+
+    /** Proportional duration multiplier for presentation animations (inverse of speed). */
+    val animationDurationMultiplier: Float
+        get() = when (playbackSpeedMs) {
+            1_000L -> 1.67f
+            600L -> 1.0f
+            300L -> 0.5f
+            else -> (playbackSpeedMs.toFloat() / 600f).coerceIn(0.2f, 3.0f)
+        }
+
     // ── Mutators ──
     fun togglePlay() {
         isPlaying = !isPlaying

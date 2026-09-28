@@ -271,6 +271,8 @@ private fun GraphTreeCanvas(
             onUndo = state::undoGraph,
             onRedo = state::redoGraph,
             onNodeDragStarted = state::recordGraphSnapshot,
+            playbackSpeedMs = state.playbackSpeedMs,
+            isScrubbing = state.isScrubbing,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -306,6 +308,8 @@ private fun BufferCanvas(
             canRemove = state.canRemoveFromBuffer(isStack),
             onStackOp = { op -> state.appendLiveStackOp(op) },
             onQueueOp = { op -> state.appendLiveQueueOp(op) },
+            playbackSpeedMs = state.playbackSpeedMs,
+            isScrubbing = state.isScrubbing,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)

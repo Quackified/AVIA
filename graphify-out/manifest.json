@@ -743,12 +743,6 @@
     "ast_hash": "a130b4b756c92345c8d422a604e1a4e7",
     "semantic_hash": ""
   },
-  "docs/PROFILE_DESIGN.md": {
-    "mtime": 1790353197.8408432,
-    "seen": 1790383501.3552375,
-    "ast_hash": "0f0879279cf40edb7b2e243a8f27d4f9",
-    "semantic_hash": ""
-  },
   "docs/PROJECT.md": {
     "mtime": 1790340396.498248,
     "seen": 1790383501.3552384,
@@ -832,24 +826,6 @@
     "seen": 1790601003.9645994,
     "ast_hash": "f4d55931f5a6318c04eb8099ffa0e753",
     "semantic_hash": "f4d55931f5a6318c04eb8099ffa0e753"
-  },
-  "docs/FUTURE_WORK.md": {
-    "mtime": 1790522597.8253415,
-    "seen": 1790560937.23773,
-    "ast_hash": "0413e207e1d48361242babbecff5fb66",
-    "semantic_hash": ""
-  },
-  "docs/HANDOVER_GRAPH_EDITOR.md": {
-    "mtime": 1790513816.2606676,
-    "seen": 1790560937.2377312,
-    "ast_hash": "e6be4908334815d95dc57045e595aaa2",
-    "semantic_hash": ""
-  },
-  "docs/UNIFIED_GRAPH_EDITOR_PROMPT.md": {
-    "mtime": 1790557972.2306986,
-    "seen": 1790560937.23774,
-    "ast_hash": "97c7188a006b553621979a6ef87353ba",
-    "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/GraphTreeMutations.kt": {
     "mtime": 1790600149.4962282,

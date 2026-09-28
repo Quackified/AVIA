@@ -1,6 +1,9 @@
 package com.example.algolens.ui.visualizer
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +24,12 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontFamily
+import kotlinx.coroutines.launch
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -96,6 +105,8 @@ fun BufferVisualizer(
     canRemove: Boolean = tailSize > 0,
     onStackOp: ((BufferOp) -> Unit)? = null,
     onQueueOp: ((QueueOp) -> Unit)? = null,
+    playbackSpeedMs: Long = 600L,
+    isScrubbing: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var nextInputValue by remember(isStack, tailSize) {
@@ -160,9 +171,9 @@ fun BufferVisualizer(
                 contentAlignment = Alignment.Center
             ) {
                 if (isStack) {
-                    StackCanvas(step)
+                    StackCanvas(step, playbackSpeedMs, isScrubbing)
                 } else {
-                    QueueCanvas(step)
+                    QueueCanvas(step, playbackSpeedMs, isScrubbing)
                 }
             }
 
@@ -334,25 +345,179 @@ private fun BufferStageControls(
 }
 
 /**
- * Stack canvas — vertical stack with a TOP arrow, a base platform
- * under the bottom block, and a capacity indicator on the right side.
- *
- * The TOP arrow + base together give the stack a clear "physical
- * container" metaphor: items slide in from above (the slideEnter
- * direction is `Top` on the leaf cells) and rest on the base. The
- * capacity indicator on the right tells the user at a glance how
- * much of the buffer's max size is used.
- */
-/**
- * Redesigned Stack canvas — an open-top vertical chamber (beaker / U-tube)
- * with discrete slot guides (#0 to #7), a dynamic TOP pointer that tracks
- * the active topmost element, an open entrance mouth, and a grounded pedestal.
- *
- * Items enter from above (slideEnter Top) and stack onto the grounded base.
- * Ghost slot trays visually communicate the full capacity and remaining slots.
+ * Directional motion physics for items inside the vertical Stack beaker.
+ * - PUSH: Item drops from above the chamfered mouth, accelerating down and settling into slot with AlgoTokens.settleSpring (bounce).
+ * - POP: Item lifts vertically upward past the mouth aperture and dissolves (alpha: 1f -> 0f, scale: 1f -> 0.9f).
+ * - PEEK: Item scales subtly to 1.05x with inspection glow.
+ * - SCRUB: Running transitions snap to rest state immediately with zero latency.
  */
 @Composable
-private fun StackCanvas(step: VisualizerStep) {
+private fun Modifier.stackItemMotion(
+    slotIdx: Int,
+    capacity: Int,
+    isTop: Boolean,
+    state: ElementState,
+    phaseLabel: String,
+    isScrubbing: Boolean,
+    playbackSpeedMs: Long
+): Modifier = composed {
+    val density = LocalDensity.current
+    val slotHeightPx = with(density) { 22.dp.toPx() }
+    val slotGapPx = with(density) { 3.dp.toPx() }
+    val mouthOffsetPx = with(density) { 40.dp.toPx() }
+    val totalSlotsAbove = (capacity - 1 - slotIdx)
+    val dropDistancePx = (totalSlotsAbove * (slotHeightPx + slotGapPx)) + mouthOffsetPx
+
+    val translationY = remember { Animatable(0f) }
+    val alpha = remember { Animatable(1f) }
+    val scale = remember { Animatable(1f) }
+
+    val settleSpring = remember(playbackSpeedMs) {
+        val stiffness = when (playbackSpeedMs) {
+            300L -> Spring.StiffnessHigh
+            1000L -> Spring.StiffnessLow
+            else -> Spring.StiffnessMedium
+        }
+        spring<Float>(dampingRatio = 0.55f, stiffness = stiffness)
+    }
+
+    val liftSpring = remember(playbackSpeedMs) {
+        val stiffness = when (playbackSpeedMs) {
+            300L -> Spring.StiffnessHigh
+            1000L -> Spring.StiffnessLow
+            else -> Spring.StiffnessMedium
+        }
+        spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = stiffness)
+    }
+
+    val isPushing = (phaseLabel == "PUSH" && isTop) || (state == ElementState.ACTIVE && isTop)
+    val isPopping = state == ElementState.SWAPPING || phaseLabel == "POPPING"
+    val isPeeking = phaseLabel == "PEEK" || state == ElementState.FOUND
+
+    LaunchedEffect(isPushing, isPopping, isPeeking, isScrubbing) {
+        if (isScrubbing) {
+            translationY.snapTo(0f)
+            alpha.snapTo(1f)
+            scale.snapTo(1f)
+            return@LaunchedEffect
+        }
+
+        when {
+            isPopping -> {
+                launch { scale.animateTo(0.90f, liftSpring) }
+                launch { alpha.animateTo(0f, liftSpring) }
+                translationY.animateTo(-dropDistancePx, liftSpring)
+            }
+            isPushing -> {
+                translationY.snapTo(-dropDistancePx)
+                alpha.snapTo(1f)
+                scale.snapTo(1f)
+                translationY.animateTo(0f, settleSpring)
+            }
+            isPeeking -> {
+                translationY.snapTo(0f)
+                alpha.snapTo(1f)
+                scale.animateTo(1.05f, AlgoTokens.evalSpring)
+            }
+            else -> {
+                translationY.snapTo(0f)
+                alpha.snapTo(1f)
+                scale.animateTo(1f, AlgoTokens.evalSpring)
+            }
+        }
+    }
+
+    this.graphicsLayer {
+        this.translationY = translationY.value
+        this.alpha = alpha.value
+        this.scaleX = scale.value
+        this.scaleY = scale.value
+    }
+}
+
+/**
+ * Directional transit physics for items on the horizontal Queue pipeline conveyor.
+ * - ENQUEUE: Item enters from the right airlock and glides into slot with AlgoTokens.cellTravelSpring.
+ * - DEQUEUE: Item exits leftward through the front airlock and dissolves.
+ */
+@Composable
+private fun Modifier.queueItemMotion(
+    isRear: Boolean,
+    isFront: Boolean,
+    state: ElementState,
+    phaseLabel: String,
+    isScrubbing: Boolean,
+    playbackSpeedMs: Long
+): Modifier = composed {
+    val density = LocalDensity.current
+    val transitDistancePx = with(density) { 80.dp.toPx() }
+
+    val translationX = remember { Animatable(0f) }
+    val alpha = remember { Animatable(1f) }
+    val scale = remember { Animatable(1f) }
+
+    val travelSpring = remember(playbackSpeedMs) {
+        val stiffness = when (playbackSpeedMs) {
+            300L -> Spring.StiffnessHigh
+            1000L -> Spring.StiffnessLow
+            else -> Spring.StiffnessMedium
+        }
+        spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = stiffness)
+    }
+
+    val isEnqueuing = (phaseLabel == "ENQUEUE" && isRear) || (state == ElementState.ACTIVE && isRear)
+    val isDequeuing = (phaseLabel == "DEQUEUING" && isFront) || (state == ElementState.SWAPPING && isFront)
+
+    LaunchedEffect(isEnqueuing, isDequeuing, isScrubbing) {
+        if (isScrubbing) {
+            translationX.snapTo(0f)
+            alpha.snapTo(1f)
+            scale.snapTo(1f)
+            return@LaunchedEffect
+        }
+
+        when {
+            isDequeuing -> {
+                launch { scale.animateTo(0.90f, travelSpring) }
+                launch { alpha.animateTo(0f, travelSpring) }
+                translationX.animateTo(-transitDistancePx, travelSpring)
+            }
+            isEnqueuing -> {
+                translationX.snapTo(transitDistancePx)
+                alpha.snapTo(1f)
+                scale.snapTo(1f)
+                translationX.animateTo(0f, travelSpring)
+            }
+            else -> {
+                translationX.snapTo(0f)
+                alpha.snapTo(1f)
+                scale.animateTo(1f, AlgoTokens.evalSpring)
+            }
+        }
+    }
+
+    this.graphicsLayer {
+        this.translationX = translationX.value
+        this.alpha = alpha.value
+        this.scaleX = scale.value
+        this.scaleY = scale.value
+    }
+}
+
+/**
+ * Redesigned Stack Canvas — A precision laboratory-grade instrument chamber:
+ * - Double-bezel glass tube with laser-etched graduation markers (`[7] MAX` down to `[0] BASE`)
+ * - Chamfered entry mouth aperture with visual funnel guides
+ * - Dynamic capacity headroom telemetry badge (`COUNT: N / 8`) and vertical fluid gauge
+ * - High-legibility monospace memory addresses (`0x07`..`0x00`) and values
+ * - Solid beveled grounded base platform
+ */
+@Composable
+private fun StackCanvas(
+    step: VisualizerStep,
+    playbackSpeedMs: Long = 600L,
+    isScrubbing: Boolean = false
+) {
     val capacity = step.bufferCapacity.coerceIn(1, 8)
     val currentSize = step.buffer.size
     val topIndex = if (currentSize > 0) currentSize - 1 else -1
@@ -362,208 +527,314 @@ private fun StackCanvas(step: VisualizerStep) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.Bottom
     ) {
-        // Dynamic TOP Pointer Column (on the left of the beaker)
+        // ── 1. Laser-Etched Graduation Column + Dynamic TOP Pointer (Left) ──
         Column(
             horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier
-                .width(48.dp)
-                .padding(bottom = 8.dp) // align above base platform
+                .width(68.dp)
+                .padding(bottom = 10.dp)
         ) {
-            // Space above container matching the top mouth label height
-            Spacer(modifier = Modifier.height(18.dp))
+            // Space above matching the chamfered mouth aperture
+            Spacer(modifier = Modifier.height(26.dp))
 
             for (slotIdx in (capacity - 1) downTo 0) {
-                Box(
+                val isFilled = slotIdx < currentSize
+                val isTop = slotIdx == topIndex
+                val graduationText = when (slotIdx) {
+                    capacity - 1 -> "[$slotIdx] MAX"
+                    0 -> "[0] BASE"
+                    else -> "[$slotIdx]"
+                }
+
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(20.dp),
-                    contentAlignment = Alignment.CenterEnd
+                        .height(22.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (slotIdx == topIndex) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                text = "TOP",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PurpleGlow,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = AlgoType.microSize
-                            )
-                            Text(
-                                text = "➔",
-                                color = SecondaryPurple,
-                                fontSize = AlgoType.microSize,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    if (isTop) {
+                        Text(
+                            text = "TOP ➔",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PurpleGlow,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 8.5.sp
+                        )
                     } else if (currentSize == 0 && slotIdx == 0) {
                         Text(
                             text = "BASE ➔",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextDark,
-                            fontSize = AlgoType.microSize,
-                            fontWeight = FontWeight.SemiBold
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 8.5.sp
                         )
                     }
+
+                    Text(
+                        text = graduationText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isTop) PurpleGlow else if (isFilled) PrimaryCyan.copy(alpha = 0.85f) else TextDark.copy(alpha = 0.65f),
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = if (isTop || isFilled) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 8.sp
+                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(6.dp))
 
-        // Center Stack Receptacle: Mouth Header + Open-Top Beaker + Grounded Platform
+        // ── 2. Center Instrument Chamber: Chamfered Mouth + Double-Bezel Glass Tube + Grounded Platform ──
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            modifier = Modifier.width(200.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+            modifier = Modifier.width(214.dp)
         ) {
-            // ── Open Top Guidance Header ──
+            // ── Chamfered Entry Mouth Aperture ──
             Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.height(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(26.dp)
+                    .drawBehind {
+                        val stroke = 1.5.dp.toPx()
+                        val wallColor = SecondaryPurple.copy(alpha = 0.55f)
+                        val leftWallX = 10.dp.toPx()
+                        val rightWallX = size.width - 10.dp.toPx()
+
+                        // Chamfered entry mouth: funnels in from edges towards tube walls
+                        drawLine(
+                            color = wallColor,
+                            start = Offset(0f, 0f),
+                            end = Offset(leftWallX, size.height),
+                            strokeWidth = stroke
+                        )
+                        drawLine(
+                            color = wallColor,
+                            start = Offset(size.width, 0f),
+                            end = Offset(rightWallX, size.height),
+                            strokeWidth = stroke
+                        )
+                        // Mouth guide ticks
+                        drawLine(
+                            color = PrimaryCyan.copy(alpha = 0.6f),
+                            start = Offset(0f, 0f),
+                            end = Offset(6.dp.toPx(), 0f),
+                            strokeWidth = stroke
+                        )
+                        drawLine(
+                            color = PrimaryCyan.copy(alpha = 0.6f),
+                            start = Offset(size.width, 0f),
+                            end = Offset(size.width - 6.dp.toPx(), 0f),
+                            strokeWidth = stroke
+                        )
+                    },
+                contentAlignment = Alignment.Center
             ) {
                 if (currentSize == capacity) {
                     Text(
-                        text = "STACK FULL",
+                        text = "CAPACITY MAXIMUM",
                         style = MaterialTheme.typography.labelSmall,
                         color = AccentRed,
-                        fontSize = AlgoType.microSize,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = AlgoType.trackTight
+                    )
+                } else {
+                    Text(
+                        text = "▼ CHAMBER MOUTH ▼",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextDark.copy(alpha = 0.55f),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 7.5.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = AlgoType.trackTight
                     )
                 }
             }
 
-            // ── Open-Top Chamber Container (Walls on Left, Bottom, Right; Open at Top with Notches) ──
+            // ── Double-Bezel Glass Instrument Tube ──
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .drawBehind {
                         val stroke = 1.5.dp.toPx()
-                        val wallColor = SecondaryPurple.copy(alpha = 0.50f)
-                        val notch = 8.dp.toPx()
+                        val wallColor = SecondaryPurple.copy(alpha = 0.55f)
+                        val leftWallX = 10.dp.toPx()
+                        val rightWallX = size.width - 10.dp.toPx()
 
-                        // Left entry lip notch (outward tick)
+                        // Left vertical glass wall
                         drawLine(
                             color = wallColor,
-                            start = Offset(0f, 0f),
-                            end = Offset(notch, 0f),
+                            start = Offset(leftWallX, 0f),
+                            end = Offset(leftWallX, size.height),
                             strokeWidth = stroke
                         )
-                        // Left wall
+                        // Right vertical glass wall
                         drawLine(
                             color = wallColor,
-                            start = Offset(notch, 0f),
-                            end = Offset(notch, size.height),
+                            start = Offset(rightWallX, 0f),
+                            end = Offset(rightWallX, size.height),
                             strokeWidth = stroke
                         )
                         // Bottom floor
                         drawLine(
                             color = wallColor,
-                            start = Offset(notch, size.height),
-                            end = Offset(size.width - notch, size.height),
+                            start = Offset(leftWallX, size.height),
+                            end = Offset(rightWallX, size.height),
                             strokeWidth = stroke
                         )
-                        // Right wall
-                        drawLine(
-                            color = wallColor,
-                            start = Offset(size.width - notch, size.height),
-                            end = Offset(size.width - notch, 0f),
-                            strokeWidth = stroke
-                        )
-                        // Right entry lip notch (outward tick)
-                        drawLine(
-                            color = wallColor,
-                            start = Offset(size.width - notch, 0f),
-                            end = Offset(size.width, 0f),
-                            strokeWidth = stroke
-                        )
+
+                        // Laser-etched horizontal slot ticks along both walls
+                        val rowHeightPx = (size.height - 8.dp.toPx()) / capacity.toFloat()
+                        val tickLen = 6.dp.toPx()
+                        for (i in 0..capacity) {
+                            val tickY = size.height - 4.dp.toPx() - (i * rowHeightPx)
+                            drawLine(
+                                color = PrimaryCyan.copy(alpha = 0.35f),
+                                start = Offset(leftWallX, tickY),
+                                end = Offset(leftWallX + tickLen, tickY),
+                                strokeWidth = 1.dp.toPx()
+                            )
+                            drawLine(
+                                color = PrimaryCyan.copy(alpha = 0.35f),
+                                start = Offset(rightWallX - tickLen, tickY),
+                                end = Offset(rightWallX, tickY),
+                                strokeWidth = 1.dp.toPx()
+                            )
+                        }
                     }
-                    .background(CardBackground.copy(alpha = 0.5f))
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                CardBackground.copy(alpha = 0.30f),
+                                CardBackground.copy(alpha = 0.55f),
+                                DarkBackground.copy(alpha = 0.85f)
+                            )
+                        )
+                    )
+                    .padding(horizontal = 14.dp, vertical = 4.dp),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                // 8 Discrete Slot Guides (Rendered #7 down to #0)
+                // 8 Discrete Slot Trays (#7 down to #0)
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     for (slotIdx in (capacity - 1) downTo 0) {
                         val item = step.buffer.getOrNull(slotIdx)
                         val isTop = slotIdx == topIndex
+                        val hexAddress = "0x0$slotIdx"
 
                         if (item != null) {
-                            // Filled Slot Cell
-                            val (bgCol, textCol) = when (item.state) {
-                                ElementState.ACTIVE, ElementState.FOUND -> Pair(PrimaryCyan, DarkBackground)
-                                ElementState.SWAPPING -> Pair(AccentRed, Color.White)
-                                ElementState.COMPARING -> Pair(AccentYellow, DarkBackground)
-                                else -> Pair(
-                                    if (isTop) PurpleSubtle else CardBackgroundElevated,
-                                    if (isTop) PurpleGlow else TextPrimary
-                                )
+                            val isPeek = (step.phaseLabel == "PEEK" || item.state == ElementState.FOUND) && isTop
+                            val (bgCol, textCol, borderCol) = when {
+                                item.state == ElementState.SWAPPING -> Triple(AccentRed, Color.White, AccentRed)
+                                item.state == ElementState.COMPARING -> Triple(AccentYellow, DarkBackground, AccentYellow)
+                                isPeek -> Triple(PurpleSubtle, PurpleGlow, SecondaryPurple)
+                                item.state == ElementState.ACTIVE || item.state == ElementState.FOUND -> Triple(PrimaryCyan, DarkBackground, PrimaryCyan)
+                                isTop -> Triple(PurpleSubtle, PurpleGlow, SecondaryPurple)
+                                else -> Triple(CardBackgroundElevated, TextPrimary, BorderMedium)
                             }
 
                             key(item.id) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(20.dp)
-                                        .slideEnter(visible = true, direction = SlideDirection.Top)
-                                        .nodePop(item.state == ElementState.ACTIVE)
+                                        .height(22.dp)
+                                        .stackItemMotion(
+                                            slotIdx = slotIdx,
+                                            capacity = capacity,
+                                            isTop = isTop,
+                                            state = item.state,
+                                            phaseLabel = step.phaseLabel,
+                                            isScrubbing = isScrubbing,
+                                            playbackSpeedMs = playbackSpeedMs
+                                        )
                                         .clip(RoundedCornerShape(4.dp))
                                         .background(bgCol)
                                         .border(
-                                            width = if (isTop) 1.2.dp else 1.dp,
-                                            color = if (isTop) SecondaryPurple else BorderMedium,
+                                            width = if (isTop || isPeek) 1.5.dp else 1.dp,
+                                            color = borderCol,
                                             shape = RoundedCornerShape(4.dp)
                                         )
                                         .padding(horizontal = 6.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Slot index indicator
-                                    Text(
-                                        text = "#$slotIdx",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (item.state == ElementState.ACTIVE || item.state == ElementState.FOUND) TextDark else TextMuted,
-                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                        fontSize = 8.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    // Memory Address Offset + Slot Index
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = hexAddress,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (item.state == ElementState.ACTIVE || item.state == ElementState.FOUND) TextDark.copy(alpha = 0.7f) else TextMuted,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 7.5.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = "#$slotIdx",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (item.state == ElementState.ACTIVE || item.state == ElementState.FOUND) TextDark else TextMuted,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
 
-                                    // Item value
+                                    // Item Value
                                     Text(
                                         text = item.value,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = textCol,
-                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                        fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 11.sp
                                     )
 
-                                    // State tag
-                                    if (isTop) {
+                                    // Active State Tag
+                                    if (isPeek) {
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(2.dp))
                                                 .background(SecondaryPurple)
-                                                .padding(horizontal = 3.dp, vertical = 0.5.dp)
+                                                .padding(horizontal = 4.dp, vertical = 0.5.dp)
+                                        ) {
+                                            Text(
+                                                text = "PEEK",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color.White,
+                                                fontSize = 7.5.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    } else if (isTop) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(SecondaryPurple)
+                                                .padding(horizontal = 4.dp, vertical = 0.5.dp)
                                         ) {
                                             Text(
                                                 text = "TOP",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = Color.White,
                                                 fontSize = 7.5.sp,
+                                                fontFamily = FontFamily.Monospace,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
                                     } else {
-                                        Spacer(modifier = Modifier.width(18.dp))
+                                        Spacer(modifier = Modifier.width(22.dp))
                                     }
                                 }
                             }
@@ -572,7 +843,7 @@ private fun StackCanvas(step: VisualizerStep) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(20.dp)
+                                    .height(22.dp)
                                     .clip(RoundedCornerShape(3.dp))
                                     .background(Color.Transparent)
                                     .border(
@@ -585,70 +856,129 @@ private fun StackCanvas(step: VisualizerStep) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "#$slotIdx",
+                                    text = hexAddress,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = TextDark,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    fontSize = 8.sp
+                                    color = TextDark.copy(alpha = 0.5f),
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 7.5.sp
                                 )
                                 Text(
-                                    text = "· · ·",
+                                    text = "· · · EMPTY SLOT · · ·",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = TextDark.copy(alpha = 0.6f),
-                                    fontSize = 8.sp
+                                    color = TextDark.copy(alpha = 0.45f),
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 7.5.sp
                                 )
-                                Spacer(modifier = Modifier.width(18.dp))
+                                Text(
+                                    text = "#$slotIdx",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextDark.copy(alpha = 0.5f),
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 7.5.sp
+                                )
                             }
                         }
                     }
                 }
             }
 
-            // ── Grounded Base Platform ──
+            // ── Grounded Beveled Base Platform ──
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp))
+                    .fillMaxWidth(0.96f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5.dp))
                     .background(
                         Brush.horizontalGradient(
                             listOf(
-                                SecondaryPurple.copy(alpha = 0.7f),
-                                PrimaryCyan.copy(alpha = 0.5f),
-                                SecondaryPurple.copy(alpha = 0.7f)
+                                SecondaryPurple.copy(alpha = 0.85f),
+                                PrimaryCyan.copy(alpha = 0.90f),
+                                SecondaryPurple.copy(alpha = 0.85f)
                             )
                         )
                     )
             )
         }
 
-        // ── Capacity Indicator on Right Side ──
-        Spacer(modifier = Modifier.width(10.dp))
-        CapacityIndicator(size = currentSize, capacity = capacity)
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // ── 3. Dynamic Headroom & Capacity Gauge Column (Right) ──
+        StackHeadroomGauge(
+            currentSize = currentSize,
+            capacity = capacity
+        )
     }
 }
 
 /**
- * Vertical capacity indicator — "n / cap" rotated 90° (read bottom-up
- * via `rotation = 270f`). Sits to the right of the stack and shows
- * how many of the maximum slots are filled.
+ * Dynamic Headroom Telemetry Badge & Precision Vertical Gauge.
+ * Displays real-time memory headroom: COUNT: N / 8, plus fluid capacity bar.
  */
 @Composable
-private fun CapacityIndicator(size: Int, capacity: Int) {
-    val fraction = (size.toFloat() / capacity.toFloat()).coerceIn(0f, 1f)
+private fun StackHeadroomGauge(
+    currentSize: Int,
+    capacity: Int
+) {
+    val fraction = (currentSize.toFloat() / capacity.toFloat()).coerceIn(0f, 1f)
+    val headroom = (capacity - currentSize).coerceAtLeast(0)
+    val isFull = currentSize >= capacity
+    val isNearFull = currentSize >= capacity - 1
+
+    val badgeColor = when {
+        isFull -> AccentRed
+        isNearFull -> AccentOrange
+        else -> PrimaryCyan
+    }
+
     Column(
-        modifier = Modifier.height(180.dp),
-        verticalArrangement = Arrangement.Bottom,
+        modifier = Modifier
+            .height(230.dp)
+            .padding(bottom = 6.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Bar (vertical fill)
+        // Dynamic Headroom Badge Pill
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+                .background(DarkBackground)
+                .border(AlgoTokens.strokeHairline, badgeColor.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusXxs))
+                .padding(horizontal = 6.dp, vertical = 3.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "COUNT",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextDark,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 7.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "$currentSize / $capacity",
+                style = MaterialTheme.typography.labelSmall,
+                color = badgeColor,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 8.5.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = if (isFull) "[FULL]" else "[+$headroom FREE]",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isFull) AccentRed else TextMuted,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 6.5.sp
+            )
+        }
+
+        // Vertical Fluid Gauge Bar with Level Markers
         Box(
             modifier = Modifier
-                .width(6.dp)
-                .height(160.dp)
-                .clip(RoundedCornerShape(3.dp))
+                .width(8.dp)
+                .height(150.dp)
+                .clip(RoundedCornerShape(4.dp))
                 .background(CanvasBackground)
-                .border(AlgoTokens.strokeHairline, BorderSubtle, RoundedCornerShape(3.dp))
+                .border(AlgoTokens.strokeHairline, BorderSubtle, RoundedCornerShape(4.dp))
         ) {
             Box(
                 modifier = Modifier
@@ -656,43 +986,50 @@ private fun CapacityIndicator(size: Int, capacity: Int) {
                     .fillMaxHeight(fraction)
                     .background(
                         Brush.verticalGradient(
-                            listOf(AccentGreen, PrimaryCyan)
+                            if (isFull) listOf(AccentRed, AccentOrange)
+                            else listOf(AccentGreen, PrimaryCyan)
                         )
                     )
                     .align(Alignment.BottomStart)
             )
         }
-        Spacer(modifier = Modifier.height(AlgoTokens.space2))
-        Text(
-            text = "$size/$capacity",
-            style = MaterialTheme.typography.labelSmall,
-            color = TextMuted,
-            fontSize = AlgoType.microSize,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 
 /**
- * Queue canvas — horizontal conveyor with a "FRONT" gate on the left
- * and a "REAR" gate on the right. Blocks slide in from the right
- * (slideEnter direction = `Right`).
+ * Queue Canvas — Horizontal Pipeline Conveyor Transit.
+ * Items enter from the rear airlock (right) and slide horizontally to exit at the front airlock (left).
  */
 @Composable
-private fun QueueCanvas(step: VisualizerStep) {
+private fun QueueCanvas(
+    step: VisualizerStep,
+    playbackSpeedMs: Long = 600L,
+    isScrubbing: Boolean = false
+) {
     val capacity = step.bufferCapacity.coerceAtLeast(1)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
     ) {
-        // Conveyor row with FRONT/REAR gates
+        // Horizontal Conveyor Pipeline
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(130.dp)
                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                 .background(CardBackground)
-                .border(width = AlgoTokens.strokeMedium, color = PrimaryCyan.copy(alpha = 0.4f), shape = RoundedCornerShape(AlgoTokens.radiusSm))
+                .border(
+                    width = AlgoTokens.strokeMedium,
+                    color = PrimaryCyan.copy(alpha = 0.40f),
+                    shape = RoundedCornerShape(AlgoTokens.radiusSm)
+                )
+                .drawBehind {
+                    // Top and bottom conveyor guide rails
+                    val railW = 1.dp.toPx()
+                    val railCol = BorderSubtle.copy(alpha = 0.5f)
+                    drawLine(railCol, Offset(0f, 10.dp.toPx()), Offset(size.width, 10.dp.toPx()), railW)
+                    drawLine(railCol, Offset(0f, size.height - 10.dp.toPx()), Offset(size.width, size.height - 10.dp.toPx()), railW)
+                }
                 .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
             contentAlignment = Alignment.Center
         ) {
@@ -702,14 +1039,15 @@ private fun QueueCanvas(step: VisualizerStep) {
                     verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                 ) {
                     Text(
-                        text = "EMPTY QUEUE",
+                        text = "EMPTY QUEUE PIPELINE",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextMuted,
+                        fontFamily = FontFamily.Monospace,
                         fontSize = AlgoType.microSize,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "enqueue() to add",
+                        text = "enqueue() to add to rear airlock",
                         style = MaterialTheme.typography.labelSmall,
                         color = TextDark,
                         fontSize = AlgoType.microSize
@@ -720,7 +1058,7 @@ private fun QueueCanvas(step: VisualizerStep) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     step.buffer.forEachIndexed { index, item ->
@@ -739,21 +1077,27 @@ private fun QueueCanvas(step: VisualizerStep) {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                             ) {
-                                // FRONT / REAR gate labels
+                                // Front / Rear Airlock Gate Indicators
                                 if (isFront) {
-                                    QueueGate(label = "FRONT", color = AccentGreen)
+                                    QueueGate(label = "◀ HEAD (DEQ)", color = AccentGreen)
                                 } else if (isRear) {
-                                    QueueGate(label = "REAR", color = PurpleGlow)
+                                    QueueGate(label = "TAIL (ENQ) ◀", color = PurpleGlow)
                                 } else {
-                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
                                 }
 
-                                // Block
+                                // Queue Item Box with Transit Physics
                                 Box(
                                     modifier = Modifier
-                                        .size(width = 44.dp, height = 48.dp)
-                                        .slideEnter(visible = true, direction = SlideDirection.Right)
-                                        .nodePop(item.state == ElementState.ACTIVE)
+                                        .size(width = 46.dp, height = 50.dp)
+                                        .queueItemMotion(
+                                            isRear = isRear,
+                                            isFront = isFront,
+                                            state = item.state,
+                                            phaseLabel = step.phaseLabel,
+                                            isScrubbing = isScrubbing,
+                                            playbackSpeedMs = playbackSpeedMs
+                                        )
                                         .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                                         .background(bgCol)
                                         .border(
@@ -767,16 +1111,18 @@ private fun QueueCanvas(step: VisualizerStep) {
                                         text = item.value,
                                         style = MaterialTheme.typography.titleSmall,
                                         color = textCol,
+                                        fontFamily = FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = AlgoType.bodySize
                                     )
                                 }
 
-                                // Slot index
+                                // Slot Index
                                 Text(
                                     text = "#$index",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextDark,
+                                    fontFamily = FontFamily.Monospace,
                                     fontSize = AlgoType.microSize
                                 )
                             }
@@ -786,11 +1132,13 @@ private fun QueueCanvas(step: VisualizerStep) {
             }
         }
 
-        // Bottom legend / capacity
+        // Bottom Conveyor Pipeline Telemetry
+        val headroom = (capacity - step.buffer.size).coerceAtLeast(0)
         Text(
-            text = "FRONT ── ${step.buffer.size} / $capacity ── REAR",
+            text = "FIFO PIPELINE · ${step.buffer.size} / $capacity IN TRANSIT · HEADROOM: $headroom",
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted,
+            fontFamily = FontFamily.Monospace,
             fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Bold
         )
@@ -798,9 +1146,7 @@ private fun QueueCanvas(step: VisualizerStep) {
 }
 
 /**
- * "FRONT" / "REAR" gate pill — a small text label that visually
- * marks the ends of the queue conveyor. Plain text, no icons
- * (per user preference).
+ * Gate label pill marking the pipeline ends.
  */
 @Composable
 private fun QueueGate(label: String, color: Color) {
@@ -808,7 +1154,8 @@ private fun QueueGate(label: String, color: Color) {
         text = label,
         style = MaterialTheme.typography.labelSmall,
         color = color,
-        fontSize = AlgoType.microSize,
+        fontFamily = FontFamily.Monospace,
+        fontSize = 8.sp,
         fontWeight = FontWeight.Bold
     )
 }

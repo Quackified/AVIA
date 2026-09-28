@@ -103,7 +103,9 @@ fun GraphTreeVisualizer(
     onUndo: () -> Unit = {},
     onRedo: () -> Unit = {},
     onNodeDragStarted: () -> Unit = {},
-    onNodeDragFinished: () -> Unit = {}
+    onNodeDragFinished: () -> Unit = {},
+    playbackSpeedMs: Long = 600L,
+    isScrubbing: Boolean = false
 ) {
     val resolvedProfile = remember(profile, algorithmKey, builderEnabled) {
         if (profile != null) return@remember profile
@@ -245,6 +247,9 @@ fun GraphTreeVisualizer(
                 onNodeDragFinished = onNodeDragFinished,
                 isFullscreen = isFullscreen,
                 onToggleFullscreen = { isFullscreen = !isFullscreen },
+                currentStep = step,
+                playbackSpeedMs = playbackSpeedMs,
+                isScrubbing = isScrubbing,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -410,6 +415,9 @@ fun GraphTreeVisualizer(
                         onNodeDragFinished = onNodeDragFinished,
                         isFullscreen = true,
                         onToggleFullscreen = { isFullscreen = false },
+                        currentStep = step,
+                        playbackSpeedMs = playbackSpeedMs,
+                        isScrubbing = isScrubbing,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()

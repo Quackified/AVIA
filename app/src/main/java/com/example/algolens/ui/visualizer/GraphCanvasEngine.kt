@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -278,7 +279,10 @@ fun GraphCanvasEngine(
     onUndo: () -> Unit = {},
     onRedo: () -> Unit = {},
     onNodeDragStarted: () -> Unit = {},
-    onNodeDragFinished: () -> Unit = {}
+    onNodeDragFinished: () -> Unit = {},
+    currentStep: VisualizerStep? = null,
+    playbackSpeedMs: Long = 600L,
+    isScrubbing: Boolean = false
 ) {
     val density = LocalDensity.current.density
 
@@ -304,6 +308,28 @@ fun GraphCanvasEngine(
         nodes.map { node ->
             userCustomCoordinates[node.id]?.let { node.copy(x = it.x, y = it.y) } ?: node
         }
+    }
+
+    // Motion State tracking for swaps, signals, ripples, and path neon trace
+    val stepForMotion = currentStep ?: remember(effectiveNodes, edges, activeNodeId, visitedNodeIds) {
+        VisualizerStep(
+            nodes = effectiveNodes,
+            edges = edges,
+            activeNodeId = activeNodeId,
+            visitedNodeIds = visitedNodeIds
+        )
+    }
+    val previousStepState = remember { mutableStateOf<VisualizerStep?>(null) }
+    val motionState = rememberGraphMotionState(
+        currentStep = stepForMotion,
+        previousStep = previousStepState.value,
+        startNodeId = startNodeId,
+        targetNodeId = targetNodeId,
+        playbackSpeedMs = playbackSpeedMs,
+        isScrubbing = isScrubbing
+    )
+    LaunchedEffect(stepForMotion.stepIndex, effectiveNodes.size, activeNodeId) {
+        previousStepState.value = stepForMotion
     }
 
     // Live preview path
@@ -505,6 +531,7 @@ fun GraphCanvasEngine(
             panOffset = panOffset,
             zoom = zoom,
             referenceHeight = maxObservedCanvasHeightPx,
+            motionState = motionState,
             modifier = Modifier.fillMaxSize()
         )
 

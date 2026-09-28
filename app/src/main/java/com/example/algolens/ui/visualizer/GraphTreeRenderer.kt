@@ -69,7 +69,8 @@ fun GraphTreeRenderer(
     selectedEdgeIndex: Int? = null,
     panOffset: Offset = Offset.Zero,
     zoom: Float = 1f,
-    referenceHeight: Float = 0f
+    referenceHeight: Float = 0f,
+    motionState: GraphMotionState? = null
 ) {
     // Render-phase pulse for the active node's halo (draw-read only).
     val activeHaloPulse = rememberInfiniteTransition(label = "activeNodeHalo")
@@ -100,8 +101,10 @@ fun GraphTreeRenderer(
             val fromNode = nodes.find { it.id == edge.from } ?: continue
             val toNode = nodes.find { it.id == edge.to } ?: continue
 
-            val start = geom.toCanvasOffset(fromNode.x, fromNode.y)
-            val end = geom.toCanvasOffset(toNode.x, toNode.y)
+            val start = motionState?.getNodeCenter(fromNode, geom.toCanvasOffset(fromNode.x, fromNode.y))
+                ?: geom.toCanvasOffset(fromNode.x, fromNode.y)
+            val end = motionState?.getNodeCenter(toNode, geom.toCanvasOffset(toNode.x, toNode.y))
+                ?: geom.toCanvasOffset(toNode.x, toNode.y)
 
             val isSelectedEdge = (selectedEdgeIndex == edgeIdx)
             val isHighlighted = edge.isHighlighted || isSelectedEdge
@@ -189,6 +192,99 @@ fun GraphTreeRenderer(
             }
         }
 
+        // ── 1B. Draw Active Directional Traversal Signal Wavefronts (BFS, DFS, Dijkstra) ──
+        if (motionState != null && motionState.activeSignals.isNotEmpty()) {
+            for (sig in motionState.activeSignals) {
+                val fromNode = nodes.find { it.id == sig.fromNodeId } ?: continue
+                val toNode = nodes.find { it.id == sig.toNodeId } ?: continue
+                val pStart = motionState.getNodeCenter(fromNode, geom.toCanvasOffset(fromNode.x, fromNode.y))
+                val pEnd = motionState.getNodeCenter(toNode, geom.toCanvasOffset(toNode.x, toNode.y))
+
+                val t = sig.progress.coerceIn(0f, 1f)
+                val curPos = Offset(
+                    x = (1f - t) * pStart.x + t * pEnd.x,
+                    y = (1f - t) * pStart.y + t * pEnd.y
+                )
+
+                // Trailing comet tail along edge vector
+                val tailT = (t - 0.24f).coerceAtLeast(0f)
+                val tailPos = Offset(
+                    x = (1f - tailT) * pStart.x + tailT * pEnd.x,
+                    y = (1f - tailT) * pStart.y + tailT * pEnd.y
+                )
+
+                drawLine(
+                    color = AccentGreen.copy(alpha = 0.45f * (1f - t * 0.2f)),
+                    start = tailPos,
+                    end = curPos,
+                    strokeWidth = 4.5f * geom.zoom
+                )
+
+                // Soft outer ambient halo
+                drawCircle(
+                    color = PrimaryCyan.copy(alpha = 0.38f),
+                    radius = 9.5f * geom.zoom,
+                    center = curPos
+                )
+
+                // High-energy glowing core
+                drawCircle(
+                    color = AccentGreen,
+                    radius = 4.5f * geom.zoom,
+                    center = curPos
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 2.2f * geom.zoom,
+                    center = curPos
+                )
+            }
+        }
+
+        // ── 1C. Draw Sequential Shortest Path Neon Trace ──
+        if (motionState != null && motionState.completedPath.size >= 2 && motionState.pathTraceProgress > 0f) {
+            val path = motionState.completedPath
+            val traceLimit = motionState.pathTraceProgress
+
+            for (i in 0 until path.size - 1) {
+                if (traceLimit < i) break
+                val u = path[i]
+                val v = path[i + 1]
+                val fromNode = nodes.find { it.id == u } ?: continue
+                val toNode = nodes.find { it.id == v } ?: continue
+                val pStart = motionState.getNodeCenter(fromNode, geom.toCanvasOffset(fromNode.x, fromNode.y))
+                val pEnd = motionState.getNodeCenter(toNode, geom.toCanvasOffset(toNode.x, toNode.y))
+
+                val segFraction = (traceLimit - i).coerceIn(0f, 1f)
+                val curEnd = Offset(
+                    x = (1f - segFraction) * pStart.x + segFraction * pEnd.x,
+                    y = (1f - segFraction) * pStart.y + segFraction * pEnd.y
+                )
+
+                // Outer emerald neon glow
+                drawLine(
+                    color = AccentGreen.copy(alpha = 0.50f),
+                    start = pStart,
+                    end = curEnd,
+                    strokeWidth = 14f * geom.zoom
+                )
+                // Intense neon core
+                drawLine(
+                    color = AccentGreen,
+                    start = pStart,
+                    end = curEnd,
+                    strokeWidth = 4.8f * geom.zoom
+                )
+                // White core filament
+                drawLine(
+                    color = Color.White.copy(alpha = 0.85f),
+                    start = pStart,
+                    end = curEnd,
+                    strokeWidth = 1.8f * geom.zoom
+                )
+            }
+        }
+
         // ── 2. Draw Interactive Drag Preview Line (Rubber-Band Edge) ──
         val dragFrom = dragStartNode
         val dragTo = currentDragPos
@@ -243,14 +339,15 @@ fun GraphTreeRenderer(
 
         // ── 3. Draw Nodes with Glowing Halos ──
         for (node in nodes) {
-            val center = geom.toCanvasOffset(node.x, node.y)
+            val center = motionState?.getNodeCenter(node, geom.toCanvasOffset(node.x, node.y))
+                ?: geom.toCanvasOffset(node.x, node.y)
             val isVisited = visitedNodeIds.contains(node.id) || node.state == ElementState.VISITED
             val isActive = activeNodeId == node.id || node.state == ElementState.ACTIVE || selectedNodeId == node.id
             val isHovered = hoveredTargetNodeId == node.id
             val isDragSource = dragStartNode?.id == node.id
 
-            // Per-node "first visit" pop scale.
-            val popScale = nodeScales[node.id] ?: 1f
+            // Per-node pop scale (from nodeScales or motionState eval punch)
+            val popScale = (nodeScales[node.id] ?: motionState?.getNodeScale(node.id) ?: 1f)
 
             val highContrast = com.example.algolens.data.AppSettings.highContrastNodeOutlines
             val (fillColor, strokeColor, textColor) = when {
@@ -371,6 +468,34 @@ fun GraphTreeRenderer(
                         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     }
                     drawText("TARGET", center.x, center.y - (r * 1.45f * popScale), badgePaint)
+                }
+            }
+        }
+
+        // ── 3B. Draw Expanding Hairline Ripple Rings (Activation / Target Found) ──
+        if (motionState != null && motionState.activeRipples.isNotEmpty()) {
+            for (rip in motionState.activeRipples) {
+                val ripNode = nodes.find { it.id == rip.nodeId } ?: continue
+                val ripCenter = motionState.getNodeCenter(ripNode, geom.toCanvasOffset(ripNode.x, ripNode.y))
+                val rp = rip.progress.coerceIn(0f, 1f)
+                val ripRadius = r + (1.5f * r) * rp
+                val ripAlpha = (1f - rp) * 0.85f
+                val ripColor = if (rip.isTarget) AccentPink else PrimaryCyan
+
+                drawCircle(
+                    color = ripColor.copy(alpha = ripAlpha),
+                    radius = ripRadius,
+                    center = ripCenter,
+                    style = Stroke(width = 1.6f * geom.zoom)
+                )
+                if (rip.isTarget) {
+                    val secondRadius = r + (2.0f * r) * (rp * 0.85f)
+                    drawCircle(
+                        color = AccentGreen.copy(alpha = (1f - rp) * 0.65f),
+                        radius = secondRadius,
+                        center = ripCenter,
+                        style = Stroke(width = 1.2f * geom.zoom)
+                    )
                 }
             }
         }
