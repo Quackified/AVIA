@@ -30,15 +30,15 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/AlgorithmRegistry.kt": {
-    "mtime": 1790511056.102936,
-    "seen": 1790560937.2375565,
-    "ast_hash": "724759a76b153c149ef23a2b0a4bcca8",
+    "mtime": 1790561245.8109567,
+    "seen": 1790567279.6080303,
+    "ast_hash": "33944c2e020ad41017490c24610c8b45",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/AlgorithmStepRepository.kt": {
-    "mtime": 1790555145.0189862,
-    "seen": 1790560937.2375581,
-    "ast_hash": "b69718506ae770915159f458165d2fb3",
+    "mtime": 1790561546.9022274,
+    "seen": 1790567279.6080327,
+    "ast_hash": "ad2e3ccf9bfe19415af0bb833d72ff5e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/data/AppSettings.kt": {
@@ -78,9 +78,9 @@
     "semantic_hash": "a7dc89775b6cd2cca64df9df644aebb1"
   },
   "app/src/main/java/com/example/algolens/model/AlgorithmId.kt": {
-    "mtime": 1790509224.2197175,
-    "seen": 1790560937.2375743,
-    "ast_hash": "6abdb70f4d3399f913d0b5657abbd699",
+    "mtime": 1790561224.3956716,
+    "seen": 1790567279.6080546,
+    "ast_hash": "8230e736ddac9db8b3faa236bb7b4fcf",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/model/BufferOps.kt": {
@@ -396,21 +396,21 @@
     "semantic_hash": "569f33d31724b9b74ead4ec26f5541d2"
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphBuilderOverlay.kt": {
-    "mtime": 1790519529.691821,
-    "seen": 1790560937.2376537,
-    "ast_hash": "3fb327ca53f565ffad4c4dbe536fb563",
+    "mtime": 1790563820.949618,
+    "seen": 1790567279.6081429,
+    "ast_hash": "68a4142e2eee6d28a957d7e163486a22",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphTreeRenderer.kt": {
-    "mtime": 1790519412.8892636,
-    "seen": 1790560937.237655,
-    "ast_hash": "5036bcc5e467d46cb695cade2c60a5c4",
+    "mtime": 1790566278.1243043,
+    "seen": 1790567279.6081471,
+    "ast_hash": "e613be18819ef6e72ea52dcce3897d72",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphTreeVisualizer.kt": {
-    "mtime": 1790555099.950081,
-    "seen": 1790560937.2376564,
-    "ast_hash": "91a8fd22df25b789e54fb5a464ac7301",
+    "mtime": 1790566443.7797818,
+    "seen": 1790567279.6081486,
+    "ast_hash": "9569c2d4baab6096431fe94ce6cfce9a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/GraphVisualizer.kt": {
@@ -498,9 +498,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerHost.kt": {
-    "mtime": 1790521246.8256319,
-    "seen": 1790560937.2376783,
-    "ast_hash": "d654f89d0354b0a9e64fe6d672c55214",
+    "mtime": 1790563231.7284143,
+    "seen": 1790567279.6081707,
+    "ast_hash": "179e9ff68e7e6880d075137ceff83bdd",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerOverlay.kt": {
@@ -516,9 +516,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerScreenState.kt": {
-    "mtime": 1790521239.160792,
-    "seen": 1790560937.2376826,
-    "ast_hash": "2726cf716820497347b46878ff394bc2",
+    "mtime": 1790562228.963805,
+    "seen": 1790567279.6081753,
+    "ast_hash": "7ea20d6c3c8e51595a30a5132a1d9455",
     "semantic_hash": ""
   },
   "app/src/main/java/com/example/algolens/ui/visualizer/VisualizerState.kt": {
@@ -849,6 +849,42 @@
     "mtime": 1790557972.2306986,
     "seen": 1790560937.23774,
     "ast_hash": "97c7188a006b553621979a6ef87353ba",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/algolens/data/GraphTreeMutations.kt": {
+    "mtime": 1790562204.129419,
+    "seen": 1790567279.6080377,
+    "ast_hash": "2f614c359d9668501de4e2519dd1c821",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/algolens/model/GraphCapabilityProfile.kt": {
+    "mtime": 1790561215.3612766,
+    "seen": 1790567279.6080596,
+    "ast_hash": "cc3016c08a268f26fd53bd457ca02fd9",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/algolens/ui/visualizer/GraphBuilderGestures.kt": {
+    "mtime": 1790566321.8702564,
+    "seen": 1790567279.608141,
+    "ast_hash": "f668a41346a5f14814129fba704e5edc",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/algolens/ui/visualizer/GraphCanvasEngine.kt": {
+    "mtime": 1790566427.2603636,
+    "seen": 1790567279.608144,
+    "ast_hash": "cf4101fe5f407ab77228b017b1e5ca57",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/example/algolens/ui/visualizer/GraphFloatingToolbar.kt": {
+    "mtime": 1790566367.0721233,
+    "seen": 1790567279.6081457,
+    "ast_hash": "02969e122953d7f4f6a9315478eba529",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/example/algolens/UnifiedGraphEditorTest.kt": {
+    "mtime": 1790566478.4242918,
+    "seen": 1790567279.6081972,
+    "ast_hash": "866b329d808a32250e887492cdcee639",
     "semantic_hash": ""
   }
 }

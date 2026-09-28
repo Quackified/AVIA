@@ -66,37 +66,43 @@ class UnifiedGraphEditorTest {
     }
 
     @Test
-    fun bstProfile_restrictsToMoveAddDeleteWithKeyedPlacement() {
+    fun bstProfile_isViewOnlyModeWithoutToolbarOrFullscreen() {
         val profile = GraphCapabilityProfile.bstProfile()
-        assertEquals(
-            setOf(GraphTool.MOVE, GraphTool.ADD, GraphTool.DELETE),
-            profile.allowedTools
-        )
+        assertTrue(profile.allowedTools.isEmpty())
+        assertTrue(profile.isReadOnly)
+        assertFalse(profile.supportsFullscreen)
+        assertFalse(profile.canMoveNodes)
+        assertFalse(profile.canAddNode)
         assertFalse(profile.canConnectNodes)
         assertFalse(profile.canEditEdgeWeights)
         assertFalse(profile.canSetEndpoints)
+        assertFalse(profile.canDeleteElements)
         assertTrue(profile.supportsDirectedEdges)
-        assertEquals(NodePlacementMode.KEYED_BST_INSERT, profile.nodePlacementMode)
+        assertTrue(profile.canPanAndZoom)
     }
 
     @Test
-    fun heapProfile_restrictsToMoveAddDeleteWithArrayPushPlacement() {
+    fun heapProfile_isViewOnlyModeWithoutToolbarOrFullscreen() {
         val profile = GraphCapabilityProfile.heapProfile()
-        assertEquals(
-            setOf(GraphTool.MOVE, GraphTool.ADD, GraphTool.DELETE),
-            profile.allowedTools
-        )
+        assertTrue(profile.allowedTools.isEmpty())
+        assertTrue(profile.isReadOnly)
+        assertFalse(profile.supportsFullscreen)
+        assertFalse(profile.canMoveNodes)
+        assertFalse(profile.canAddNode)
         assertFalse(profile.canConnectNodes)
         assertFalse(profile.canEditEdgeWeights)
         assertFalse(profile.canSetEndpoints)
+        assertFalse(profile.canDeleteElements)
         assertTrue(profile.supportsDirectedEdges)
-        assertEquals(NodePlacementMode.HEAP_ARRAY_PUSH, profile.nodePlacementMode)
+        assertTrue(profile.canPanAndZoom)
     }
 
     @Test
     fun readOnlyProfile_hasNoAllowedTools() {
         val profile = GraphCapabilityProfile.readOnlyProfile()
         assertTrue(profile.allowedTools.isEmpty())
+        assertTrue(profile.isReadOnly)
+        assertFalse(profile.supportsFullscreen)
         assertFalse(profile.canMoveNodes)
         assertFalse(profile.canAddNode)
         assertTrue(profile.canPanAndZoom)
@@ -108,21 +114,25 @@ class UnifiedGraphEditorTest {
         assertNotNull(dijkstraSpec?.capabilityProfile)
         assertTrue(dijkstraSpec!!.capabilityProfile!!.canEditEdgeWeights)
         assertTrue(dijkstraSpec.builderEnabled)
+        assertTrue(dijkstraSpec.capabilityProfile!!.supportsFullscreen)
 
         val bfsSpec = AlgorithmRegistry.specFor(AlgorithmId.BFS)
         assertNotNull(bfsSpec?.capabilityProfile)
         assertFalse(bfsSpec!!.capabilityProfile!!.canEditEdgeWeights)
         assertTrue(bfsSpec.builderEnabled)
+        assertTrue(bfsSpec.capabilityProfile!!.supportsFullscreen)
 
         val bstSpec = AlgorithmRegistry.specFor(AlgorithmId.BINARY_SEARCH_TREE)
         assertNotNull(bstSpec?.capabilityProfile)
-        assertEquals(NodePlacementMode.KEYED_BST_INSERT, bstSpec!!.capabilityProfile!!.nodePlacementMode)
-        assertTrue(bstSpec.builderEnabled)
+        assertTrue(bstSpec!!.capabilityProfile!!.isReadOnly)
+        assertFalse(bstSpec.builderEnabled)
+        assertFalse(bstSpec.capabilityProfile!!.supportsFullscreen)
 
         val heapSpec = AlgorithmRegistry.specFor(AlgorithmId.HEAP)
         assertNotNull(heapSpec?.capabilityProfile)
-        assertEquals(NodePlacementMode.HEAP_ARRAY_PUSH, heapSpec!!.capabilityProfile!!.nodePlacementMode)
-        assertTrue(heapSpec.builderEnabled)
+        assertTrue(heapSpec!!.capabilityProfile!!.isReadOnly)
+        assertFalse(heapSpec.builderEnabled)
+        assertFalse(heapSpec.capabilityProfile!!.supportsFullscreen)
     }
 
     // ─────────────────────────────────────────────────────────────

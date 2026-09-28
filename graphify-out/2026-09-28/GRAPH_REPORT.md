@@ -1,24 +1,24 @@
-# Graph Report - AlgoLens  (2026-09-27)
+# Graph Report - AlgoLens  (2026-09-28)
 
 ## Corpus Check
-- 129 files · ~182,092 words
+- 134 files · ~193,096 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 55 file(s) not represented in the graph (top: .xml 46, (none) 4, .IssueRegistry 2)
 
 ## Summary
-- 1643 nodes · 5409 edges · 113 communities (78 shown, 35 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 124 edges (avg confidence: 0.87)
+- 1810 nodes · 5738 edges · 148 communities (98 shown, 50 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 192 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9b93bf0a`
+- Built from commit: `e6f66c1d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- ChallengeModeManager.kt
+- ChatScreen.kt
 - VisualizerStep
-- ElementState
+- PracticeSessionManager
 - SwapFlight.kt
 - .generateStepsForAlgorithm
 - TraceLanguage
@@ -31,88 +31,88 @@
 - PredictionQuestion
 - ChatSessionManager
 - GraphTreeRenderer.kt
-- AiChatBackendTest.kt
-- callName
-- callName
+- FeatureEnhancementsTest.kt
+- UElementHandler
+- UElementHandler
 - AlgorithmId
-- AlgoGlyphs.kt
+- Step-by-step implementation plan
 - kotlin/com/example/algolens/lint/AlgoLensIssueRegistry.kt
-- ProjectConstraintBrief
+- InputOrder
 - StepToken
 - VisualizerScreenState
-- ChatScreen.kt
-- ChatSessionState.kt
-- AlgorithmStepRepository.kt
-- VisualizerHost.kt
+- ChatScreen
+- ChatHistoryRepository.kt
+- VisualizerState.kt
+- BufferVisualizer
 - .processQuery
 - BootController
 - VisualizerScreen.kt
-- AppSettings
+- FeatureEnhancementsTest
 - AuthRepository
-- AccountTemplateCard.kt
-- AuthRepository.kt
+- GraphTool
+- setvalue
 - GlassPanel.kt
 - AviaLogo.kt
 - AlgoLensTheme
 - RailIconButton
 - main/com/example/algolens/lint/AlgoLensIssueRegistry.kt
 - AlgoLensDetectorsTest
-- VisualizerScreenStateTest.kt
-- CellGrid
+- AlgorithmId
+- CellGrid.kt
 - StateDeckPage
 - AlgoLensDetectorsTest
 - ChatConversation
 - RecursionTreeOverlay
 - ChallengeModeManagerTest.kt
 - UserPreferencesTest
-- ProfileScreen.kt
+- ProfileScreen
 - FakeAuthRepository
 - .highlight
-- CellGlowPainter.kt
+- Offset
 - VisualizerHeader
 - RegionAuxiliary
 - BufferOpEditor
-- InputValidationResult
+- Relevant existing implementation
 - OnboardingScreen
 - CatalogueSortMode
 - EditProfileSheet
 - Dp
-- CodeListing
+- .resolve
 - AlgoLensApp.kt
 - InstrumentDeck
-- ChatHistorySidebar
+- 6. Implementation Steps & Validation Checklist
 - SectionLabel
-- UElementHandler
+- VisualizerHost.kt
 - StageLegend
 - ProfileEditorDraft
 - FlowchartShape
 - TableAlignment
-- UserPreferences.kt
-- ExampleUnitTest
+- .setOnboardingCompleted
+- ChatSessionState.kt
 - Profile and Edit Profile
-- SignedIn
+- 1. Algorithmic Families & Variants
 - UnavailableFirebaseAuthRepository
 - Color
 - Color
 - PaddingValues
 - TextUnit
-- GraphTreeRenderer
-- ImageVector
+- .from
+- DashboardScreen
 - ArrayViewMode
-- Color
+- .specFor
 - imepadding
 - ComparisonBridgeOverlay.kt
-- UElementHandler
+- ElementState
 - .Content
-- ProfileValidator
-- ExploreCatalogScreen
+- PracticeQuestionRepository
+- PracticeSessionState.kt
 - AlgorithmTheorySheet
 - DeckPage
-- CompactDropdownMenuItem
+- HANDOVER - Node Graph Editor, Explore UI Constraints & Dijkstra Framework
 - Dp
 - PaddingValues
 - Shape
-- instrumentmeter
+- PredictionKind
 - Detector
 - Issue
 - IssueRegistry
@@ -124,199 +124,234 @@
 - Vendor
 - pi
 - rotate
+- rememberVisualizerScreenState
+- VisualizerBenchmarks.kt
+- PracticeSnapshot
+- GraphTreeVisualizer
+- BufferOp
+- AiChatBackendTest.kt
+- ProfileFlowTest
+- RecursionBands.kt
+- VisualizerHeaderMenuTest.kt
+- DataScale
+- GraphGoal
+- PhaseStrip
+- CellArrayVisualizer
+- RootStage
+- BarVisualizer
+- AuthProviderType
+- SampleData
+- AuthRepository
+- AlgorithmSpec
+- State
+- VisualizerScreenState
+- ArrayViewMode
+- BufferOp
+- ChallengeState
+- chataction
+- ChatCodeSnippet
+- ChatComplexitySnapshot
+- ChatMessage
+- ChatPromptStarter
+- chatsender
+- ChatSessionManager
+- com
+- projectalgorithmrecommender
+- QueueOp
+- SortOrder
 
 ## God Nodes (most connected - your core abstractions)
-1. `VisualizerStep` - 80 edges
-2. `VisualizerScreenState` - 50 edges
-3. `AlgoLensTheme()` - 47 edges
-4. `AlgorithmId` - 45 edges
-5. `AlgoTokens` - 42 edges
+1. `AlgorithmId` - 62 edges
+2. `VisualizerScreenState` - 55 edges
+3. `VisualizerStep` - 45 edges
+4. `AlgoLensTheme()` - 44 edges
+5. `ChatSessionManager` - 41 edges
 6. `VisualizerScreenStateTest` - 41 edges
-7. `ChatSessionManager` - 38 edges
+7. `AlgoTokens` - 39 edges
 8. `buildPredictionQuestion()` - 34 edges
-9. `AlgoType` - 30 edges
-10. `ChallengeModeManagerTest` - 30 edges
+9. `ChallengeModeManagerTest` - 30 edges
+10. `TraceLanguage` - 28 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `2. Chat UI cleanup (`ui/chat/ChatScreen.kt`)` --references--> `pressPhysics()`  [INFERRED]
-  docs/IMPLEMENTATION.md → app/src/main/java/com/example/algolens/ui/components/Instrument.kt
-- `Goal` --references--> `MainActivity`  [INFERRED]
-  docs/TASK.md → app/src/main/java/com/example/algolens/MainActivity.kt
-- `3. Minimalist boot splash` --references--> `AppSettings`  [INFERRED]
-  docs/IMPLEMENTATION.md → app/src/main/java/com/example/algolens/data/AppSettings.kt
-- `Goal` --references--> `BootController`  [INFERRED]
-  docs/TASK.md → app/src/main/java/com/example/algolens/ui/boot/BootController.kt
-- `5. Verification` --references--> `BootControllerTest`  [INFERRED]
-  docs/IMPLEMENTATION.md → app/src/test/java/com/example/algolens/BootControllerTest.kt
+- `Step 1: Capability Profiles & Models` --references--> `AlgorithmSpec`  [INFERRED]
+  docs/UNIFIED_GRAPH_EDITOR_PROMPT.md → app/src/main/java/com/example/algolens/model/AlgorithmId.kt
+- `2.2 Multi-Step Undo / Redo History Stack` --references--> `GraphFloatingToolbar()`  [INFERRED]
+  docs/FUTURE_WORK.md → app/src/main/java/com/example/algolens/ui/visualizer/GraphBuilderOverlay.kt
+- `5. Build shared viewport geometry and canvas engine` --references--> `GraphTreeRenderer()`  [INFERRED]
+  docs/TASK.md → app/src/main/java/com/example/algolens/ui/visualizer/GraphTreeRenderer.kt
+- `4.1 Viewport Pan & Pinch-to-Zoom Engine` --references--> `GraphCanvasGeometry`  [INFERRED]
+  docs/UNIFIED_GRAPH_EDITOR_PROMPT.md → app/src/main/java/com/example/algolens/ui/visualizer/GraphTreeRenderer.kt
+- `Things that must NOT change` --references--> `VisualizerStep`  [INFERRED]
+  docs/TASK.md → app/src/main/java/com/example/algolens/ui/visualizer/VisualizerState.kt
 
 ## Import Cycles
 - None detected.
 
-## Communities (113 total, 35 thin omitted)
+## Communities (148 total, 50 thin omitted)
 
-### Community 0 - "ChallengeModeManager.kt"
-Cohesion: 0.09
-Nodes (160): accentgreen, accentorange, accentpink, accentpinkglow, accentred, accentyellow, algolenstheme, algotokens (+152 more)
+### Community 0 - "ChatScreen.kt"
+Cohesion: 0.07
+Nodes (197): accentgreen, accentorange, accentpink, accentred, accentyellow, activityresultcontracts, alertdialog, algohairline (+189 more)
 
 ### Community 1 - "VisualizerStep"
-Cohesion: 0.18
-Nodes (5): buildPredictionQuestion(), highlightedCellPair(), predictionAnswerFor(), VisualizerStep, ChallengeModeManagerTest
+Cohesion: 0.15
+Nodes (7): buildPredictionQuestion(), highlightedCellPair(), predictionAnswerFor(), BufferItem, VisualizerStep, ChallengeModeManagerTest, 3.1 Dijkstra Prediction Question Generator
 
-### Community 2 - "ElementState"
-Cohesion: 0.06
-Nodes (31): PracticeQuestionRepository, PracticeDifficulty, EASY, HARD, MEDIUM, PracticeOption, PracticeQuestion, BufferSnapshot (+23 more)
+### Community 2 - "PracticeSessionManager"
+Cohesion: 0.16
+Nodes (3): PracticeSessionManager, PracticeBackendTest, PracticeDifficulty
 
 ### Community 3 - "SwapFlight.kt"
 Cohesion: 0.07
-Nodes (37): abs, activity, animatecontentsize, animationspec, animationvector1d, Dp, Modifier, smoothPanelExpansion() (+29 more)
+Nodes (38): abs, activity, animatecontentsize, animationspec, animationvector1d, Dp, Modifier, smoothPanelExpansion() (+30 more)
 
 ### Community 4 - ".generateStepsForAlgorithm"
-Cohesion: 0.13
-Nodes (5): AlgorithmStepRepository, SortOrder, ASC, DESC, AlgorithmStepRepositoryTest
+Cohesion: 0.06
+Nodes (21): AlgorithmStepRepository, GraphSearch, Algorithm, BufferOp, GraphEdgeState, GraphNodeState, QueueOp, SortOrder (+13 more)
 
 ### Community 5 - "TraceLanguage"
-Cohesion: 0.32
-Nodes (7): AlgorithmCodeRegistry, MultiLangCode, TraceLanguage, CPP, JAVA, KOTLIN, PYTHON
+Cohesion: 0.14
+Nodes (18): AlgorithmCodeRegistry, MultiLangCode, TraceLanguage, CPP, JAVA, KOTLIN, PYTHON, CodeListing() (+10 more)
 
 ### Community 6 - "OffscreenPointerBanner"
-Cohesion: 0.20
+Cohesion: 0.24
 Nodes (8): OffscreenPointerTarget, LazyListState, Modifier, OffscreenCellPopup(), OffscreenPointerBanner(), Modifier, OffscreenCellPopup(), PointerBannerOverlay
+
+### Community 7 - "VisualizerScreenStateTest"
+Cohesion: 0.10
+Nodes (3): Algorithm, VisualizerScreenStateTest, 4. Tests
 
 ### Community 8 - "ChatMarkdownMessage"
 Cohesion: 0.10
 Nodes (24): ChatFlowchartBlock(), FlowchartEdge, FlowchartEdgeConnector(), FlowchartNode, FlowchartNodeCard(), Modifier, ParsedFlowchart, parseFlowchart() (+16 more)
 
 ### Community 9 - "Instrument.kt"
-Cohesion: 0.17
-Nodes (18): AlgoHairline(), DoubleBezelShell(), EntryCascade, entryCascadeInWindow(), EntryCascadeProvider(), InstrumentMeter(), InstrumentRule(), Color (+10 more)
+Cohesion: 0.15
+Nodes (21): AlgoHairline(), DoubleBezelShell(), EntryCascade, entryCascadeInWindow(), EntryCascadeProvider(), InstrumentMeter(), InstrumentRule(), Color (+13 more)
 
 ### Community 10 - "ProfileFlowTest.kt"
-Cohesion: 0.07
-Nodes (25): activityscenariorule, androidjunit4, ExampleInstrumentedTest, VisualizerScreenshotTest, before, FrameTimingBenchmark, StartupBenchmark, Bitmap (+17 more)
+Cohesion: 0.11
+Nodes (17): activityscenariorule, androidjunit4, ExampleInstrumentedTest, VisualizerScreenshotTest, before, Bitmap, compositionlocalprovider, createandroidcomposerule (+9 more)
 
 ### Community 11 - "NavTab"
 Cohesion: 0.25
 Nodes (8): BottomNavBar(), BottomNavBarPreview(), Modifier, NavTab, CHAT, EXPLORE, HOME, PROFILE
 
 ### Community 12 - "PredictionQuestion"
-Cohesion: 0.18
-Nodes (20): bufferPushPopQuestion(), comparePairQuestion(), foundOrCompareQuestion(), graphVisitQuestion(), heapQuestion(), Indices, insertionSortQuestion(), mergeSortQuestion() (+12 more)
+Cohesion: 0.25
+Nodes (21): bufferPushPopQuestion(), comparePairQuestion(), foundOrCompareQuestion(), graphVisitQuestion(), heapQuestion(), Indices, insertionSortQuestion(), VisualizerStep (+13 more)
 
 ### Community 14 - "GraphTreeRenderer.kt"
+Cohesion: 0.19
+Nodes (10): atan2, cos, graphedgedefault, immutable, nativecanvas, paint, patheffect, sin (+2 more)
+
+### Community 15 - "FeatureEnhancementsTest.kt"
+Cohesion: 0.20
+Nodes (17): Algorithm, assertequals, assertfalse, assertnotnull, assertnull, asserttrue, authaccountstate, elementstate (+9 more)
+
+### Community 16 - "UElementHandler"
 Cohesion: 0.17
-Nodes (12): atan2, canvas, cos, graphedgedefault, immutable, nativecanvas, paint, patheffect (+4 more)
+Nodes (12): callName(), UElementHandler, hasDpLiteralArg(), hasHexLiteralArg(), isAppFile(), JavaContext, UCallExpression, UElementHandler (+4 more)
 
-### Community 15 - "AiChatBackendTest.kt"
-Cohesion: 0.15
-Nodes (17): VisualizerHeaderMenuTest, assertequals, assertfalse, assertnotnull, asserttrue, experimentalcoroutinesapi, flowchartshape, icons (+9 more)
-
-### Community 16 - "callName"
-Cohesion: 0.29
-Nodes (6): callName(), hasDpLiteralArg(), hasHexLiteralArg(), isAppFile(), UCallExpression, normalizedPath()
-
-### Community 17 - "callName"
-Cohesion: 0.29
-Nodes (6): callName(), hasDpLiteralArg(), hasHexLiteralArg(), isAppFile(), normalizedPath(), UCallExpression
+### Community 17 - "UElementHandler"
+Cohesion: 0.17
+Nodes (12): JavaContext, callName(), UElementHandler, hasDpLiteralArg(), hasHexLiteralArg(), isAppFile(), normalizedPath(), UElementHandler (+4 more)
 
 ### Community 18 - "AlgorithmId"
-Cohesion: 0.07
-Nodes (27): AlgorithmRegistry, AlgorithmId, BFS, BINARY_SEARCH, BINARY_SEARCH_TREE, BUBBLE_SORT, DFS, HEAP (+19 more)
+Cohesion: 0.09
+Nodes (23): AlgorithmRegistry, AlgorithmId, BFS, BINARY_SEARCH, BINARY_SEARCH_TREE, BUBBLE_SORT, DFS, DIJKSTRA (+15 more)
 
-### Community 19 - "AlgoGlyphs.kt"
-Cohesion: 0.25
-Nodes (6): CompactDropdownMenuItem(), ComplexityPill(), androidx, ImageVector, Color, pathbuilder
+### Community 19 - "Step-by-step implementation plan"
+Cohesion: 0.11
+Nodes (18): 1. Introduce validated capability profiles, 2. Establish authoritative state and reset contracts, 3. Implement pure structure-aware mutations, 5. Build shared viewport geometry and canvas engine, 6. Rebuild profile-driven tools and accessible interactions, 7. Consolidate fullscreen and telemetry, 8. Validate and document, Automated coverage (+10 more)
 
 ### Community 20 - "kotlin/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
 Cohesion: 0.23
-Nodes (13): Detector, implementation, Issue, IssueRegistry, AlgoLensIssueRegistry, HardcodedHexColorDetector, RawDpSpacingDetector, RoundedCornerShapeLiteralDetector (+5 more)
+Nodes (13): category, Detector, implementation, Issue, IssueRegistry, AlgoLensIssueRegistry, HardcodedHexColorDetector, RawDpSpacingDetector (+5 more)
 
-### Community 21 - "ProjectConstraintBrief"
-Cohesion: 0.09
-Nodes (22): DataScale, LARGE_100K_PLUS, MEDIUM_1K, SMALL_UNDER_64, UNSPECIFIED, GraphGoal, EXHAUSTIVE_OR_CYCLE, NONE (+14 more)
+### Community 21 - "InputOrder"
+Cohesion: 0.29
+Nodes (7): InputOrder, ALREADY_SORTED, LIFO_FIFO_STREAM, NEARLY_SORTED, RANDOM_UNSORTED, TREE_OR_GRAPH, UNSPECIFIED
 
 ### Community 22 - "StepToken"
 Cohesion: 0.12
 Nodes (17): StepToken, COMPARE, COMPLETE, DEQUEUE, ELEVATE, ENQUEUE, FOUND, MISS (+9 more)
 
 ### Community 23 - "VisualizerScreenState"
-Cohesion: 0.09
-Nodes (13): Algorithm, androidx, rememberVisualizerScreenState(), VisualizerScreenState, BufferOp, ChallengeState, 1. Visualizer state fixes (`ui/visualizer/VisualizerScreenState.kt`), GraphCustomization (+5 more)
-
-### Community 24 - "ChatScreen.kt"
 Cohesion: 0.08
-Nodes (38): alertdialog, algohairline, annotatedstring, AssistantMessageBubble(), ChatHeader(), ChatInputDock(), ChatScreen(), CodeSnippetBlock() (+30 more)
+Nodes (13): AttachedDeckTabs(), androidx, ArrayViewMode, BufferOp, com, GraphEdgeState, GraphNodeState, QueueOp (+5 more)
 
-### Community 25 - "ChatSessionState.kt"
-Cohesion: 0.10
-Nodes (22): ChatResponseProvider, OfflineCatalogChatProvider, ChatAction, ChatSender, ASSISTANT, SYSTEM, USER, ChatStatus (+14 more)
-
-### Community 26 - "AlgorithmStepRepository.kt"
+### Community 24 - "ChatScreen"
 Cohesion: 0.11
-Nodes (20): BufferOp, Dequeue, Enqueue, Peek, Pop, Push, QueueOp, GraphVisualizer() (+12 more)
+Nodes (26): AssistantMessageBubble(), ChatHeader(), ChatInputDock(), ChatScreen(), CodeSnippetBlock(), CompactDropdownMenuItem(), ComplexityMatrixBlock(), ComplexityPill() (+18 more)
 
-### Community 27 - "VisualizerHost.kt"
-Cohesion: 0.05
-Nodes (54): BarVisualizer(), BarVisualizerPreview(), com, Modifier, BufferStageControls(), BufferVisualizer(), BufferVisualizerQueuePreview(), BufferVisualizerStackPreview() (+46 more)
+### Community 25 - "ChatHistoryRepository.kt"
+Cohesion: 0.14
+Nodes (15): ChatResponseProvider, OfflineCatalogChatProvider, ProjectAlgorithmRecommender, ChatAction, ChatSender, ASSISTANT, SYSTEM, USER (+7 more)
+
+### Community 26 - "VisualizerState.kt"
+Cohesion: 0.18
+Nodes (11): GraphVisualizer(), GraphVisualizerPreview(), Modifier, GraphEdgeState, GraphNodeState, Pointer, VisualizerRenderMode, BARS (+3 more)
+
+### Community 27 - "BufferVisualizer"
+Cohesion: 0.16
+Nodes (14): BufferStageControls(), BufferVisualizer(), BufferVisualizerQueuePreview(), BufferVisualizerStackPreview(), CapacityIndicator(), BufferOp, Color, Modifier (+6 more)
 
 ### Community 28 - ".processQuery"
 Cohesion: 0.09
 Nodes (7): AiChatEngine, ChatCodeSnippet, ChatComplexitySnapshot, ChatMessage, AlgorithmTheoryData, AlgorithmTheoryRepository, AiChatBackendTest
 
 ### Community 29 - "BootController"
-Cohesion: 0.11
-Nodes (15): MainActivity, BootController, BootControllerEffect(), BootControllerTest, Bundle, ComponentActivity, delay, 2. Chat UI cleanup (`ui/chat/ChatScreen.kt`) (+7 more)
+Cohesion: 0.13
+Nodes (13): MainActivity, BootController, BootControllerEffect(), BootControllerTest, Bundle, ComponentActivity, 2. Chat UI cleanup (`ui/chat/ChatScreen.kt`), 3. Minimalist boot splash (+5 more)
 
 ### Community 30 - "VisualizerScreen.kt"
-Cohesion: 0.15
-Nodes (16): animatable, animatedpasstate, SampleData, Algorithm, AiTutorSheet(), AiTutorSheetPreview(), EmptyCanvas(), Modifier (+8 more)
+Cohesion: 0.13
+Nodes (19): animatable, animatedpasstate, Algorithm, AiTutorSheet(), AiTutorSheetPreview(), Modifier, PlaybackRail(), PlaybackRailPreview() (+11 more)
 
-### Community 31 - "AppSettings"
-Cohesion: 0.21
-Nodes (5): AppSettings, Constraints, Goal, Verification basis, SharedPreferences
+### Community 31 - "FeatureEnhancementsTest"
+Cohesion: 0.13
+Nodes (3): AppSettings, FeatureEnhancementsTest, SharedPreferences
 
 ### Community 32 - "AuthRepository"
 Cohesion: 0.12
 Nodes (4): AuthRepository, GuestDataMigrationPolicy, KEEP_SEPARATE, MERGE_GUEST_TO_ACCOUNT
 
-### Community 33 - "AccountTemplateCard.kt"
-Cohesion: 0.12
-Nodes (17): activityresultcontracts, ProfileField(), bitmapfactory, contentdescription, focusdirection, imagebitmap, ImeAction, intent (+9 more)
+### Community 33 - "GraphTool"
+Cohesion: 0.14
+Nodes (18): GraphBuilderBanner(), GraphBuilderGestures(), GraphBuilderToolbar(), GraphFloatingToolbar(), GraphTool, ADD, DELETE, ENDPOINTS (+10 more)
 
-### Community 34 - "AuthRepository.kt"
-Cohesion: 0.22
-Nodes (8): AuthAccountState, AuthProviderType, EMAIL_PASSWORD, GOOGLE_FIREBASE, Error, Loading, chathistoryrepository, stable
+### Community 34 - "setvalue"
+Cohesion: 0.35
+Nodes (8): Context, delay, launchedeffect, mutablefloatstateof, mutablelongstateof, mutablestateof, setvalue, stable
 
 ### Community 35 - "GlassPanel.kt"
-Cohesion: 0.20
-Nodes (15): animatefloat, AlgoWorkspaceBackground(), AmbientGlowDivider(), GlassSurface(), Color, Dp, Modifier, Shape (+7 more)
+Cohesion: 0.19
+Nodes (16): animatefloat, AlgoWorkspaceBackground(), AmbientGlowDivider(), GlassSurface(), Color, Dp, Modifier, Shape (+8 more)
 
 ### Community 36 - "AviaLogo.kt"
-Cohesion: 0.09
-Nodes (27): BootOverlay(), Modifier, AviaLogo(), Color, Dp, Modifier, CatalogueGroupHeader(), CatalogueSection (+19 more)
+Cohesion: 0.15
+Nodes (14): BootOverlay(), Modifier, AviaLogo(), Color, Dp, Modifier, colorfilter, font (+6 more)
 
 ### Community 37 - "AlgoLensTheme"
-Cohesion: 0.18
-Nodes (13): AlgoCard(), AlgoCardChrome, AlgoCardPreview(), Modifier, AlgoLensTheme(), CustomizeGraphSheet(), CustomizeGraphSheetBstPreview(), CustomizeGraphSheetHeapPreview() (+5 more)
+Cohesion: 0.19
+Nodes (13): AlgoLensTheme(), CustomizeGraphSheet(), CustomizeGraphSheetBstPreview(), CustomizeGraphSheetHeapPreview(), CustomizeGraphSheetTraversalPreview(), Color, SearchKeyField(), StartNodeDropdown() (+5 more)
 
 ### Community 38 - "RailIconButton"
-Cohesion: 0.20
-Nodes (11): IconPillButton(), androidx, Color, ImageVector, RailIconButton(), SegmentedToggle(), CustomizeInputSheet(), CustomizeInputSheetPreview() (+3 more)
+Cohesion: 0.18
+Nodes (11): SortOrder, ASC, DESC, IconPillButton(), androidx, Color, ImageVector, RailIconButton() (+3 more)
 
 ### Community 39 - "main/com/example/algolens/lint/AlgoLensIssueRegistry.kt"
 Cohesion: 0.23
-Nodes (13): category, AlgoLensIssueRegistry, HardcodedHexColorDetector, Detector, Issue, IssueRegistry, UastScanner, UElement (+5 more)
+Nodes (13): AlgoLensIssueRegistry, HardcodedHexColorDetector, Detector, Issue, IssueRegistry, UastScanner, UElement, Vendor (+5 more)
 
 ### Community 40 - "AlgoLensDetectorsTest"
 Cohesion: 0.22
 Nodes (4): AlgoLensDetectorsTest, Detector, Issue, LintDetectorTest
 
-### Community 41 - "VisualizerScreenStateTest.kt"
+### Community 42 - "CellGrid.kt"
 Cohesion: 0.18
-Nodes (6): AlgorithmId, AttachedDeckTabs(), Algorithm, assertnull, DeckPage, VisualizerStep
-
-### Community 42 - "CellGrid"
-Cohesion: 0.27
-Nodes (11): CellGrid(), CellItem(), Dp, LazyListState, Modifier, State, TextUnit, BottomPointerBadge() (+3 more)
+Nodes (17): accentpinkglow, CellGrid(), CellItem(), Dp, LazyListState, Modifier, State, TextUnit (+9 more)
 
 ### Community 43 - "StateDeckPage"
 Cohesion: 0.27
@@ -335,40 +370,40 @@ Cohesion: 0.25
 Nodes (5): Modifier, RecursionTreeOverlay, Modifier, VisualizerOverlay, IntRange
 
 ### Community 47 - "ChallengeModeManagerTest.kt"
-Cohesion: 0.09
-Nodes (22): CanvasChallengePrompt(), CanvasChallengePromptFoundPreview(), challengeEligibleIndices(), ChallengeFeedback, ChallengeQuestionType, SELECT_COMPARE_PAIR, SELECT_PIVOT, SWAP_DECISION (+14 more)
+Cohesion: 0.16
+Nodes (12): CanvasChallengePrompt(), CanvasChallengePromptFoundPreview(), challengeEligibleIndices(), ChallengeFeedback, ChallengeQuestionType, SELECT_COMPARE_PAIR, SELECT_PIVOT, SWAP_DECISION (+4 more)
 
-### Community 49 - "ProfileScreen.kt"
-Cohesion: 0.12
-Nodes (20): Algorithm, AuthRepository, Modifier, ProfileOptionItem(), ProfileScreen(), ProfileScreenPreview(), asimagebitmap, authaccountstate (+12 more)
+### Community 49 - "ProfileScreen"
+Cohesion: 0.22
+Nodes (10): AlgoCard(), AlgoCardChrome, AlgoCardPreview(), Modifier, ImageVector, Modifier, ProfileOptionItem(), ProfileScreen() (+2 more)
 
 ### Community 50 - "FakeAuthRepository"
-Cohesion: 0.24
-Nodes (3): ProfileFlowTest, FakeAuthRepository, SignedOut
+Cohesion: 0.23
+Nodes (7): AuthAccountState, Error, FakeAuthRepository, Loading, SignedIn, SignedOut, UserProfile
 
 ### Community 51 - ".highlight"
-Cohesion: 0.14
-Nodes (7): AnnotatedString, SyntaxHighlighter, Modifier, TraceStrip(), TraceStripPreview(), FeatureEnhancementsTest, TraceLanguage
+Cohesion: 0.22
+Nodes (6): AnnotatedString, SyntaxHighlighter, Modifier, TraceStrip(), TraceStripPreview(), TraceLanguage
 
-### Community 52 - "CellGlowPainter.kt"
+### Community 52 - "Offset"
 Cohesion: 0.47
-Nodes (5): drawCellGlow(), Color, CornerRadius, drawscope, stroke
+Nodes (5): drawCellGlow(), Color, CornerRadius, drawscope, Offset
 
 ### Community 53 - "VisualizerHeader"
-Cohesion: 0.47
-Nodes (10): HeaderActions(), HeaderModeRow(), HeaderOverflowMenuHost(), HeaderTitle(), Algorithm, AlgorithmSpec, Modifier, VisualizerScreenState (+2 more)
+Cohesion: 0.27
+Nodes (14): CompactDropdownMenuItem(), CompactHeaderPill(), HeaderActions(), HeaderModeRow(), HeaderOverflowMenuHost(), HeaderTitle(), Algorithm, AlgorithmSpec (+6 more)
 
 ### Community 54 - "RegionAuxiliary"
-Cohesion: 0.11
-Nodes (11): AuxiliarySlot, BOTTOM, TOP, RegionAuxiliary, Modifier, MergeBufferRow, androidx, Modifier (+3 more)
+Cohesion: 0.21
+Nodes (6): AuxiliarySlot, BOTTOM, TOP, RegionAuxiliary, Modifier, MergeBufferRow
 
 ### Community 55 - "BufferOpEditor"
 Cohesion: 0.29
 Nodes (10): BufferOpEditor(), CustomizeBufferSheet(), CustomizeBufferSheetStackPreview(), CustomizeQueueSheet(), CustomizeQueueSheetPreview(), BufferOp, Color, QueueOp (+2 more)
 
-### Community 56 - "InputValidationResult"
-Cohesion: 0.18
-Nodes (10): Error, ForBst, ForHeap, ForTraversal, GraphCustomization, InputValidationResult, Valid, Color (+2 more)
+### Community 56 - "Relevant existing implementation"
+Cohesion: 0.13
+Nodes (14): GraphTelemetryMode, BFS_QUEUE, BST_TARGET, DFS_STACK, DIJKSTRA_PQ, HEAP_ARRAY, NONE, Error (+6 more)
 
 ### Community 57 - "OnboardingScreen"
 Cohesion: 0.28
@@ -379,40 +414,40 @@ Cohesion: 0.33
 Nodes (5): CatalogueSortMode, COMPLEXITY, DEFAULT, DIFFICULTY, NAME
 
 ### Community 59 - "EditProfileSheet"
-Cohesion: 0.26
-Nodes (9): AccountStatusCard(), EditProfileAndAccountSheet(), EditProfileSheet(), AuthRepository, Modifier, ProfileAvatar(), ProfileTheme(), ProfileTopBar() (+1 more)
+Cohesion: 0.14
+Nodes (12): ProfileValidator, AccountStatusCard(), EditProfileAndAccountSheet(), EditProfileSheet(), AuthRepository, Modifier, ProfileAvatar(), ProfileField() (+4 more)
 
-### Community 61 - "CodeListing"
-Cohesion: 0.20
-Nodes (10): CodeLineAccent, Family, Color, CodeListing(), InlineVarChip(), androidx, AnnotatedString, Color (+2 more)
+### Community 61 - ".resolve"
+Cohesion: 0.60
+Nodes (3): CodeLineAccent, Family, Color
 
 ### Community 62 - "AlgoLensApp.kt"
-Cohesion: 0.14
-Nodes (19): animatedcontent, AlgoLensApp(), AlgoLensAppPreview(), AppShell(), Algorithm, Modifier, RootStage, APP (+11 more)
+Cohesion: 0.15
+Nodes (19): animatedcontent, AlgoLensApp(), AlgoLensAppPreview(), AppShell(), Algorithm, Modifier, ExploreCatalogScreen(), ExploreCatalogScreenPreview() (+11 more)
 
 ### Community 63 - "InstrumentDeck"
-Cohesion: 0.17
-Nodes (12): CodeTracePane(), CodeTracePanePreview(), Modifier, State, InstrumentDeck(), InstrumentDeckPreview(), Algorithm, androidx (+4 more)
+Cohesion: 0.25
+Nodes (8): InstrumentDeck(), InstrumentDeckPreview(), Algorithm, androidx, Modifier, State, VisualizerScreenState, VisualizerStep
 
-### Community 64 - "ChatHistorySidebar"
-Cohesion: 0.20
-Nodes (10): ProjectRecommendationPayload, RecommendedAlgorithmCandidate, CandidateCard(), ChatHistorySidebar(), ComplexityPill(), androidx, ImageVector, Modifier (+2 more)
+### Community 64 - "6. Implementation Steps & Validation Checklist"
+Cohesion: 0.12
+Nodes (16): 1. Executive Summary & Objective, 2.1 File: `app/src/main/java/com/example/algolens/model/GraphCapabilityProfile.kt`, 2.2 Algorithm Capability Mapping, 2. Core Architecture: Capability & Profile System, 4.1 Viewport Pan & Pinch-to-Zoom Engine, 4.2 Modular Floating Glass Toolbar (`GraphFloatingToolbar.kt`), 4.3 Interactive Tool Logic & Touch Handling, 4.4 Fullscreen Edge-Aware Canvas Overlay (+8 more)
 
 ### Community 65 - "SectionLabel"
 Cohesion: 0.24
 Nodes (12): CommonComponentsPreview(), ComplexityCard(), CustomSwitch(), Color, ImageVector, Modifier, OfflineBadge(), SectionLabel() (+4 more)
 
-### Community 66 - "UElementHandler"
-Cohesion: 0.36
-Nodes (6): JavaContext, UElementHandler, UElementHandler, UElementHandler, UElementHandler, UElementHandler
+### Community 66 - "VisualizerHost.kt"
+Cohesion: 0.28
+Nodes (13): AlgorithmSpec, Modifier, PhaseBanner(), BufferCanvas(), GraphTreeCanvas(), ArrayViewMode, Modifier, VisualizerStep (+5 more)
 
 ### Community 67 - "StageLegend"
 Cohesion: 0.40
 Nodes (5): Color, Modifier, LegendEntry(), StageLegend(), StageLegendPreview()
 
 ### Community 68 - "ProfileEditorDraft"
-Cohesion: 0.27
-Nodes (4): UserProfile, ProfileEditorDraft, ProfileEditorDraftTest, UserProfile
+Cohesion: 0.29
+Nodes (3): ProfileEditorDraft, ProfileEditorDraftTest, UserProfile
 
 ### Community 69 - "FlowchartShape"
 Cohesion: 0.50
@@ -422,69 +457,149 @@ Nodes (4): FlowchartShape, DECISION, PROCESS, TERMINAL
 Cohesion: 0.50
 Nodes (4): TableAlignment, CENTER, LEFT, RIGHT
 
-### Community 71 - "UserPreferences.kt"
-Cohesion: 0.53
-Nodes (3): android, UserPreferences, Context
+### Community 75 - "ChatSessionState.kt"
+Cohesion: 0.14
+Nodes (14): ChatStatus, COMPLETE, ERROR, SENT, THINKING, rememberChatSessionManager(), chathistoryrepository, chatresponseprovider (+6 more)
 
 ### Community 78 - "Profile and Edit Profile"
 Cohesion: 0.40
 Nodes (4): Direction contract, Feature opportunities, Profile and Edit Profile, Scope and constraints
 
-### Community 85 - "GraphTreeRenderer"
-Cohesion: 0.39
-Nodes (6): GraphCanvasGeometry, GraphTreeRenderer(), GraphEdgeState, GraphNodeState, Modifier, Offset
+### Community 79 - "1. Algorithmic Families & Variants"
+Cohesion: 0.15
+Nodes (12): ForBst, 1.1 Binary Search Tree (BST) Traversal Family, 1.2 Queue & Buffer Family Variants, 1.3 0-1 BFS (Double-Ended Queue Shortest Path), 1.4 A* Heuristic Search ($f(n) = g(n) + h(n)$), 1. Algorithmic Families & Variants, 2.1 Directed Edge Support & Arrowheads, 2.2 Multi-Step Undo / Redo History Stack (+4 more)
+
+### Community 80 - "UnavailableFirebaseAuthRepository"
+Cohesion: 0.27
+Nodes (3): CredentialValidator, Unavailable, UnavailableFirebaseAuthRepository
+
+### Community 85 - ".from"
+Cohesion: 0.26
+Nodes (7): GraphCanvasGeometry, GraphTreeRenderer(), GraphEdgeState, GraphNodeState, Modifier, Offset, Step 3: Viewport & Renderer Refactoring
+
+### Community 86 - "DashboardScreen"
+Cohesion: 0.21
+Nodes (13): CatalogueGroupHeader(), CatalogueSection, CategoryChip(), CategoryChipSpec, complexityRank(), complexityTierTitle(), DashboardScreen(), DashboardScreenPreview() (+5 more)
 
 ### Community 87 - "ArrayViewMode"
 Cohesion: 0.50
 Nodes (3): ArrayViewMode, BARS, CELLS
 
 ### Community 90 - "ComparisonBridgeOverlay.kt"
-Cohesion: 0.29
-Nodes (9): animatefloatasstate, ActivePairPointerBracket(), ComparisonBridgeOverlay(), Modifier, brush, path, SlotTransform, strokecap (+1 more)
+Cohesion: 0.25
+Nodes (10): animatefloatasstate, ActivePairPointerBracket(), ComparisonBridgeOverlay(), Modifier, brush, localdensity, path, SlotTransform (+2 more)
 
-### Community 91 - "UElementHandler"
-Cohesion: 0.36
-Nodes (6): UElementHandler, JavaContext, UElementHandler, UElementHandler, UElementHandler, UElementHandler
+### Community 91 - "ElementState"
+Cohesion: 0.17
+Nodes (12): ElementState, ACTIVE, COMPARING, FOUND, IDLE, PIVOT, SORTED, SWAPPING (+4 more)
 
 ### Community 92 - ".Content"
-Cohesion: 0.50
-Nodes (3): Modifier, VisualizerScreenState, VisualizerStep
+Cohesion: 0.33
+Nodes (5): Modifier, VisualizerScreenState, VisualizerStep, WeightBadgeOverlay, VisualizerOverlay
 
-### Community 94 - "ExploreCatalogScreen"
-Cohesion: 0.50
-Nodes (5): ExploreCatalogScreen(), ExploreCatalogScreenPreview(), Modifier, PracticeTrack, TrackCatalogCard()
+### Community 93 - "PracticeQuestionRepository"
+Cohesion: 0.27
+Nodes (7): PracticeQuestionRepository, PracticeGraphEdge, PracticeGraphNode, practicegraphedge, practicegraphnode, practiceoption, PracticeQuestion
+
+### Community 94 - "PracticeSessionState.kt"
+Cohesion: 0.20
+Nodes (8): PracticeDifficulty, EASY, HARD, MEDIUM, PracticeOption, PracticeQuestion, rememberPracticeSessionManager(), mutableintstateof
 
 ### Community 95 - "AlgorithmTheorySheet"
-Cohesion: 0.40
-Nodes (6): AlgorithmTheorySheet(), AlgorithmTheorySheetPreview(), ComplexityBentoCard(), Color, Modifier, PropertyBadge()
+Cohesion: 0.33
+Nodes (7): AlgorithmTheorySheet(), AlgorithmTheorySheetPreview(), ComplexityBentoCard(), Algorithm, Color, Modifier, PropertyBadge()
 
 ### Community 96 - "DeckPage"
 Cohesion: 0.50
 Nodes (3): DeckPage, STATE, TRACE
 
-### Community 97 - "CompactDropdownMenuItem"
+### Community 97 - "HANDOVER - Node Graph Editor, Explore UI Constraints & Dijkstra Framework"
+Cohesion: 0.18
+Nodes (10): 1. Executive Summary, 2. File Status Breakdown, 3. Pending Implementation Work, 4. Verification Plan, 5. Quick Context for Resuming Agent, Already Modified on Disk (Validated), HANDOVER - Node Graph Editor, Explore UI Constraints & Dijkstra Framework, Work Package A: Dijkstra Generation & Trace Code (+2 more)
+
+### Community 101 - "PredictionKind"
+Cohesion: 0.20
+Nodes (10): PredictionKind, FOUND_DECISION, SELECT_COMPARE_PAIR, SELECT_PIVOT, SELECT_VISIT_NODE, SWAP_DECISION, WILL_DEQUEUE, WILL_ENQUEUE (+2 more)
+
+### Community 113 - "rememberVisualizerScreenState"
+Cohesion: 0.20
+Nodes (3): Algorithm, rememberVisualizerScreenState(), 1. Visualizer state fixes (`ui/visualizer/VisualizerScreenState.kt`)
+
+### Community 114 - "VisualizerBenchmarks.kt"
+Cohesion: 0.20
+Nodes (7): FrameTimingBenchmark, StartupBenchmark, compilationmode, frametimingmetric, macrobenchmarkrule, startupmode, startuptimingmetric
+
+### Community 115 - "PracticeSnapshot"
+Cohesion: 0.31
+Nodes (9): BufferSnapshot, GraphSnapshot, LinearSnapshot, PracticeSnapshot, BufferSnapshotView(), GraphSnapshotView(), Modifier, LinearSnapshotView() (+1 more)
+
+### Community 116 - "GraphTreeVisualizer"
+Cohesion: 0.36
+Nodes (9): GraphFrontierTelemetryStrip(), GraphTreeVisualizer(), GraphTreeVisualizerPreview(), HeapSynchronizedArrayStrip(), com, GraphEdgeState, GraphNodeState, Modifier (+1 more)
+
+### Community 117 - "BufferOp"
+Cohesion: 0.25
+Nodes (7): BufferOp, Dequeue, Enqueue, Peek, Pop, Push, QueueOp
+
+### Community 118 - "AiChatBackendTest.kt"
+Cohesion: 0.25
+Nodes (7): experimentalcoroutinesapi, flowchartshape, parseflowchart, parsemarkdowninline, parsemarkdowntable, runblocking, tablealignment
+
+### Community 120 - "RecursionBands.kt"
+Cohesion: 0.33
+Nodes (4): Modifier, RecursionBands, canvas, stroke
+
+### Community 121 - "VisualizerHeaderMenuTest.kt"
+Cohesion: 0.33
+Nodes (3): VisualizerHeaderMenuTest, icons, morevert
+
+### Community 122 - "DataScale"
+Cohesion: 0.40
+Nodes (5): DataScale, LARGE_100K_PLUS, MEDIUM_1K, SMALL_UNDER_64, UNSPECIFIED
+
+### Community 123 - "GraphGoal"
+Cohesion: 0.40
+Nodes (5): GraphGoal, EXHAUSTIVE_OR_CYCLE, NONE, SHORTEST_UNWEIGHTED_PATH, WEIGHTED_SHORTEST_PATH
+
+### Community 124 - "PhaseStrip"
 Cohesion: 0.50
-Nodes (4): CompactDropdownMenuItem(), CompactHeaderPill(), androidx, Color
+Nodes (3): androidx, Modifier, PhaseStrip
+
+### Community 125 - "CellArrayVisualizer"
+Cohesion: 0.40
+Nodes (5): CellArrayVisualizer(), CellArrayVisualizerPreview(), com, Modifier, State
+
+### Community 126 - "RootStage"
+Cohesion: 0.50
+Nodes (4): RootStage, APP, BOOT, ONBOARDING
+
+### Community 127 - "BarVisualizer"
+Cohesion: 0.50
+Nodes (4): BarVisualizer(), BarVisualizerPreview(), com, Modifier
+
+### Community 128 - "AuthProviderType"
+Cohesion: 0.67
+Nodes (3): AuthProviderType, EMAIL_PASSWORD, GOOGLE_FIREBASE
 
 ## Knowledge Gaps
-- **151 isolated node(s):** `6. Deviations / known issues`, `Verification basis`, `ArrayPreset`, `TourStep`, `Family` (+146 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 397 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **35 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **193 isolated node(s):** `KOTLIN`, `JAVA`, `PYTHON`, `CPP`, `BUBBLE_SORT` (+188 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 463 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **50 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `CodeListing()` connect `CodeListing` to `ChallengeModeManager.kt`, `TraceLanguage`, `InstrumentDeck`?**
-  _High betweenness centrality (0.081) - this node is a cross-community bridge._
-- **Why does `VisualizerScreenState` connect `VisualizerScreenState` to `ChallengeModeManager.kt`, `RailIconButton`, `OffscreenPointerBanner`, `VisualizerScreenStateTest`, `VisualizerScreenStateTest.kt`, `RecursionTreeOverlay`, `AlgorithmId`, `RegionAuxiliary`, `VisualizerHost.kt`?**
-  _High betweenness centrality (0.069) - this node is a cross-community bridge._
-- **Why does `AlgorithmId` connect `AlgorithmId` to `ChallengeModeManager.kt`, `VisualizerStep`, `ElementState`, `.generateStepsForAlgorithm`, `AlgoLensTheme`, `ChallengeModeManagerTest.kt`, `AiChatBackendTest.kt`, `AlgorithmStepRepository.kt`, `.processQuery`, `VisualizerScreen.kt`?**
+- **Why does `AlgorithmId` connect `AlgorithmId` to `ChatScreen.kt`, `SampleData`, `VisualizerStep`, `VisualizerHost.kt`, `.generateStepsForAlgorithm`, `TraceLanguage`, `AlgoLensTheme`, `setvalue`, `ChatSessionState.kt`, `ChallengeModeManagerTest.kt`, `FeatureEnhancementsTest.kt`, `1. Algorithmic Families & Variants`, `AiChatBackendTest.kt`, `.specFor`, `ChatHistoryRepository.kt`, `.processQuery`, `PracticeQuestionRepository`, `PracticeSessionState.kt`?**
+  _High betweenness centrality (0.085) - this node is a cross-community bridge._
+- **Why does `ChatSessionManager` connect `ChatSessionManager` to `ChatSessionState.kt`, `ChatConversation`, `FeatureEnhancementsTest.kt`, `AiChatBackendTest.kt`, `ChatScreen`, `ChatHistoryRepository.kt`, `.processQuery`, `FeatureEnhancementsTest`?**
   _High betweenness centrality (0.057) - this node is a cross-community bridge._
-- **What connects `6. Deviations / known issues`, `Verification basis`, `ArrayPreset` to the rest of the system?**
-  _151 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `ChallengeModeManager.kt` be split into smaller, more focused modules?**
-  _Cohesion score 0.08765515684946965 - nodes in this community are weakly interconnected._
-- **Should `ElementState` be split into smaller, more focused modules?**
-  _Cohesion score 0.05925925925925926 - nodes in this community are weakly interconnected._
+- **Why does `VisualizerScreenState` connect `VisualizerScreenState` to `ChatScreen.kt`, `VisualizerStep`, `VisualizerHost.kt`, `setvalue`, `.generateStepsForAlgorithm`, `OffscreenPointerBanner`, `VisualizerScreenStateTest`, `ElementState`, `RecursionTreeOverlay`, `ChallengeModeManagerTest.kt`, `FeatureEnhancementsTest.kt`, `rememberVisualizerScreenState`, `RegionAuxiliary`, `RecursionBands.kt`, `.specFor`, `VisualizerScreen.kt`?**
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **What connects `KOTLIN`, `JAVA`, `PYTHON` to the rest of the system?**
+  _193 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `ChatScreen.kt` be split into smaller, more focused modules?**
+  _Cohesion score 0.06505179282868526 - nodes in this community are weakly interconnected._
+- **Should `VisualizerStep` be split into smaller, more focused modules?**
+  _Cohesion score 0.146218487394958 - nodes in this community are weakly interconnected._
 - **Should `SwapFlight.kt` be split into smaller, more focused modules?**
-  _Cohesion score 0.06951219512195123 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06736353077816493 - nodes in this community are weakly interconnected._

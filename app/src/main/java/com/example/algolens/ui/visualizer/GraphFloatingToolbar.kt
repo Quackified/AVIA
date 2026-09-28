@@ -25,7 +25,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.example.algolens.model.GraphCapabilityProfile
 import com.example.algolens.model.GraphTool
 import com.example.algolens.ui.components.AlgoGlyphs
@@ -60,7 +59,7 @@ fun GraphFloatingToolbar(
 
     Box(
         modifier = modifier
-            .padding(AlgoTokens.space2)
+            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
             .clip(RoundedCornerShape(AlgoTokens.radiusMd))
             .background(DarkBackground.copy(alpha = 0.94f))
             .border(
@@ -73,7 +72,7 @@ fun GraphFloatingToolbar(
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
         ) {
             // Profile-filtered tools
             allowedTools.forEach { tool ->
@@ -88,7 +87,7 @@ fun GraphFloatingToolbar(
                 }
                 Box(
                     modifier = Modifier
-                        .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.minTouchTarget)
+                        .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.iconButtonSm)
                         .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                         .background(if (isSelected) CyanSubtle else CanvasBackground)
                         .border(
@@ -102,12 +101,12 @@ fun GraphFloatingToolbar(
                             this.contentDescription = "${tool.label}. ${tool.tooltip}"
                         }
                         .clickable { onToolSelected(tool) }
-                        .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                     ) {
                         Icon(
                             imageVector = glyph,
@@ -131,7 +130,7 @@ fun GraphFloatingToolbar(
             if (allowedTools.isNotEmpty()) {
                 Box(
                     modifier = Modifier
-                        .size(width = AlgoTokens.strokeThin, height = AlgoTokens.space7 - AlgoTokens.space2)
+                        .size(width = AlgoTokens.strokeThin, height = AlgoTokens.space5)
                         .background(BorderSubtle)
                 )
             }
@@ -139,7 +138,7 @@ fun GraphFloatingToolbar(
             // Center View
             Box(
                 modifier = Modifier
-                    .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.minTouchTarget)
+                    .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.iconButtonSm)
                     .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                     .background(CanvasBackground)
                     .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
@@ -148,12 +147,12 @@ fun GraphFloatingToolbar(
                         this.contentDescription = "Center graph in viewport"
                     }
                     .clickable { onCenterView() }
-                    .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
+                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
                 contentAlignment = Alignment.Center
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                 ) {
                     Icon(
                         imageVector = AlgoGlyphs.Target,
@@ -175,7 +174,7 @@ fun GraphFloatingToolbar(
             // Fit to Screen
             Box(
                 modifier = Modifier
-                    .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.minTouchTarget)
+                    .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.iconButtonSm)
                     .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                     .background(CanvasBackground)
                     .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
@@ -184,12 +183,12 @@ fun GraphFloatingToolbar(
                         this.contentDescription = "Fit graph to screen with margins"
                     }
                     .clickable { onFitToScreen() }
-                    .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
+                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
                 contentAlignment = Alignment.Center
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                 ) {
                     Icon(
                         imageVector = AlgoGlyphs.Expand,
@@ -212,7 +211,7 @@ fun GraphFloatingToolbar(
             if (canReset) {
                 Box(
                     modifier = Modifier
-                        .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.minTouchTarget)
+                        .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.iconButtonSm)
                         .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                         .background(CanvasBackground)
                         .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
@@ -221,12 +220,12 @@ fun GraphFloatingToolbar(
                             this.contentDescription = "Reset graph and tree modifications"
                         }
                         .clickable { onResetGraph() }
-                        .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                     ) {
                         Icon(
                             imageVector = AlgoGlyphs.Refresh,

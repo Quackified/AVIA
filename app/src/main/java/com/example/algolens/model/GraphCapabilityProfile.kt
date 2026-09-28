@@ -37,10 +37,13 @@ data class GraphCapabilityProfile(
     val canSetEndpoints: Boolean = false,
     val canDeleteElements: Boolean = false,
     val supportsDirectedEdges: Boolean = false,
-    val nodePlacementMode: NodePlacementMode = NodePlacementMode.FREEFORM,
     val allowedTools: Set<GraphTool> = emptySet(),
+    val supportsFullscreen: Boolean = allowedTools.isNotEmpty(),
+    val nodePlacementMode: NodePlacementMode = NodePlacementMode.FREEFORM,
     val hintProvider: (GraphTool, selectedNodeId: String?) -> String = { tool, _ -> tool.tooltip }
 ) {
+    val isReadOnly: Boolean get() = allowedTools.isEmpty()
+
     companion object {
         fun dijkstraProfile(): GraphCapabilityProfile = GraphCapabilityProfile(
             canMoveNodes = true,
@@ -51,6 +54,7 @@ data class GraphCapabilityProfile(
             canSetEndpoints = true,
             canDeleteElements = true,
             supportsDirectedEdges = false,
+            supportsFullscreen = true,
             nodePlacementMode = NodePlacementMode.FREEFORM,
             allowedTools = setOf(
                 GraphTool.MOVE,
@@ -81,6 +85,7 @@ data class GraphCapabilityProfile(
             canSetEndpoints = true,
             canDeleteElements = true,
             supportsDirectedEdges = false,
+            supportsFullscreen = true,
             nodePlacementMode = NodePlacementMode.FREEFORM,
             allowedTools = setOf(
                 GraphTool.MOVE,
@@ -101,57 +106,12 @@ data class GraphCapabilityProfile(
             }
         )
 
-        fun bstProfile(): GraphCapabilityProfile = GraphCapabilityProfile(
-            canMoveNodes = true,
-            canPanAndZoom = true,
-            canAddNode = true,
-            canConnectNodes = false,
-            canEditEdgeWeights = false,
-            canSetEndpoints = false,
-            canDeleteElements = true,
-            supportsDirectedEdges = true,
-            nodePlacementMode = NodePlacementMode.KEYED_BST_INSERT,
-            allowedTools = setOf(
-                GraphTool.MOVE,
-                GraphTool.ADD,
-                GraphTool.DELETE
-            ),
-            hintProvider = { tool, selectedId ->
-                when (tool) {
-                    GraphTool.MOVE -> if (selectedId != null) "Selected Node $selectedId • Drag to nudge position (invariants preserved)" else "Drag node to nudge position (invariants preserved) • Drag background to pan"
-                    GraphTool.ADD -> "Tap canvas to insert a new integer key (1..999) into BST"
-                    GraphTool.DELETE -> "Tap any node to delete from BST (replaces with in-order successor)"
-                    else -> tool.tooltip
-                }
-            }
-        )
-
-        fun heapProfile(): GraphCapabilityProfile = GraphCapabilityProfile(
-            canMoveNodes = true,
-            canPanAndZoom = true,
-            canAddNode = true,
-            canConnectNodes = false,
-            canEditEdgeWeights = false,
-            canSetEndpoints = false,
-            canDeleteElements = true,
-            supportsDirectedEdges = true,
-            nodePlacementMode = NodePlacementMode.HEAP_ARRAY_PUSH,
-            allowedTools = setOf(
-                GraphTool.MOVE,
-                GraphTool.ADD,
-                GraphTool.DELETE
-            ),
-            hintProvider = { tool, selectedId ->
-                when (tool) {
-                    GraphTool.MOVE -> if (selectedId != null) "Selected Slot $selectedId • Drag to nudge position" else "Drag slot to nudge position • Drag background to pan"
-                    GraphTool.ADD -> "Tap canvas to append an integer value (1..999) to heap array"
-                    GraphTool.DELETE -> "Tap root (slot 0) to extract or tail leaf to remove"
-                    else -> tool.tooltip
-                }
-            }
-        )
-
-        fun readOnlyProfile(): GraphCapabilityProfile = GraphCapabilityProfile(
+        /**
+         * View-only mode for algorithms that construct structures strictly from input (BST, Heap)
+         * or algorithms that do not permit topological editing.
+         * Disables the floating toolbar, node creation/deletion, and fullscreen mode.
+         */
+        fun viewOnlyProfile(supportsDirectedEdges: Boolean = false): GraphCapabilityProfile = GraphCapabilityProfile(
             canMoveNodes = false,
             canPanAndZoom = true,
             canAddNode = false,
@@ -159,10 +119,17 @@ data class GraphCapabilityProfile(
             canEditEdgeWeights = false,
             canSetEndpoints = false,
             canDeleteElements = false,
-            supportsDirectedEdges = false,
+            supportsDirectedEdges = supportsDirectedEdges,
+            supportsFullscreen = false,
             nodePlacementMode = NodePlacementMode.FREEFORM,
             allowedTools = emptySet(),
             hintProvider = { tool, _ -> tool.tooltip }
         )
+
+        fun bstProfile(): GraphCapabilityProfile = viewOnlyProfile(supportsDirectedEdges = true)
+
+        fun heapProfile(): GraphCapabilityProfile = viewOnlyProfile(supportsDirectedEdges = true)
+
+        fun readOnlyProfile(): GraphCapabilityProfile = viewOnlyProfile(supportsDirectedEdges = false)
     }
 }

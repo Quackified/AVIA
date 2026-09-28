@@ -39,7 +39,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.Dialog
 import com.example.algolens.data.GraphSearch
@@ -475,98 +474,102 @@ fun GraphCanvasEngine(
             modifier = Modifier.fillMaxSize()
         )
 
-        // 3. Floating Bottom Chrome: Banner + Floating Toolbar
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = AlgoTokens.space2),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-        ) {
-            if (isBuilderActive && profile.allowedTools.isNotEmpty()) {
-                val bannerText = profile.hintProvider(activeTool, selectedNodeId)
-                Box(
-                    modifier = Modifier
-                        .padding(bottom = AlgoTokens.space1)
-                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                        .background(DarkBackground.copy(alpha = 0.90f))
-                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
-                        .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
-                ) {
-                    Text(
-                        text = bannerText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PrimaryCyan,
-                        fontSize = AlgoType.microSize,
-                        fontWeight = FontWeight.Medium
-                    )
+        // 3. Floating Bottom Chrome: Banner + Floating Toolbar (only when editing tools are supported)
+        if (profile.allowedTools.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = AlgoTokens.space1),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+            ) {
+                if (isBuilderActive) {
+                    val bannerText = profile.hintProvider(activeTool, selectedNodeId)
+                    Box(
+                        modifier = Modifier
+                            .padding(bottom = AlgoTokens.space1)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                            .background(DarkBackground.copy(alpha = 0.90f))
+                            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                    ) {
+                        Text(
+                            text = bannerText,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = PrimaryCyan,
+                            fontSize = AlgoType.microSize,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
-            }
 
-            GraphFloatingToolbar(
-                profile = profile,
-                activeTool = activeTool,
-                onToolSelected = onToolSelected,
-                onCenterView = {
-                    if (canvasSize.width > 0f && canvasSize.height > 0f) {
-                        panOffset = GraphCanvasGeometry.computeCenterPan(
-                            nodes = effectiveNodes,
-                            drawSize = canvasSize,
-                            zoom = zoom,
-                            referenceHeight = maxObservedCanvasHeightPx
-                        )
-                    } else {
+                GraphFloatingToolbar(
+                    profile = profile,
+                    activeTool = activeTool,
+                    onToolSelected = onToolSelected,
+                    onCenterView = {
+                        if (canvasSize.width > 0f && canvasSize.height > 0f) {
+                            panOffset = GraphCanvasGeometry.computeCenterPan(
+                                nodes = effectiveNodes,
+                                drawSize = canvasSize,
+                                zoom = zoom,
+                                referenceHeight = maxObservedCanvasHeightPx
+                            )
+                        } else {
+                            panOffset = Offset.Zero
+                        }
+                    },
+                    onFitToScreen = {
+                        if (canvasSize.width > 0f && canvasSize.height > 0f) {
+                            val (fitZoom, fitPan) = GraphCanvasGeometry.computeFitZoomAndPan(
+                                nodes = effectiveNodes,
+                                drawSize = canvasSize,
+                                marginPx = 24f * density,
+                                referenceHeight = maxObservedCanvasHeightPx
+                            )
+                            zoom = fitZoom
+                            panOffset = fitPan
+                        } else {
+                            zoom = 1f
+                            panOffset = Offset.Zero
+                        }
+                    },
+                    onResetGraph = {
                         panOffset = Offset.Zero
-                    }
-                },
-                onFitToScreen = {
-                    if (canvasSize.width > 0f && canvasSize.height > 0f) {
-                        val (fitZoom, fitPan) = GraphCanvasGeometry.computeFitZoomAndPan(
-                            nodes = effectiveNodes,
-                            drawSize = canvasSize,
-                            marginPx = 24f * density,
-                            referenceHeight = maxObservedCanvasHeightPx
-                        )
-                        zoom = fitZoom
-                        panOffset = fitPan
-                    } else {
                         zoom = 1f
-                        panOffset = Offset.Zero
-                    }
-                },
-                onResetGraph = {
-                    panOffset = Offset.Zero
-                    zoom = 1f
-                    onResetGraph()
-                },
-                canReset = canReset,
-                isPannedOrZoomed = isPannedOrZoomed
-            )
+                        onResetGraph()
+                    },
+                    canReset = canReset,
+                    isPannedOrZoomed = isPannedOrZoomed
+                )
+            }
         }
 
-        // 4. Top-Right Canvas Icon: Fullscreen Toggle (Non-highlighted icon button)
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(AlgoTokens.space2)
-                .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.minTouchTarget)
-                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                .background(DarkBackground.copy(alpha = 0.75f))
-                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
-                .semantics {
-                    this.role = Role.Button
-                    this.contentDescription = if (isFullscreen) "Exit Fullscreen" else "Open Fullscreen"
-                }
-                .clickable { onToggleFullscreen() }
-                .padding(AlgoTokens.space2),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (isFullscreen) AlgoGlyphs.Close else AlgoGlyphs.Expand,
-                contentDescription = null,
-                tint = TextMuted,
-                modifier = Modifier.size(AlgoTokens.inlineIconMd)
-            )
+        // 4. Top-Right Canvas Icon: Fullscreen Toggle (only when fullscreen mode is supported)
+        if (profile.supportsFullscreen) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(AlgoTokens.space2)
+                    .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.minTouchTarget)
+                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                    .background(DarkBackground.copy(alpha = 0.75f))
+                    .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                    .semantics {
+                        this.role = Role.Button
+                        this.contentDescription = if (isFullscreen) "Exit Fullscreen" else "Open Fullscreen"
+                    }
+                    .clickable { onToggleFullscreen() }
+                    .padding(AlgoTokens.space2),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isFullscreen) AlgoGlyphs.Close else AlgoGlyphs.Expand,
+                    contentDescription = null,
+                    tint = TextMuted,
+                    modifier = Modifier.size(AlgoTokens.inlineIconMd)
+                )
+            }
         }
 
         // 5. Modals / Entry Dialogs

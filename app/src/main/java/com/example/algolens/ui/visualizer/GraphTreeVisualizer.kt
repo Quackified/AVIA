@@ -248,7 +248,7 @@ fun GraphTreeVisualizer(
     }
 
     // ── Fullscreen Interactive Canvas Overlay ──
-    if (isFullscreen) {
+    if (isFullscreen && resolvedProfile.supportsFullscreen) {
         Dialog(
             onDismissRequest = { isFullscreen = false },
             properties = DialogProperties(
