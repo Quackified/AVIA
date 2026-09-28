@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.example.algolens.lint.AlgoLensDetectorsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-08-31T15:54:56.519Z" hostname="PC-QUACK" time="19.179">
+<testsuite name="com.example.algolens.lint.AlgoLensDetectorsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-09-28T12:14:48.984Z" hostname="PC-QUACK" time="27.626">
   <properties/>
-  <testcase name="testMutableStateOfInOtherFilesIsAllowed" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="8.503"/>
-  <testcase name="testMutableStateOfInVisualizerScreenIsFlagged" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="2.433"/>
-  <testcase name="testHexColorInsideThemeColorKtIsAllowed" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="2.097"/>
-  <testcase name="testTokenPaddingIsAllowed" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="2.28"/>
-  <testcase name="testRegistryIsServiceLoaded" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="0.003"/>
-  <testcase name="testHexColorOutsideThemeIsFlagged" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="1.919"/>
-  <testcase name="testRawDpSizeIsFlagged" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="1.941"/>
+  <testcase name="testMutableStateOfInOtherFilesIsAllowed" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="15.748"/>
+  <testcase name="testMutableStateOfInVisualizerScreenIsFlagged" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="3.149"/>
+  <testcase name="testHexColorInsideThemeColorKtIsAllowed" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="2.333"/>
+  <testcase name="testTokenPaddingIsAllowed" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="2.487"/>
+  <testcase name="testRegistryIsServiceLoaded" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="0.004"/>
+  <testcase name="testHexColorOutsideThemeIsFlagged" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="1.973"/>
+  <testcase name="testRawDpSizeIsFlagged" classname="com.example.algolens.lint.AlgoLensDetectorsTest" time="1.927"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

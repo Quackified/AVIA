@@ -375,6 +375,7 @@ private fun CellItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
             modifier = Modifier
+                .width(cellWidth)
                 .clickable(enabled = onCellClick != null) {
                     onCellClick?.invoke(index)
                 }

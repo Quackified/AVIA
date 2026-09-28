@@ -141,7 +141,22 @@ fun TelemetryDeckPage(
                 )
             }
 
-            if (step.variables.isEmpty()) {
+            val displayVariables = if (step.variables.isNotEmpty()) {
+                step.variables
+            } else {
+                buildMap {
+                    for ((label, index) in step.bottomPointers) {
+                        val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
+                        put(label, "$index ($arrVal)")
+                    }
+                    for ((label, index) in step.topPointers) {
+                        val arrVal = step.array.getOrNull(index)?.toString() ?: index.toString()
+                        put(label, "$index ($arrVal)")
+                    }
+                }
+            }
+
+            if (displayVariables.isEmpty()) {
                 Text(
                     text = "No active variables at this step",
                     style = MaterialTheme.typography.labelSmall,
@@ -156,7 +171,7 @@ fun TelemetryDeckPage(
                         .horizontalScroll(horizScroll),
                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                 ) {
-                    for ((k, v) in step.variables) {
+                    for ((k, v) in displayVariables) {
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(AlgoTokens.radiusXs))

@@ -343,122 +343,268 @@ private fun BufferStageControls(
  * capacity indicator on the right tells the user at a glance how
  * much of the buffer's max size is used.
  */
+/**
+ * Redesigned Stack canvas — an open-top vertical chamber (beaker / U-tube)
+ * with discrete slot guides (#0 to #7), a dynamic TOP pointer that tracks
+ * the active topmost element, an open entrance mouth, and a grounded pedestal.
+ *
+ * Items enter from above (slideEnter Top) and stack onto the grounded base.
+ * Ghost slot trays visually communicate the full capacity and remaining slots.
+ */
 @Composable
 private fun StackCanvas(step: VisualizerStep) {
-    val capacity = step.bufferCapacity.coerceAtLeast(1)
+    val capacity = step.bufferCapacity.coerceIn(1, 8)
+    val currentSize = step.buffer.size
+    val topIndex = if (currentSize > 0) currentSize - 1 else -1
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.Bottom
     ) {
-        // Stack column with TOP arrow above and base below
+        // Dynamic TOP Pointer Column (on the left of the beaker)
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier
+                .width(48.dp)
+                .padding(bottom = 8.dp) // align above base platform
+        ) {
+            // Space above container matching the top mouth label height
+            Spacer(modifier = Modifier.height(18.dp))
+
+            for (slotIdx in (capacity - 1) downTo 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(20.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    if (slotIdx == topIndex) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "TOP",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PurpleGlow,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = AlgoType.microSize
+                            )
+                            Text(
+                                text = "➔",
+                                color = SecondaryPurple,
+                                fontSize = AlgoType.microSize,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else if (currentSize == 0 && slotIdx == 0) {
+                        Text(
+                            text = "BASE ➔",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextDark,
+                            fontSize = AlgoType.microSize,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(4.dp))
+
+        // Center Stack Receptacle: Mouth Header + Open-Top Beaker + Grounded Platform
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier.width(200.dp)
         ) {
-            // ── TOP arrow indicator ──
-            TopArrowIndicator(isActive = step.buffer.isNotEmpty())
+            // ── Open Top Guidance Header ──
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.height(16.dp)
+            ) {
+                if (currentSize == capacity) {
+                    Text(
+                        text = "STACK FULL",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AccentRed,
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = AlgoType.trackTight
+                    )
+                }
+            }
 
-            // ── Stack container ──
+            // ── Open-Top Chamber Container (Walls on Left, Bottom, Right; Open at Top with Notches) ──
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = AlgoTokens.radiusXxs, bottomEnd = AlgoTokens.radiusXxs))
-                    .background(CardBackground)
-                    .border(
-                        width = 1.5.dp,
-                        color = PrimaryCyan.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = AlgoTokens.radiusXxs, bottomEnd = AlgoTokens.radiusXxs)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                if (step.buffer.isEmpty()) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
-                        modifier = Modifier.align(Alignment.Center)
-                    ) {
-                        Text(
-                            text = "EMPTY",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextMuted,
-                            fontSize = AlgoType.microSize,
-                            fontWeight = FontWeight.Bold
+                    .drawBehind {
+                        val stroke = 1.5.dp.toPx()
+                        val wallColor = SecondaryPurple.copy(alpha = 0.50f)
+                        val notch = 8.dp.toPx()
+
+                        // Left entry lip notch (outward tick)
+                        drawLine(
+                            color = wallColor,
+                            start = Offset(0f, 0f),
+                            end = Offset(notch, 0f),
+                            strokeWidth = stroke
                         )
-                        Text(
-                            text = "push() to add",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextDark,
-                            fontSize = AlgoType.microSize
+                        // Left wall
+                        drawLine(
+                            color = wallColor,
+                            start = Offset(notch, 0f),
+                            end = Offset(notch, size.height),
+                            strokeWidth = stroke
+                        )
+                        // Bottom floor
+                        drawLine(
+                            color = wallColor,
+                            start = Offset(notch, size.height),
+                            end = Offset(size.width - notch, size.height),
+                            strokeWidth = stroke
+                        )
+                        // Right wall
+                        drawLine(
+                            color = wallColor,
+                            start = Offset(size.width - notch, size.height),
+                            end = Offset(size.width - notch, 0f),
+                            strokeWidth = stroke
+                        )
+                        // Right entry lip notch (outward tick)
+                        drawLine(
+                            color = wallColor,
+                            start = Offset(size.width - notch, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = stroke
                         )
                     }
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(3.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        step.buffer.reversed().forEachIndexed { indexFromTop, item ->
-                            val isTop = indexFromTop == 0
+                    .background(CardBackground.copy(alpha = 0.5f))
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                // 8 Discrete Slot Guides (Rendered #7 down to #0)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    for (slotIdx in (capacity - 1) downTo 0) {
+                        val item = step.buffer.getOrNull(slotIdx)
+                        val isTop = slotIdx == topIndex
+
+                        if (item != null) {
+                            // Filled Slot Cell
                             val (bgCol, textCol) = when (item.state) {
                                 ElementState.ACTIVE, ElementState.FOUND -> Pair(PrimaryCyan, DarkBackground)
                                 ElementState.SWAPPING -> Pair(AccentRed, Color.White)
                                 ElementState.COMPARING -> Pair(AccentYellow, DarkBackground)
-                                else -> Pair(if (isTop) PurpleSubtle else CardBackgroundElevated, if (isTop) PurpleGlow else TextPrimary)
+                                else -> Pair(
+                                    if (isTop) PurpleSubtle else CardBackgroundElevated,
+                                    if (isTop) PurpleGlow else TextPrimary
+                                )
                             }
-                            // Keyed by item.id so the slide-in entry
-                            // animation runs on every push.
+
                             key(item.id) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .height(20.dp)
                                         .slideEnter(visible = true, direction = SlideDirection.Top)
                                         .nodePop(item.state == ElementState.ACTIVE)
-                                        .clip(RoundedCornerShape(5.dp))
+                                        .clip(RoundedCornerShape(4.dp))
                                         .background(bgCol)
                                         .border(
-                                            width = if (isTop) 1.5.dp else 1.dp,
+                                            width = if (isTop) 1.2.dp else 1.dp,
                                             color = if (isTop) SecondaryPurple else BorderMedium,
-                                            shape = RoundedCornerShape(5.dp)
+                                            shape = RoundedCornerShape(4.dp)
                                         )
-                                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                                        .padding(horizontal = 6.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    // Slot index indicator
+                                    Text(
+                                        text = "#$slotIdx",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (item.state == ElementState.ACTIVE || item.state == ElementState.FOUND) TextDark else TextMuted,
+                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    // Item value
                                     Text(
                                         text = item.value,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = textCol,
+                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = AlgoType.bodySize
+                                        fontSize = 11.sp
                                     )
+
+                                    // State tag
                                     if (isTop) {
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(3.dp))
+                                                .clip(RoundedCornerShape(2.dp))
                                                 .background(SecondaryPurple)
-                                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                .padding(horizontal = 3.dp, vertical = 0.5.dp)
                                         ) {
                                             Text(
                                                 text = "TOP",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = Color.White,
-                                                fontSize = AlgoType.microSize,
+                                                fontSize = 7.5.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
+                                    } else {
+                                        Spacer(modifier = Modifier.width(18.dp))
                                     }
                                 }
+                            }
+                        } else {
+                            // Empty Ghost Slot Guide
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(20.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(Color.Transparent)
+                                    .border(
+                                        AlgoTokens.strokeHairline,
+                                        BorderSubtle.copy(alpha = 0.35f),
+                                        RoundedCornerShape(3.dp)
+                                    )
+                                    .padding(horizontal = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "#$slotIdx",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextDark,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    fontSize = 8.sp
+                                )
+                                Text(
+                                    text = "· · ·",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextDark.copy(alpha = 0.6f),
+                                    fontSize = 8.sp
+                                )
+                                Spacer(modifier = Modifier.width(18.dp))
                             }
                         }
                     }
                 }
             }
 
-            // ── Base platform ──
+            // ── Grounded Base Platform ──
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -467,45 +613,18 @@ private fun StackCanvas(step: VisualizerStep) {
                     .background(
                         Brush.horizontalGradient(
                             listOf(
+                                SecondaryPurple.copy(alpha = 0.7f),
                                 PrimaryCyan.copy(alpha = 0.5f),
-                                SecondaryPurple.copy(alpha = 0.5f)
+                                SecondaryPurple.copy(alpha = 0.7f)
                             )
                         )
                     )
             )
         }
 
-        // ── Capacity indicator on the right side ──
-        Spacer(modifier = Modifier.width(12.dp))
-        CapacityIndicator(size = step.buffer.size, capacity = capacity)
-    }
-}
-
-/**
- * Stack TOP arrow — a down-arrow + "TOP" label, sits above the stack
- * container. Shown in muted colors when the stack is empty.
- */
-@Composable
-private fun TopArrowIndicator(isActive: Boolean) {
-    val accent = if (isActive) SecondaryPurple else TextMuted
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
-        Text(
-            text = "TOP",
-            style = MaterialTheme.typography.labelSmall,
-            color = accent,
-            fontSize = AlgoType.microSize,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = AlgoType.trackTight
-        )
-        Icon(
-            imageVector = AlgoGlyphs.ArrowDown,
-            contentDescription = "Top of stack",
-            tint = accent,
-            modifier = Modifier.size(10.dp)
-        )
+        // ── Capacity Indicator on Right Side ──
+        Spacer(modifier = Modifier.width(10.dp))
+        CapacityIndicator(size = currentSize, capacity = capacity)
     }
 }
 

@@ -399,14 +399,16 @@ object GraphTreeMutations {
 
         val spanX = maxOf(160f, (total - 1) * 28f)
         val spanY = maxOf(86f, maxDepth * 26f)
+        val minX = 130f - spanX / 2f
+        val minY = 75f - spanY / 2f
 
         // Keep root as first element so generators can immediately find rootId at nodes.firstOrNull()?.id
         val orderedNodes = listOf(root) + inOrderList.filter { it.id != root.id }
 
         val nodes = orderedNodes.map { n ->
             val custom = customCoordinates[n.id]
-            val x = custom?.x ?: (if (total <= 1) 100f else 20f + ((rankMap[n.id] ?: 0).toFloat() / (total - 1).toFloat()) * spanX)
-            val y = custom?.y ?: (if (maxDepth == 0) 50f else 18f + ((depths[n.id] ?: 0).toFloat() / maxDepth.toFloat()) * spanY)
+            val x = custom?.x ?: (if (total <= 1) 130f else minX + ((rankMap[n.id] ?: 0).toFloat() / (total - 1).toFloat()) * spanX)
+            val y = custom?.y ?: (if (maxDepth == 0) 75f else minY + ((depths[n.id] ?: 0).toFloat() / maxDepth.toFloat()) * spanY)
             GraphNodeState(
                 id = n.id,
                 label = n.value.toString(),
@@ -477,8 +479,13 @@ object GraphTreeMutations {
             val indexInLevel = (idx + 1) - (1 shl level)
             val nodesInLevel = 1 shl level
 
-            val defaultX = 15f + ((indexInLevel + 0.5f) / nodesInLevel.toFloat()) * 170f
-            val defaultY = if (maxLevel == 0) 54f else 18f + (level.toFloat() / maxLevel.toFloat()) * 82f
+            val spanX = 170f
+            val minX = 130f - spanX / 2f
+            val spanY = 82f
+            val minY = 75f - spanY / 2f
+
+            val defaultX = minX + ((indexInLevel + 0.5f) / nodesInLevel.toFloat()) * spanX
+            val defaultY = if (maxLevel == 0) 75f else minY + (level.toFloat() / maxLevel.toFloat()) * spanY
 
             val x = custom?.x ?: defaultX
             val y = custom?.y ?: defaultY

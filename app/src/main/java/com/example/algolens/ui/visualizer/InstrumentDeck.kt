@@ -53,6 +53,7 @@ import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.PrimaryCyan
+import com.example.algolens.ui.theme.SecondaryPurple
 import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
 import com.example.algolens.ui.theme.TextSecondary
@@ -112,16 +113,23 @@ fun InstrumentDeck(
             .height(TERMINAL_EXPANDED_HEIGHT)
             .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
     ) {
+        val cardShape = RoundedCornerShape(
+            topStart = 0.dp,
+            topEnd = 0.dp,
+            bottomStart = 0.dp,
+            bottomEnd = 0.dp
+        )
+
         // Outer Card Frame
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+                .clip(cardShape)
                 .background(CanvasBackground)
                 .border(
                     AlgoTokens.strokeThin,
-                    BorderSubtle,
-                    RoundedCornerShape(AlgoTokens.radiusMd)
+                    SecondaryPurple.copy(alpha = 0.35f),
+                    cardShape
                 )
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -131,11 +139,6 @@ fun InstrumentDeck(
                         .fillMaxWidth()
                         .height(AlgoTokens.iconButtonSm)
                         .background(CardBackgroundElevated)
-                        .border(
-                            AlgoTokens.strokeHairline,
-                            BorderSubtle.copy(alpha = 0.5f),
-                            RoundedCornerShape(topStart = AlgoTokens.radiusMd, topEnd = AlgoTokens.radiusMd)
-                        )
                         .padding(horizontal = AlgoTokens.space4),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -187,9 +190,9 @@ fun InstrumentDeck(
                                 modifier = Modifier.size(AlgoTokens.inlineIconSm)
                             )
                             val formattedName = when (currentWidget) {
-                                WidgetType.TRACE -> ">_ code_trace"
-                                WidgetType.STATE -> ">_ state"
-                                WidgetType.TELEMETRY -> ">_ telemetry"
+                                WidgetType.TRACE -> "Code Trace"
+                                WidgetType.STATE -> "State"
+                                WidgetType.TELEMETRY -> "Telemetry"
                             }
                             Text(
                                 text = formattedName,
@@ -223,6 +226,14 @@ fun InstrumentDeck(
                         )
                     }
                 }
+
+                // Titlebar bottom hairline separator
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(AlgoTokens.strokeHairline)
+                        .background(SecondaryPurple.copy(alpha = 0.35f))
+                )
 
                 // Pager Content Area
                 HorizontalPager(
@@ -275,11 +286,6 @@ fun InstrumentDeck(
                         .padding(bottom = AlgoTokens.space2)
                         .clip(RoundedCornerShape(percent = 50))
                         .background(DarkBackground.copy(alpha = 0.85f))
-                        .border(
-                            AlgoTokens.strokeHairline,
-                            BorderSubtle.copy(alpha = 0.6f),
-                            RoundedCornerShape(percent = 50)
-                        )
                         .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
                 ) {
                     Row(

@@ -140,6 +140,7 @@ object AlgorithmStepRepository {
                 array = arr.toList(),
                 activeRange = 0 until n,
                 elementStates = emptyMap(),
+                variables = mapOf("n" to "$n"),
                 activeCodeLines = listOf(1, 2)
             )
         )
@@ -166,6 +167,7 @@ object AlgorithmStepRepository {
                             (j + 1) to ElementState.COMPARING
                         ),
                         bottomPointers = mapOf("j" to j, "j+1" to j + 1),
+                        variables = mapOf("i" to "$i", "j" to "$j", "arr[j]" to "${arr[j]}", "arr[j+1]" to "${arr[j + 1]}"),
                         activeCodeLines = listOf(4, 5)
                     )
                 )
@@ -193,6 +195,7 @@ object AlgorithmStepRepository {
                                 (j + 1) to ElementState.SWAPPING
                             ),
                             bottomPointers = mapOf("j" to j, "j+1" to j + 1),
+                            variables = mapOf("i" to "$i", "j" to "$j", "arr[j]" to "${arr[j]}", "arr[j+1]" to "${arr[j + 1]}", "swapped" to "true"),
                             activeCodeLines = listOf(6)
                         )
                     )
@@ -211,6 +214,7 @@ object AlgorithmStepRepository {
                     activeRange = 0 until (n - i - 1),
                     sortedBoundary = n - i - 1,
                     elementStates = sortedMap,
+                    variables = mapOf("i" to "$i", "tailIndex" to "${n - i - 1}", "tailVal" to "${arr[n - i - 1]}"),
                     activeCodeLines = listOf(3)
                 )
             )
@@ -227,6 +231,7 @@ object AlgorithmStepRepository {
                 activeRange = 0 until n,
                 sortedBoundary = 0,
                 elementStates = (0 until n).associateWith { ElementState.SORTED },
+                variables = mapOf("n" to "$n", "sorted" to "true"),
                 activeCodeLines = listOf(7)
             )
         )
@@ -258,6 +263,7 @@ object AlgorithmStepRepository {
                 array = arr.toList(),
                 activeRange = 0 until n,
                 sortedBoundary = 0,
+                variables = mapOf("n" to "$n"),
                 activeCodeLines = listOf(1, 2)
             )
         )
@@ -280,6 +286,7 @@ object AlgorithmStepRepository {
                     elementStates = sortedLeft + mapOf(i to ElementState.ACTIVE),
                     topPointers = mapOf(extremeLabel to minIdx),
                     bottomPointers = mapOf("i" to i),
+                    variables = mapOf("i" to "$i", "$extremeLabel" to "${arr[minIdx]}", "minIdx" to "$minIdx"),
                     activeCodeLines = listOf(3, 4)
                 )
             )
@@ -305,6 +312,7 @@ object AlgorithmStepRepository {
                         ),
                         topPointers = mapOf(extremeLabel to minIdx),
                         bottomPointers = mapOf("i" to i, "j" to j),
+                        variables = mapOf("i" to "$i", "j" to "$j", "arr[j]" to "${arr[j]}", "$extremeLabel" to "${arr[minIdx]}", "minIdx" to "$minIdx"),
                         activeCodeLines = listOf(5, 6)
                     )
                 )
@@ -325,6 +333,7 @@ object AlgorithmStepRepository {
                             elementStates = sortedLeft + mapOf(minIdx to ElementState.FOUND),
                             topPointers = mapOf(extremeLabel to minIdx),
                             bottomPointers = mapOf("i" to i, "j" to j),
+                            variables = mapOf("i" to "$i", "j" to "$j", "new$extremeLabel" to "${arr[minIdx]}", "minIdx" to "$minIdx"),
                             activeCodeLines = listOf(7)
                         )
                     )
@@ -354,6 +363,7 @@ object AlgorithmStepRepository {
                         ),
                         topPointers = mapOf(extremeLabel to minIdx),
                         bottomPointers = mapOf("i" to i),
+                        variables = mapOf("i" to "$i", "swapped" to "arr[$i] <-> arr[$minIdx]"),
                         activeCodeLines = listOf(8)
                     )
                 )
@@ -371,6 +381,7 @@ object AlgorithmStepRepository {
                     sortedBoundary = i + 1,
                     elementStates = (0..i).associateWith { ElementState.SORTED },
                     bottomPointers = mapOf("i" to i),
+                    variables = mapOf("i" to "$i", "sortedBoundary" to "${i + 1}"),
                     activeCodeLines = listOf(8)
                 )
             )
@@ -387,6 +398,7 @@ object AlgorithmStepRepository {
                 activeRange = 0 until n,
                 sortedBoundary = n,
                 elementStates = (0 until n).associateWith { ElementState.SORTED },
+                variables = mapOf("n" to "$n", "sorted" to "true"),
                 activeCodeLines = listOf(8)
             )
         )
@@ -416,6 +428,7 @@ object AlgorithmStepRepository {
                 array = arr.toList(),
                 sortedBoundary = 1,
                 elementStates = mapOf(0 to ElementState.SORTED),
+                variables = mapOf("n" to "$n"),
                 activeCodeLines = listOf(1)
             )
         )
@@ -438,6 +451,7 @@ object AlgorithmStepRepository {
                     elementStates = sortedPrefix + mapOf(i to ElementState.TARGET),
                     topPointers = mapOf("key" to i),
                     bottomPointers = mapOf("i" to i, "j" to j),
+                    variables = mapOf("i" to "$i", "j" to "$j", "key" to "$key"),
                     activeCodeLines = listOf(2, 3, 4)
                 )
             )
@@ -459,6 +473,7 @@ object AlgorithmStepRepository {
                         ),
                         topPointers = mapOf("key" to (j + 1)),
                         bottomPointers = mapOf("j" to j),
+                        variables = mapOf("i" to "$i", "j" to "$j", "key" to "$key", "arr[j]" to "${arr[j]}"),
                         activeCodeLines = listOf(5, 6, 7)
                     )
                 )
@@ -479,6 +494,7 @@ object AlgorithmStepRepository {
                     floatingElement = null,
                     elementStates = (0..i).associateWith { ElementState.SORTED },
                     bottomPointers = mapOf("i" to i),
+                    variables = mapOf("i" to "$i", "insertedAt" to "${j + 1}", "key" to "$key"),
                     activeCodeLines = listOf(8)
                 )
             )
@@ -494,6 +510,7 @@ object AlgorithmStepRepository {
                 array = arr.toList(),
                 sortedBoundary = n,
                 elementStates = (0 until n).associateWith { ElementState.SORTED },
+                variables = mapOf("n" to "$n", "sorted" to "true"),
                 activeCodeLines = listOf(8)
             )
         )
@@ -523,6 +540,8 @@ object AlgorithmStepRepository {
                 mergeBlocks = listOf(rootRange),
                 recursionDepth = 0,
                 ancestorRanges = listOf(rootRange),
+                variables = mapOf("n" to "${arr.size}"),
+                callStack = listOf("mergeSort(0, ${arr.size - 1})"),
                 activeCodeLines = listOf(1, 2)
             )
         )
@@ -533,6 +552,7 @@ object AlgorithmStepRepository {
             var i = 0
             var j = 0
             var k = l
+            val frames = path.map { "mergeSort(${it.first}, ${it.last})" }
 
             val aux = left + right
             steps.add(
@@ -552,6 +572,8 @@ object AlgorithmStepRepository {
                     elementStates = (l..r).associateWith { ElementState.COMPARING },
                     topPointers = mapOf("L" to l, "M" to m, "R" to r),
                     bottomPointers = mapOf("k" to k),
+                    variables = mapOf("l" to "$l", "m" to "$m", "r" to "$r", "leftSize" to "${left.size}", "rightSize" to "${right.size}"),
+                    callStack = frames,
                     activeCodeLines = listOf(6)
                 )
             )
@@ -594,6 +616,8 @@ object AlgorithmStepRepository {
                         auxiliaryIndices = mapOf("i" to i, "j" to (left.size + j), "k" to k),
                         elementStates = (l..k).associateWith { ElementState.ACTIVE } + ((k + 1)..r).associateWith { ElementState.COMPARING },
                         bottomPointers = mapOf("k" to k),
+                        variables = mapOf("l" to "$l", "m" to "$m", "r" to "$r", "k" to "$k", "i" to "$i", "j" to "$j", "merged" to "$compVal"),
+                        callStack = frames,
                         activeCodeLines = listOf(6)
                     )
                 )
@@ -618,6 +642,8 @@ object AlgorithmStepRepository {
                         auxiliaryIndices = mapOf("i" to i, "k" to k),
                         elementStates = (l..k).associateWith { ElementState.ACTIVE },
                         bottomPointers = mapOf("k" to k),
+                        variables = mapOf("l" to "$l", "r" to "$r", "k" to "$k", "flushed" to "${left[i]}"),
+                        callStack = frames,
                         activeCodeLines = listOf(6)
                     )
                 )
@@ -642,6 +668,8 @@ object AlgorithmStepRepository {
                         auxiliaryIndices = mapOf("j" to (left.size + j), "k" to k),
                         elementStates = (l..k).associateWith { ElementState.ACTIVE },
                         bottomPointers = mapOf("k" to k),
+                        variables = mapOf("l" to "$l", "r" to "$r", "k" to "$k", "flushed" to "${right[j]}"),
+                        callStack = frames,
                         activeCodeLines = listOf(6)
                     )
                 )
@@ -662,6 +690,8 @@ object AlgorithmStepRepository {
                     ancestorRanges = path,
                     mergeBlocks = listOf(l..r),
                     elementStates = (l..r).associateWith { ElementState.ACTIVE },
+                    variables = mapOf("mergedRange" to "[$l..$r]"),
+                    callStack = frames,
                     activeCodeLines = listOf(6)
                 )
             )
@@ -671,6 +701,7 @@ object AlgorithmStepRepository {
             if (l < r) {
                 val m = (l + r) / 2
                 val currentPath = path + listOf(l..r)
+                val frames = currentPath.map { "mergeSort(${it.first}, ${it.last})" }
                 steps.add(
                     VisualizerStep(
                         stepIndex = sIdx++,
@@ -684,6 +715,8 @@ object AlgorithmStepRepository {
                         ancestorRanges = currentPath,
                         mergeBlocks = listOf(l..m, (m + 1)..r),
                         topPointers = mapOf("L" to l, "M" to m, "R" to r),
+                        variables = mapOf("l" to "$l", "m" to "$m", "r" to "$r", "depth" to "$depth"),
+                        callStack = frames,
                         activeCodeLines = listOf(3, 4, 5)
                     )
                 )
@@ -706,6 +739,8 @@ object AlgorithmStepRepository {
                 activeRange = 0 until arr.size,
                 ancestorRanges = listOf(rootRange),
                 elementStates = (0 until arr.size).associateWith { ElementState.SORTED },
+                variables = mapOf("n" to "${arr.size}", "sorted" to "true"),
+                callStack = listOf("mergeSort(0, ${arr.size - 1})"),
                 activeCodeLines = listOf(6)
             )
         )
@@ -732,11 +767,15 @@ object AlgorithmStepRepository {
                 renderMode = VisualizerRenderMode.CELLS,
                 array = arr.toList(),
                 activeRange = 0 until arr.size,
+                variables = mapOf("n" to "${arr.size}"),
+                callStack = listOf("quickSort(0, ${arr.size - 1})"),
                 activeCodeLines = listOf(1, 2)
             )
         )
 
-        fun partition(low: Int, high: Int): Int {
+        val callFrames = mutableListOf<String>()
+
+        fun partition(low: Int, high: Int, frames: List<String>): Int {
             val pivot = arr[high]
             var i = low - 1
 
@@ -755,6 +794,9 @@ object AlgorithmStepRepository {
                     elementStates = mapOf(high to ElementState.PIVOT),
                     topPointers = mapOf("L" to low, "pivot" to high),
                     bottomPointers = mapOf("i" to low.coerceAtLeast(0)),
+                    variables = mapOf("low" to "$low", "high" to "$high", "pivot" to "$pivot"),
+                    callStack = frames,
+                    recursionDepth = frames.size,
                     activeCodeLines = listOf(8, 9)
                 )
             )
@@ -782,6 +824,9 @@ object AlgorithmStepRepository {
                             "i" to i.coerceAtLeast(0),
                             "j" to j
                         ),
+                        variables = mapOf("low" to "$low", "high" to "$high", "pivot" to "$pivot", "i" to "$i", "j" to "$j", "arr[j]" to "${arr[j]}"),
+                        callStack = frames,
+                        recursionDepth = frames.size,
                         activeCodeLines = listOf(10, 11)
                     )
                 )
@@ -812,6 +857,9 @@ object AlgorithmStepRepository {
                             ),
                             topPointers = mapOf("L" to low, "pivot" to high),
                             bottomPointers = mapOf("i" to i, "j" to j),
+                            variables = mapOf("low" to "$low", "high" to "$high", "pivot" to "$pivot", "i" to "$i", "j" to "$j", "swapped" to "arr[$i] <-> arr[$j]"),
+                            callStack = frames,
+                            recursionDepth = frames.size,
                             activeCodeLines = listOf(12, 13)
                         )
                     )
@@ -837,6 +885,9 @@ object AlgorithmStepRepository {
                     elementStates = mapOf((i + 1) to ElementState.SORTED),
                     topPointers = mapOf("pivot" to (i + 1)),
                     bottomPointers = mapOf("i+1" to (i + 1)),
+                    variables = mapOf("low" to "$low", "high" to "$high", "pivot" to "$pivot", "placedSlot" to "${i + 1}"),
+                    callStack = frames,
+                    recursionDepth = frames.size,
                     activeCodeLines = listOf(13)
                 )
             )
@@ -846,9 +897,12 @@ object AlgorithmStepRepository {
 
         fun quickSort(low: Int, high: Int) {
             if (low < high) {
-                val pi = partition(low, high)
+                val frame = "quickSort($low, $high)"
+                callFrames.add(frame)
+                val pi = partition(low, high, callFrames.toList())
                 quickSort(low, pi - 1)
                 quickSort(pi + 1, high)
+                callFrames.removeAt(callFrames.lastIndex)
             }
         }
 
@@ -864,6 +918,7 @@ object AlgorithmStepRepository {
                 array = arr.toList(),
                 activeRange = 0 until arr.size,
                 elementStates = (0 until arr.size).associateWith { ElementState.SORTED },
+                variables = mapOf("n" to "${arr.size}", "sorted" to "true"),
                 activeCodeLines = listOf(1, 2)
             )
         )
@@ -877,14 +932,19 @@ object AlgorithmStepRepository {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
 
+        val targetIdx = input.indexOf(target)
+        val initialTopPointers = if (targetIdx >= 0) mapOf("target" to targetIdx) else emptyMap()
+
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Starting Linear Search for target = $target",
                 comparisonExpr = "TARGET: $target",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = input,
-                topPointers = mapOf("target" to 0),
+                topPointers = initialTopPointers,
+                variables = mapOf("target" to "$target"),
                 activeCodeLines = listOf(1, 2)
             )
         )
@@ -896,10 +956,12 @@ object AlgorithmStepRepository {
                     stepIndex = sIdx++,
                     description = "Checking index $i: arr[$i]=${input[i]} == $target?",
                     comparisonExpr = "COMPARE: ${input[i]} == $target?",
+                    phaseLabel = if (isFound) "TARGET FOUND" else "COMPARING",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = input,
                     elementStates = mapOf(i to if (isFound) ElementState.FOUND else ElementState.COMPARING),
                     bottomPointers = mapOf("i" to i),
+                    variables = mapOf("i" to "$i", "target" to "$target", "arr[i]" to "${input[i]}", "match" to "$isFound"),
                     activeCodeLines = listOf(3)
                 )
             )
@@ -910,10 +972,12 @@ object AlgorithmStepRepository {
                         stepIndex = sIdx++,
                         description = "Target $target FOUND at index $i!",
                         comparisonExpr = "FOUND: index $i",
+                        phaseLabel = "TARGET FOUND",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = input,
                         elementStates = mapOf(i to ElementState.FOUND),
                         bottomPointers = mapOf("found" to i),
+                        variables = mapOf("target" to "$target", "foundIndex" to "$i"),
                         activeCodeLines = listOf(4)
                     )
                 )
@@ -925,17 +989,20 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Target $target not found in array.",
+                comparisonExpr = "NOT FOUND: target $target",
+                phaseLabel = "NOT FOUND",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = input,
+                variables = mapOf("target" to "$target", "found" to "false"),
                 activeCodeLines = listOf(5)
             )
         )
         return steps
     }
 
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    // ─────────────────────────────────────────────────────────────
     // 7. Binary Search
-    // ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    // ─────────────────────────────────────────────────────────────
     private fun generateBinarySearch(sortedInput: List<Int>, target: Int, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -951,9 +1018,12 @@ object AlgorithmStepRepository {
                 stepIndex = sIdx++,
                 description = "Starting Binary Search on ${if (isDesc) "descending" else "ascending"} array for target = $target",
                 comparisonExpr = "TARGET: $target",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = sortedInput,
+                activeRange = 0 until sortedInput.size,
                 topPointers = mapOf("L" to low, "H" to high),
+                variables = mapOf("target" to "$target", "low" to "$low", "high" to "$high"),
                 activeCodeLines = listOf(1, 2)
             )
         )
@@ -967,11 +1037,14 @@ object AlgorithmStepRepository {
                     stepIndex = sIdx++,
                     description = "Range [$low..$high]: Mid index $mid (value $midVal)",
                     comparisonExpr = "MID: arr[$mid] = $midVal",
+                    phaseLabel = "COMPARING",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = sortedInput,
+                    activeRange = low..high,
                     elementStates = mapOf(mid to ElementState.COMPARING),
                     topPointers = mapOf("L" to low, "H" to high),
                     bottomPointers = mapOf("mid" to mid),
+                    variables = mapOf("low" to "$low", "high" to "$high", "mid" to "$mid", "midVal" to "$midVal", "target" to "$target"),
                     activeCodeLines = listOf(3, 4, 5)
                 )
             )
@@ -982,11 +1055,14 @@ object AlgorithmStepRepository {
                         stepIndex = sIdx++,
                         description = "Target $target FOUND at index $mid!",
                         comparisonExpr = "FOUND: index $mid ($target)",
+                        phaseLabel = "TARGET FOUND",
                         renderMode = VisualizerRenderMode.CELLS,
                         array = sortedInput,
+                        activeRange = low..high,
                         elementStates = mapOf(mid to ElementState.FOUND),
                         topPointers = mapOf("L" to low, "H" to high),
                         bottomPointers = mapOf("mid" to mid),
+                        variables = mapOf("target" to "$target", "foundIndex" to "$mid"),
                         activeCodeLines = listOf(6)
                     )
                 )
@@ -994,27 +1070,37 @@ object AlgorithmStepRepository {
             } else if (midVal < target) {
                 // ASC: target is right of mid; DESC: target is left of mid.
                 if (isDesc) {
+                    val newHigh = mid - 1
+                    val nextRange = if (low <= newHigh) low..newHigh else low..high
                     steps.add(
                         VisualizerStep(
                             stepIndex = sIdx++,
                             description = "arr[$mid]=$midVal $op target=$target. Eliminating right half. New high = ${mid - 1}",
                             comparisonExpr = "$midVal $op $target -> high = ${mid - 1}",
+                            phaseLabel = "ELIMINATING HALF",
                             renderMode = VisualizerRenderMode.CELLS,
                             array = sortedInput,
+                            activeRange = nextRange,
                             topPointers = mapOf("L" to low, "H" to (mid - 1).coerceAtLeast(0)),
+                            variables = mapOf("low" to "$low", "high" to "$high", "mid" to "$mid", "target" to "$target"),
                             activeCodeLines = listOf(9, 10)
                         )
                     )
                     high = mid - 1
                 } else {
+                    val newLow = mid + 1
+                    val nextRange = if (newLow <= high) newLow..high else low..high
                     steps.add(
                         VisualizerStep(
                             stepIndex = sIdx++,
                             description = "arr[$mid]=$midVal $op target=$target. Eliminating left half. New low = ${mid + 1}",
                             comparisonExpr = "$midVal $op $target -> low = ${mid + 1}",
+                            phaseLabel = "ELIMINATING HALF",
                             renderMode = VisualizerRenderMode.CELLS,
                             array = sortedInput,
+                            activeRange = nextRange,
                             topPointers = mapOf("L" to (mid + 1).coerceAtMost(sortedInput.size - 1), "H" to high),
+                            variables = mapOf("low" to "$low", "high" to "$high", "mid" to "$mid", "target" to "$target"),
                             activeCodeLines = listOf(7, 8)
                         )
                     )
@@ -1023,27 +1109,37 @@ object AlgorithmStepRepository {
             } else {
                 // The other branch.
                 if (isDesc) {
+                    val newLow = mid + 1
+                    val nextRange = if (newLow <= high) newLow..high else low..high
                     steps.add(
                         VisualizerStep(
                             stepIndex = sIdx++,
                             description = "arr[$mid]=$midVal > target=$target (descending). Eliminating left half. New low = ${mid + 1}",
                             comparisonExpr = "$midVal > $target -> low = ${mid + 1}",
+                            phaseLabel = "ELIMINATING HALF",
                             renderMode = VisualizerRenderMode.CELLS,
                             array = sortedInput,
+                            activeRange = nextRange,
                             topPointers = mapOf("L" to (mid + 1).coerceAtMost(sortedInput.size - 1), "H" to high),
+                            variables = mapOf("low" to "$low", "high" to "$high", "mid" to "$mid", "target" to "$target"),
                             activeCodeLines = listOf(7, 8)
                         )
                     )
                     low = mid + 1
                 } else {
+                    val newHigh = mid - 1
+                    val nextRange = if (low <= newHigh) low..newHigh else low..high
                     steps.add(
                         VisualizerStep(
                             stepIndex = sIdx++,
                             description = "arr[$mid]=$midVal > target=$target. Eliminating right half. New high = ${mid - 1}",
                             comparisonExpr = "$midVal > $target -> high = ${mid - 1}",
+                            phaseLabel = "ELIMINATING HALF",
                             renderMode = VisualizerRenderMode.CELLS,
                             array = sortedInput,
+                            activeRange = nextRange,
                             topPointers = mapOf("L" to low, "H" to (mid - 1).coerceAtLeast(0)),
+                            variables = mapOf("low" to "$low", "high" to "$high", "mid" to "$mid", "target" to "$target"),
                             activeCodeLines = listOf(9, 10)
                         )
                     )
@@ -1056,8 +1152,11 @@ object AlgorithmStepRepository {
             VisualizerStep(
                 stepIndex = sIdx++,
                 description = "Target $target not found in sorted array.",
+                comparisonExpr = "NOT FOUND: target $target",
+                phaseLabel = "NOT FOUND",
                 renderMode = VisualizerRenderMode.CELLS,
                 array = sortedInput,
+                variables = mapOf("target" to "$target", "found" to "false"),
                 activeCodeLines = listOf(11)
             )
         )
@@ -1349,14 +1448,16 @@ object AlgorithmStepRepository {
 
         val spanX = maxOf(160f, (total - 1) * 28f)
         val spanY = maxOf(86f, maxDepth * 26f)
+        val minX = 130f - spanX / 2f
+        val minY = 75f - spanY / 2f
 
         // Preserve insertion order so nodes[i] is always the i-th inserted element
         val nodes = insertionOrderIds.mapNotNull { id ->
             val n = nodesById[id] ?: return@mapNotNull null
             val rank = rankMap[id] ?: 0
             val depth = depths[id] ?: 0
-            val x = if (total <= 1) 100f else 20f + (rank.toFloat() / (total - 1).toFloat()) * spanX
-            val y = if (maxDepth == 0) 50f else 18f + (depth.toFloat() / maxDepth.toFloat()) * spanY
+            val x = if (total <= 1) 130f else minX + (rank.toFloat() / (total - 1).toFloat()) * spanX
+            val y = if (maxDepth == 0) 75f else minY + (depth.toFloat() / maxDepth.toFloat()) * spanY
             GraphNodeState(n.id, n.value.toString(), x, y)
         }
 
@@ -1408,13 +1509,13 @@ object AlgorithmStepRepository {
             }
             if (cleanValues == defaultBstValues) {
                 listOf(
-                    GraphNodeState("50", "50", 100f, 15f),
-                    GraphNodeState("30", "30", 50f, 50f),
-                    GraphNodeState("70", "70", 150f, 50f),
-                    GraphNodeState("20", "20", 25f, 90f),
-                    GraphNodeState("40", "40", 75f, 90f),
-                    GraphNodeState("60", "60", 125f, 90f),
-                    GraphNodeState("80", "80", 175f, 90f)
+                    GraphNodeState("50", "50", 130f, 30f),
+                    GraphNodeState("30", "30", 80f, 65f),
+                    GraphNodeState("70", "70", 180f, 65f),
+                    GraphNodeState("20", "20", 55f, 105f),
+                    GraphNodeState("40", "40", 105f, 105f),
+                    GraphNodeState("60", "60", 155f, 105f),
+                    GraphNodeState("80", "80", 205f, 105f)
                 ) to listOf(
                     GraphEdgeState("50", "30", isDirected = true),
                     GraphEdgeState("50", "70", isDirected = true),
@@ -1651,8 +1752,12 @@ object AlgorithmStepRepository {
                 val level = 31 - Integer.numberOfLeadingZeros(idx + 1)
                 val indexInLevel = (idx + 1) - (1 shl level)
                 val nodesInLevel = 1 shl level
-                val defaultX = 15f + ((indexInLevel + 0.5f) / nodesInLevel.toFloat()) * 170f
-                val defaultY = if (maxLevel == 0) 54f else 18f + (level.toFloat() / maxLevel.toFloat()) * 82f
+                val spanX = 170f
+                val minX = 130f - spanX / 2f
+                val spanY = 82f
+                val minY = 75f - spanY / 2f
+                val defaultX = minX + ((indexInLevel + 0.5f) / nodesInLevel.toFloat()) * spanX
+                val defaultY = if (maxLevel == 0) 75f else minY + (level.toFloat() / maxLevel.toFloat()) * spanY
                 val custom = customPositions?.get(slotId)
                 val x = custom?.x ?: defaultX
                 val y = custom?.y ?: defaultY

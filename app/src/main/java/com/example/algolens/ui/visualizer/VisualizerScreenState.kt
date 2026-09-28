@@ -28,9 +28,9 @@ import kotlinx.coroutines.delay
  * Modular widgets available in the Deck Instruments workspace carousel.
  */
 enum class WidgetType(val title: String, val subtitle: String) {
-    TRACE("CODE TRACE", "Active line highlighting & execution trace"),
-    STATE("ALGORITHM STATE", "Complexity, variables & step explanations"),
-    TELEMETRY("TELEMETRY", "Queue, stack & frontier data structures")
+    TRACE("Code Trace", "Active line highlighting & execution trace"),
+    STATE("State", "Complexity, variables & step explanations"),
+    TELEMETRY("Telemetry", "Queue, stack & frontier data structures")
 }
 
 /**
