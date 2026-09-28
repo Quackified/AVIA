@@ -14,7 +14,7 @@ import org.junit.Test
 class AlgorithmStepRepositoryTest {
 
     @Test
-    fun all13Algorithms_generateNonEmptySteps() {
+    fun all14Algorithms_generateNonEmptySteps() {
         val testArray = listOf(3, 8, 9, 2, 6, 1, 5, 4, 7)
         for (algo in SampleData.algorithms) {
             val steps = AlgorithmStepRepository.generateStepsForAlgorithm(algo, testArray)

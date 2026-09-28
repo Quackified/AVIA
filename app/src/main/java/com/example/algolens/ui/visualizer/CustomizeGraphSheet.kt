@@ -91,13 +91,13 @@ fun CustomizeGraphSheet(
     val title = when (algorithmId) {
         AlgorithmId.HEAP -> "Customize Heap"
         AlgorithmId.BINARY_SEARCH_TREE -> "Customize BST"
-        AlgorithmId.BFS, AlgorithmId.DFS -> "Customize Traversal"
+        AlgorithmId.BFS, AlgorithmId.DFS, AlgorithmId.DIJKSTRA -> "Customize Traversal"
         else -> "Customize Graph"
     }
     val hint = when (algorithmId) {
         AlgorithmId.HEAP -> "Set the leaf values that build the heap"
         AlgorithmId.BINARY_SEARCH_TREE -> "Choose values to insert and a key to search for"
-        AlgorithmId.BFS, AlgorithmId.DFS -> "Choose a starting node in the existing graph"
+        AlgorithmId.BFS, AlgorithmId.DFS, AlgorithmId.DIJKSTRA -> "Choose a starting node in the existing graph"
         else -> "Customize graph input"
     }
 
@@ -164,7 +164,7 @@ fun CustomizeGraphSheet(
                   (valuesValidation is InputValidationResult.Valid &&
                    searchKeyValidation is InputValidationResult.Valid)) &&
                   (algorithmId != AlgorithmId.HEAP || valuesValidation is InputValidationResult.Valid) &&
-                  ((algorithmId != AlgorithmId.BFS && algorithmId != AlgorithmId.DFS) || startNodeId in safeNodes)
+                  ((algorithmId != AlgorithmId.BFS && algorithmId != AlgorithmId.DFS && algorithmId != AlgorithmId.DIJKSTRA) || startNodeId in safeNodes)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -250,7 +250,7 @@ fun CustomizeGraphSheet(
                         onChange = { searchKeyStr = it }
                     )
                 }
-                AlgorithmId.BFS, AlgorithmId.DFS -> {
+                AlgorithmId.BFS, AlgorithmId.DFS, AlgorithmId.DIJKSTRA -> {
                     StartNodeDropdown(
                         current = startNodeId,
                         nodes = safeNodes,
@@ -283,7 +283,7 @@ fun CustomizeGraphSheet(
                                 val parsedKey = (searchKeyValidation as InputValidationResult.Valid).parsed.first()
                                 GraphCustomization.ForBst(parsedVals, parsedKey)
                             }
-                            AlgorithmId.BFS, AlgorithmId.DFS -> {
+                            AlgorithmId.BFS, AlgorithmId.DFS, AlgorithmId.DIJKSTRA -> {
                                 GraphCustomization.ForTraversal(startNodeId)
                             }
                             else -> GraphCustomization.ForHeap(emptyList())

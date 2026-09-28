@@ -45,6 +45,7 @@ object AlgorithmCodeRegistry {
             AlgorithmId.HEAP -> getHeapCode(language)
             AlgorithmId.BFS -> getBfsCode(language)
             AlgorithmId.DFS -> getDfsCode(language)
+            AlgorithmId.DIJKSTRA -> getDijkstraCode(language)
         }
     }
 
@@ -54,6 +55,7 @@ object AlgorithmCodeRegistry {
             "bst", "binary search tree (bst)" -> AlgorithmId.BINARY_SEARCH_TREE
             "bfs", "breadth-first search" -> AlgorithmId.BFS
             "dfs", "depth-first search" -> AlgorithmId.DFS
+            "dijkstra", "dijkstra's shortest path", "dijkstra shortest path" -> AlgorithmId.DIJKSTRA
             "max-heap", "min-heap", "binary heap" -> AlgorithmId.HEAP
             else -> AlgorithmId.entries.firstOrNull { it.name.equals(normalized, ignoreCase = true) }
         } ?: throw IllegalArgumentException("Unsupported algorithm for source trace: '$algorithmName'")
@@ -1084,6 +1086,129 @@ object AlgorithmCodeRegistry {
                     3 to listOf(3),
                     4 to listOf(4),
                     5 to listOf(5, 7)
+                )
+            )
+        }
+    }
+
+    private fun getDijkstraCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "fun dijkstra(graph: Map<String, List<Pair<String, Int>>>, start: String): Map<String, Int> {",
+                    "    val dist = mutableMapOf(start to 0)",
+                    "    val pq = PriorityQueue<Pair<String, Int>>(compareBy { it.second })",
+                    "    pq.add(start to 0)",
+                    "    while (pq.isNotEmpty()) {",
+                    "        val (u, d) = pq.poll()",
+                    "        if (d > (dist[u] ?: Int.MAX_VALUE)) continue",
+                    "        for ((v, weight) in graph[u].orEmpty()) {",
+                    "            if (d + weight < (dist[v] ?: Int.MAX_VALUE)) {",
+                    "                dist[v] = d + weight",
+                    "                pq.add(v to d + weight)",
+                    "            }",
+                    "        }",
+                    "    }",
+                    "    return dist",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2),
+                    3 to listOf(3, 4),
+                    4 to listOf(5),
+                    5 to listOf(6),
+                    6 to listOf(7),
+                    7 to listOf(7),
+                    8 to listOf(8),
+                    9 to listOf(9),
+                    10 to listOf(10),
+                    11 to listOf(11)
+                )
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "public Map<String, Integer> dijkstra(Map<String, List<Edge>> graph, String start) {",
+                    "    Map<String, Integer> dist = new HashMap<>();",
+                    "    dist.put(start, 0);",
+                    "    PriorityQueue<NodeDist> pq = new PriorityQueue<>(Comparator.comparingInt(n -> n.dist));",
+                    "    pq.add(new NodeDist(start, 0));",
+                    "    while (!pq.isEmpty()) {",
+                    "        NodeDist curr = pq.poll();",
+                    "        if (curr.dist > dist.getOrDefault(curr.node, Integer.MAX_VALUE)) continue;",
+                    "        for (Edge e : graph.getOrDefault(curr.node, List.of())) {",
+                    "            if (curr.dist + e.weight < dist.getOrDefault(e.to, Integer.MAX_VALUE)) {",
+                    "                dist.put(e.to, curr.dist + e.weight);",
+                    "                pq.add(new NodeDist(e.to, curr.dist + e.weight));",
+                    "            }",
+                    "        }",
+                    "    }",
+                    "    return dist;",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2, 3),
+                    3 to listOf(4, 5),
+                    4 to listOf(6),
+                    5 to listOf(7),
+                    6 to listOf(8),
+                    7 to listOf(8),
+                    8 to listOf(9),
+                    9 to listOf(10),
+                    10 to listOf(11),
+                    11 to listOf(12)
+                )
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "def dijkstra(graph, start):",
+                    "    dist = {start: 0}",
+                    "    pq = [(0, start)]",
+                    "    while pq:",
+                    "        d, u = heapq.heappop(pq)",
+                    "        if d > dist.get(u, float('inf')):",
+                    "            continue",
+                    "        for v, weight in graph.get(u, []):",
+                    "            if d + weight < dist.get(v, float('inf')):",
+                    "                dist[v] = d + weight",
+                    "                heapq.heappush(pq, (dist[v], v))",
+                    "    return dist"
+                ),
+                lineMapping = (1..11).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "map<string, int> dijkstra(const map<string, vector<pair<string, int>>>& graph, const string& start) {",
+                    "    map<string, int> dist;",
+                    "    dist[start] = 0;",
+                    "    priority_queue<pair<int, string>, vector<pair<int, string>>, greater<>> pq;",
+                    "    pq.push({0, start});",
+                    "    while (!pq.empty()) {",
+                    "        auto [d, u] = pq.top(); pq.pop();",
+                    "        if (dist.count(u) && d > dist[u]) continue;",
+                    "        for (const auto& [v, weight] : graph.at(u)) {",
+                    "            if (!dist.count(v) || d + weight < dist[v]) {",
+                    "                dist[v] = d + weight;",
+                    "                pq.push({d + weight, v});",
+                    "            }",
+                    "        }",
+                    "    }",
+                    "    return dist;",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2, 3),
+                    3 to listOf(4, 5),
+                    4 to listOf(6),
+                    5 to listOf(7),
+                    6 to listOf(8),
+                    7 to listOf(8),
+                    8 to listOf(9),
+                    9 to listOf(10),
+                    10 to listOf(11),
+                    11 to listOf(12)
                 )
             )
         }

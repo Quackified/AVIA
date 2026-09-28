@@ -150,6 +150,7 @@ object AiChatEngine {
             query.contains("heap") || query.contains("priority queue") -> AlgorithmId.HEAP
             query.contains("bfs") || query.contains("breadth") -> AlgorithmId.BFS
             query.contains("dfs") || query.contains("depth") -> AlgorithmId.DFS
+            query.contains("dijkstra") -> AlgorithmId.DIJKSTRA
             else -> null
         }
     }
@@ -551,6 +552,19 @@ object AiChatEngine {
                 ```
             """.trimIndent()
 
+            AlgorithmId.DIJKSTRA -> """
+                ```flowchart
+                Start(Source Vertex) --> Init[dist[source]=0, others=∞, push source to PQ]
+                Init --> Loop{Priority queue empty?}
+                Loop -->|No| Extract[Extract-Min settled node u]
+                Extract --> Relax{dist[u]+w(u,v) < dist[v]?}
+                Relax -->|Yes| Update[dist[v]=dist[u]+w, prev[v]=u, push v to PQ]
+                Relax -->|No| Loop
+                Update --> Loop
+                Loop -->|Yes| Done(Shortest-Path Tree Complete)
+                ```
+            """.trimIndent()
+
             AlgorithmId.STACK -> """
                 ```flowchart
                 Start(LIFO Operation) --> Op{Push or Pop?}
@@ -589,7 +603,7 @@ object AiChatEngine {
             append("1. **Sorting (5)**: Bubble Sort, Selection Sort, Insertion Sort, Merge Sort, Quick Sort\n")
             append("2. **Searching (2)**: Linear Search, Binary Search\n")
             append("3. **Data Structures (4)**: Stack (LIFO), Queue (FIFO), Binary Search Tree (BST), Heap\n")
-            append("4. **Graph Traversal (2)**: Breadth-First Search (BFS), Depth-First Search (DFS)\n\n")
+            append("4. **Graph Traversal & Shortest Path (3)**: Breadth-First Search (BFS), Depth-First Search (DFS), Dijkstra's Shortest Path\n\n")
             append("Tap any algorithm below to launch its visualizer or ask for complexity proofs.")
         }
 
@@ -638,7 +652,7 @@ object AiChatEngine {
         val content = buildString {
             append("### AVIA COGNITIVE RESOLUTION\n\n")
             append("Analyzing query: *\"$query\"*\n\n")
-            append("I specialize in algorithmic analysis, time & space complexities, data structure mechanics, and multi-language implementations for the 13 algorithms in our verified catalogue.\n\n")
+            append("I specialize in algorithmic analysis, time & space complexities, data structure mechanics, and multi-language implementations for the 14 algorithms in our verified catalogue.\n\n")
             append("Try asking:\n")
             append("• *\"Compare Quick Sort and Merge Sort\"*\n")
             append("• *\"Why is Binary Search O(log n)?\"*\n")

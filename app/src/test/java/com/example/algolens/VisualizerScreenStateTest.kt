@@ -358,25 +358,22 @@ class VisualizerScreenStateTest {
             bstValues = bstValues,
             bstSearchKey = 40
         )
+        // BST is now pre-built: no INSERTING steps — tree is fully visible from step 0.
         val insertingSteps = bstSteps.filter { it.phaseLabel == "INSERTING" }
-        assertEquals("Should emit one INSERTING step per input value", bstValues.size, insertingSteps.size)
-        insertingSteps.forEachIndexed { i, step ->
-            assertEquals("Step $i should have ${i + 1} nodes", i + 1, step.nodes.size)
-            val activeNodes = step.nodes.filter { it.state == com.example.algolens.ui.visualizer.ElementState.ACTIVE }
-            assertEquals("Step $i should have exactly 1 active node", 1, activeNodes.size)
-            assertEquals("Active node label should match inserted value", bstValues[i].toString(), activeNodes.first().label)
-            val nodeIds = step.nodes.map { it.id }.toSet()
-            assertTrue(
-                "All edges in step $i must connect already-inserted nodes",
-                step.edges.all { it.from in nodeIds && it.to in nodeIds }
-            )
-            assertEquals(
-                "Insertion buffer should match prefix of values",
-                bstValues.subList(0, i + 1),
-                step.buffer.map { it.value.toInt() }
-            )
-            assertEquals((i + 1).toString(), step.variables["treeSize"])
-        }
+        assertEquals("BST pre-built: no INSERTING steps expected", 0, insertingSteps.size)
+
+        // Step 0 must be INITIALIZING with ALL input nodes already present.
+        val step0 = bstSteps.first()
+        assertEquals("Step 0 phaseLabel should be INITIALIZING", "INITIALIZING", step0.phaseLabel)
+        assertEquals("Step 0 must contain all ${bstValues.size} nodes", bstValues.size, step0.nodes.size)
+
+        // Exactly one ACTIVE node (root) in step 0.
+        val activeInStep0 = step0.nodes.filter { it.state == com.example.algolens.ui.visualizer.ElementState.ACTIVE }
+        assertEquals("Step 0 must have exactly 1 active node (root)", 1, activeInStep0.size)
+        assertEquals("Root should be 50", "50", activeInStep0.first().label)
+
+        // Search traversal: must find target key 40.
+        assertTrue("BST must reach FOUND step", bstSteps.any { it.phaseLabel == "FOUND" })
         assertTrue("BST should populate visitedNodeIds", bstSteps.last().visitedNodeIds.isNotEmpty())
         assertTrue("BST should populate variables", bstSteps.last().variables.isNotEmpty())
 

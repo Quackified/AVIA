@@ -7,12 +7,14 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +43,18 @@ import com.example.algolens.ui.theme.AlgoType
 import com.example.algolens.ui.components.AlgoGlyphs
 
 /**
+ * 6-Tool modes for interactive graph authoring and goal-directed endpoints.
+ */
+enum class GraphTool(val label: String) {
+    MOVE("Move"),
+    ADD("Add Node"),
+    LINK("Link"),
+    WEIGHT("Weight"),
+    ENDPOINTS("Endpoints"),
+    DELETE("Delete")
+}
+
+/**
  * Toolbar + tap/drag gesture detectors + instruction banner for the graph
  * builder. The public [GraphTreeVisualizer] shell owns all the mutable
  * builder state and passes read+write closures down so this composable can
@@ -57,6 +71,10 @@ fun GraphBuilderToolbar(
     isPanned: Boolean = false,
     onResetPan: () -> Unit = {},
     onAddNode: () -> Unit = {},
+    activeTool: GraphTool = GraphTool.MOVE,
+    onToolSelected: (GraphTool) -> Unit = {},
+    isFullscreen: Boolean = false,
+    onToggleFullscreen: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -67,12 +85,16 @@ fun GraphBuilderToolbar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
+            modifier = Modifier
+                .weight(1f)
+                
+                .horizontalScroll(rememberScrollState()),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
         ) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                     .background(if (isBuilderActive) CyanSubtle else CanvasBackground)
                     .border(
                         AlgoTokens.strokeThin,
@@ -97,7 +119,8 @@ fun GraphBuilderToolbar(
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isBuilderActive) PrimaryCyan else TextMuted,
                         fontSize = AlgoType.microSize,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
             }
@@ -105,7 +128,7 @@ fun GraphBuilderToolbar(
             if (isBuilderActive) {
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                         .background(CyanSubtle)
                         .border(AlgoTokens.strokeThin, PrimaryCyan.copy(alpha = 0.45f), RoundedCornerShape(AlgoTokens.radiusXs))
                         .clickable { onAddNode() }
@@ -124,7 +147,8 @@ fun GraphBuilderToolbar(
                         style = MaterialTheme.typography.labelSmall,
                         color = PrimaryCyan,
                         fontSize = AlgoType.microSize,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
             }
@@ -133,12 +157,14 @@ fun GraphBuilderToolbar(
                 text = "$dynamicNodeCount nodes • $dynamicEdgeCount edges",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextDark,
-                fontSize = AlgoType.microSize
-            )
+                fontSize = AlgoType.microSize,
+                maxLines = 1,
+                modifier = Modifier            )
         }
 
         // Right actions: Center View (when panned) + Reset Graph (when modified) + Done (when active)
         Row(
+            modifier = Modifier,
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
         ) {
@@ -190,6 +216,36 @@ fun GraphBuilderToolbar(
                 }
             }
 
+            // Fullscreen toggle button
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                    .background(if (isFullscreen) PrimaryCyan else CanvasBackground)
+                    .border(
+                        AlgoTokens.strokeThin,
+                        if (isFullscreen) PrimaryCyan else BorderSubtle,
+                        RoundedCornerShape(AlgoTokens.radiusXs)
+                    )
+                    .clickable { onToggleFullscreen() }
+                    .padding(horizontal = 6.dp, vertical = AlgoTokens.space1),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Icon(
+                    imageVector = if (isFullscreen) AlgoGlyphs.Close else AlgoGlyphs.Expand,
+                    contentDescription = if (isFullscreen) "Exit Fullscreen" else "Fullscreen",
+                    tint = if (isFullscreen) DarkBackground else PrimaryCyan,
+                    modifier = Modifier.size(9.dp)
+                )
+                Text(
+                    text = if (isFullscreen) "Exit" else "Fullscreen",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isFullscreen) DarkBackground else PrimaryCyan,
+                    fontSize = AlgoType.microSize,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
             if (isBuilderActive) {
                 Row(
                     modifier = Modifier
@@ -224,6 +280,9 @@ fun GraphBuilderGestures(
     selectedNodeId: String?,
     dragStartNode: GraphNodeState?,
     hoveredTargetNodeId: String?,
+    activeTool: GraphTool = GraphTool.MOVE,
+    startNodeId: String? = null,
+    targetNodeId: String? = null,
     panOffset: Offset = Offset.Zero,
     referenceHeight: Float = 0f,
     onPanChanged: (Offset) -> Unit = {},
@@ -233,6 +292,7 @@ fun GraphBuilderGestures(
     onDragStartNodeChanged: (GraphNodeState?) -> Unit,
     onCurrentDragPosChanged: (Offset?) -> Unit,
     onHoveredTargetNodeIdChanged: (String?) -> Unit,
+    onEndpointsChanged: ((start: String?, target: String?) -> Unit)? = null,
     onGraphModified: ((List<GraphNodeState>, List<GraphEdgeState>) -> Unit)?,
     getNextNodeLabel: (List<GraphNodeState>) -> String,
     onNodeClick: ((String) -> Unit)? = null,
@@ -242,6 +302,10 @@ fun GraphBuilderGestures(
     val currentEdgesState = androidx.compose.runtime.rememberUpdatedState(dynamicEdges)
     val currentBuilderActiveState = androidx.compose.runtime.rememberUpdatedState(isBuilderActive)
     val currentSelectedNodeIdState = androidx.compose.runtime.rememberUpdatedState(selectedNodeId)
+    val currentActiveToolState = androidx.compose.runtime.rememberUpdatedState(activeTool)
+    val currentStartNodeIdState = androidx.compose.runtime.rememberUpdatedState(startNodeId)
+    val currentTargetNodeIdState = androidx.compose.runtime.rememberUpdatedState(targetNodeId)
+    val currentOnEndpointsChanged = androidx.compose.runtime.rememberUpdatedState(onEndpointsChanged)
     val currentPanOffsetState = androidx.compose.runtime.rememberUpdatedState(panOffset)
     val currentReferenceHeightState = androidx.compose.runtime.rememberUpdatedState(referenceHeight)
     val currentOnPanChanged = androidx.compose.runtime.rememberUpdatedState(onPanChanged)
@@ -268,6 +332,7 @@ fun GraphBuilderGestures(
                     val edges = currentEdgesState.value
                     val builderActive = currentBuilderActiveState.value
                     val selectedId = currentSelectedNodeIdState.value
+                    val tool = currentActiveToolState.value
                     val currentPan = currentPanOffsetState.value
                     val refHeight = currentReferenceHeightState.value
 
@@ -336,7 +401,7 @@ fun GraphBuilderGestures(
                     var dragStarted = false
                     var currentPos = startOffset
                     var isPanningViewport = false
-                    val activeDragSource = if (builderActive && hitNode != null) hitNode else null
+                    var isMovingNode = false
                     var lastHoveredTargetId: String? = null
 
                     while (true) {
@@ -352,8 +417,10 @@ fun GraphBuilderGestures(
 
                         if (!dragStarted && dist > touchSlop) {
                             dragStarted = true
-                            if (activeDragSource != null) {
-                                currentOnDragStartNodeChanged.value(activeDragSource)
+                            if (builderActive && hitNode != null && tool == GraphTool.MOVE) {
+                                isMovingNode = true
+                            } else if (builderActive && hitNode != null && tool == GraphTool.LINK) {
+                                currentOnDragStartNodeChanged.value(hitNode)
                                 currentOnCurrentDragPosChanged.value(newPos)
                             } else {
                                 isPanningViewport = true
@@ -365,7 +432,20 @@ fun GraphBuilderGestures(
                             val delta = newPos - currentPos
                             currentPos = newPos
 
-                            if (isPanningViewport) {
+                            val liveGeom = GraphCanvasGeometry.from(
+                                nodes = currentNodesState.value,
+                                drawSize = size.toSize(),
+                                panOffset = currentPanOffsetState.value,
+                                referenceHeight = currentReferenceHeightState.value
+                            )
+
+                            if (isMovingNode && hitNode != null) {
+                                val worldCoord = liveGeom.toWorldCoords(newPos)
+                                val movedNodes = currentNodesState.value.map {
+                                    if (it.id == hitNode.id) it.copy(x = worldCoord.x.coerceIn(5f, 250f), y = worldCoord.y.coerceIn(5f, 180f)) else it
+                                }
+                                currentOnNodesChanged.value(movedNodes)
+                            } else if (isPanningViewport) {
                                 val maxPan = 600f
                                 val pan = currentPanOffsetState.value
                                 val nextPan = Offset(
@@ -373,15 +453,9 @@ fun GraphBuilderGestures(
                                     y = (pan.y + delta.y).coerceIn(-maxPan, maxPan)
                                 )
                                 currentOnPanChanged.value(nextPan)
-                            } else if (activeDragSource != null) {
+                            } else if (tool == GraphTool.LINK && hitNode != null) {
                                 currentOnCurrentDragPosChanged.value(newPos)
-                                val liveGeom = GraphCanvasGeometry.from(
-                                    nodes = nodes,
-                                    drawSize = size.toSize(),
-                                    panOffset = currentPanOffsetState.value,
-                                    referenceHeight = currentReferenceHeightState.value
-                                )
-                                val hovered = nodes.filter { it.id != activeDragSource.id }.minByOrNull { node ->
+                                val hovered = currentNodesState.value.filter { it.id != hitNode.id }.minByOrNull { node ->
                                     val c = liveGeom.toCanvasOffset(node.x, node.y)
                                     val dx = newPos.x - c.x
                                     val dy = newPos.y - c.y
@@ -400,30 +474,32 @@ fun GraphBuilderGestures(
 
                     // Gesture completed
                     if (dragStarted) {
-                        if (!isPanningViewport && activeDragSource != null) {
+                        if (isMovingNode && hitNode != null) {
+                            currentOnGraphModified.value?.invoke(currentNodesState.value, edges)
+                        } else if (tool == GraphTool.LINK && hitNode != null) {
                             val targetId = lastHoveredTargetId
-                            if (targetId != null && targetId != activeDragSource.id) {
+                            if (targetId != null && targetId != hitNode.id) {
                                 val edgeExists = edges.any {
-                                    (it.from == activeDragSource.id && it.to == targetId) ||
-                                    (it.from == targetId && it.to == activeDragSource.id)
+                                    (it.from == hitNode.id && it.to == targetId) ||
+                                    (it.from == targetId && it.to == hitNode.id)
                                 }
                                 if (!edgeExists) {
                                     val defaultWeight = ((edges.size * 2) % 9) + 1
                                     val newEdge = GraphEdgeState(
-                                        from = activeDragSource.id,
+                                        from = hitNode.id,
                                         to = targetId,
                                         weight = defaultWeight,
                                         isHighlighted = true
                                     )
                                     val updatedEdges = edges + newEdge
                                     currentOnEdgesChanged.value(updatedEdges)
-                                    currentOnGraphModified.value?.invoke(nodes, updatedEdges)
+                                    currentOnGraphModified.value?.invoke(currentNodesState.value, updatedEdges)
                                 }
                             }
+                            currentOnDragStartNodeChanged.value(null)
+                            currentOnCurrentDragPosChanged.value(null)
+                            currentOnHoveredTargetNodeIdChanged.value(null)
                         }
-                        currentOnDragStartNodeChanged.value(null)
-                        currentOnCurrentDragPosChanged.value(null)
-                        currentOnHoveredTargetNodeIdChanged.value(null)
                     } else {
                         // Tap detected
                         if (!builderActive) {
@@ -432,63 +508,120 @@ fun GraphBuilderGestures(
                                 currentOnSelectedNodeIdChanged.value(if (selectedId == hitNode.id) null else hitNode.id)
                             }
                         } else {
-                            if (hitEdgeIndex >= 0 && hitNode == null) {
-                                val targetEdge = edges[hitEdgeIndex]
-                                val nextWeight = ((targetEdge.weight ?: 1) % 9) + 1
-                                val updatedEdges = edges.toMutableList().apply {
-                                    this[hitEdgeIndex] = targetEdge.copy(weight = nextWeight, isHighlighted = true)
-                                }
-                                currentOnEdgesChanged.value(updatedEdges)
-                                currentOnGraphModified.value?.invoke(nodes, updatedEdges)
-                            } else if (hitNode != null) {
-                                if (selectedId != null && selectedId != hitNode.id) {
-                                    val fromId = selectedId
-                                    val toId = hitNode.id
-                                    val edgeExists = edges.any {
-                                        (it.from == fromId && it.to == toId) ||
-                                        (it.from == toId && it.to == fromId)
+                            when (tool) {
+                                GraphTool.MOVE -> {
+                                    if (hitNode != null) {
+                                        currentOnNodeClick.value?.invoke(hitNode.id)
+                                        currentOnSelectedNodeIdChanged.value(if (selectedId == hitNode.id) null else hitNode.id)
+                                    } else {
+                                        currentOnSelectedNodeIdChanged.value(null)
                                     }
-                                    if (!edgeExists) {
-                                        val defaultWeight = ((edges.size * 2) % 9) + 1
-                                        val newEdge = GraphEdgeState(
-                                            from = fromId,
-                                            to = toId,
-                                            weight = defaultWeight,
-                                            isHighlighted = true
+                                }
+                                GraphTool.ADD -> {
+                                    if (hitNode != null) {
+                                        currentOnSelectedNodeIdChanged.value(if (selectedId == hitNode.id) null else hitNode.id)
+                                    } else {
+                                        val worldCoord = geom.toWorldCoords(startOffset)
+                                        val nextLabel = currentGetNextNodeLabel.value(nodes)
+                                        val newNode = GraphNodeState(
+                                            id = nextLabel,
+                                            label = nextLabel,
+                                            x = worldCoord.x,
+                                            y = worldCoord.y,
+                                            state = ElementState.ACTIVE
                                         )
-                                        val updatedEdges = edges + newEdge
+                                        var updatedEdges = edges
+                                        if (selectedId != null) {
+                                            val defaultWeight = ((edges.size * 2) % 9) + 1
+                                            updatedEdges = updatedEdges + GraphEdgeState(
+                                                from = selectedId,
+                                                to = nextLabel,
+                                                weight = defaultWeight,
+                                                isHighlighted = true
+                                            )
+                                        }
+                                        val updatedNodes = nodes + newNode
+                                        currentOnNodesChanged.value(updatedNodes)
+                                        currentOnEdgesChanged.value(updatedEdges)
+                                        currentOnSelectedNodeIdChanged.value(nextLabel)
+                                        currentOnGraphModified.value?.invoke(updatedNodes, updatedEdges)
+                                    }
+                                }
+                                GraphTool.LINK -> {
+                                    if (hitNode != null) {
+                                        if (selectedId != null && selectedId != hitNode.id) {
+                                            val fromId = selectedId
+                                            val toId = hitNode.id
+                                            val edgeExists = edges.any {
+                                                (it.from == fromId && it.to == toId) ||
+                                                (it.from == toId && it.to == fromId)
+                                            }
+                                            if (!edgeExists) {
+                                                val defaultWeight = ((edges.size * 2) % 9) + 1
+                                                val newEdge = GraphEdgeState(
+                                                    from = fromId,
+                                                    to = toId,
+                                                    weight = defaultWeight,
+                                                    isHighlighted = true
+                                                )
+                                                val updatedEdges = edges + newEdge
+                                                currentOnEdgesChanged.value(updatedEdges)
+                                                currentOnGraphModified.value?.invoke(nodes, updatedEdges)
+                                            }
+                                            currentOnSelectedNodeIdChanged.value(null)
+                                        } else {
+                                            currentOnSelectedNodeIdChanged.value(if (selectedId == hitNode.id) null else hitNode.id)
+                                        }
+                                    }
+                                }
+                                GraphTool.WEIGHT -> {
+                                    if (hitEdgeIndex >= 0) {
+                                        val targetEdge = edges[hitEdgeIndex]
+                                        val nextWeight = ((targetEdge.weight ?: 1) % 9) + 1
+                                        val updatedEdges = edges.toMutableList().apply {
+                                            this[hitEdgeIndex] = targetEdge.copy(weight = nextWeight, isHighlighted = true)
+                                        }
+                                        currentOnEdgesChanged.value(updatedEdges)
+                                        currentOnGraphModified.value?.invoke(nodes, updatedEdges)
+                                    } else if (hitNode != null) {
+                                        currentOnSelectedNodeIdChanged.value(if (selectedId == hitNode.id) null else hitNode.id)
+                                    }
+                                }
+                                GraphTool.ENDPOINTS -> {
+                                    if (hitNode != null) {
+                                        val curStart = currentStartNodeIdState.value
+                                        val curTarget = currentTargetNodeIdState.value
+                                        val id = hitNode.id
+                                        val (newStart, newTarget) = when {
+                                            id == curStart -> null to curTarget
+                                            id == curTarget -> curStart to null
+                                            curStart == null -> id to curTarget
+                                            curTarget == null -> curStart to id
+                                            else -> id to null
+                                        }
+                                        currentOnEndpointsChanged.value?.invoke(newStart, newTarget)
+                                    }
+                                }
+                                GraphTool.DELETE -> {
+                                    if (hitNode != null) {
+                                        val id = hitNode.id
+                                        val updatedNodes = nodes.filter { it.id != id }
+                                        val updatedEdges = edges.filter { it.from != id && it.to != id }
+                                        if (id == currentStartNodeIdState.value || id == currentTargetNodeIdState.value) {
+                                            val s = if (id == currentStartNodeIdState.value) null else currentStartNodeIdState.value
+                                            val t = if (id == currentTargetNodeIdState.value) null else currentTargetNodeIdState.value
+                                            currentOnEndpointsChanged.value?.invoke(s, t)
+                                        }
+                                        currentOnNodesChanged.value(updatedNodes)
+                                        currentOnEdgesChanged.value(updatedEdges)
+                                        currentOnSelectedNodeIdChanged.value(null)
+                                        currentOnGraphModified.value?.invoke(updatedNodes, updatedEdges)
+                                    } else if (hitEdgeIndex >= 0) {
+                                        val updatedEdges = edges.filterIndexed { idx, _ -> idx != hitEdgeIndex }
                                         currentOnEdgesChanged.value(updatedEdges)
                                         currentOnGraphModified.value?.invoke(nodes, updatedEdges)
                                     }
-                                    currentOnSelectedNodeIdChanged.value(null)
-                                } else {
-                                    currentOnSelectedNodeIdChanged.value(if (selectedId == hitNode.id) null else hitNode.id)
                                 }
-                            } else {
-                                val worldCoord = geom.toWorldCoords(startOffset)
-                                val nextLabel = currentGetNextNodeLabel.value(nodes)
-                                val newNode = GraphNodeState(
-                                    id = nextLabel,
-                                    label = nextLabel,
-                                    x = worldCoord.x,
-                                    y = worldCoord.y,
-                                    state = ElementState.ACTIVE
-                                )
-                                var updatedEdges = edges
-                                if (selectedId != null) {
-                                    val defaultWeight = ((edges.size * 2) % 9) + 1
-                                    updatedEdges = updatedEdges + GraphEdgeState(
-                                        from = selectedId,
-                                        to = nextLabel,
-                                        weight = defaultWeight,
-                                        isHighlighted = true
-                                    )
-                                }
-                                val updatedNodes = nodes + newNode
-                                currentOnNodesChanged.value(updatedNodes)
-                                currentOnEdgesChanged.value(updatedEdges)
-                                currentOnSelectedNodeIdChanged.value(nextLabel)
-                                currentOnGraphModified.value?.invoke(updatedNodes, updatedEdges)
                             }
                         }
                     }
@@ -504,6 +637,7 @@ fun GraphBuilderGestures(
 @Composable
 fun GraphBuilderBanner(
     isBuilderActive: Boolean,
+    activeTool: GraphTool = GraphTool.MOVE,
     selectedNodeId: String? = null,
     modifier: Modifier = Modifier
 ) {
@@ -516,10 +650,13 @@ fun GraphBuilderBanner(
             .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
             .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
     ) {
-        val hintText = if (selectedNodeId != null) {
-            "Selected Node $selectedNodeId: Tap another node to connect • Tap empty space to add & connect"
-        } else {
-            "Tap node to select • Drag between nodes to connect • Tap empty space to add node"
+        val hintText = when (activeTool) {
+            GraphTool.MOVE -> if (selectedNodeId != null) "Selected Node $selectedNodeId • Drag to reposition • Tap empty space to deselect" else "Drag any node to move • Drag background to pan viewport"
+            GraphTool.ADD -> if (selectedNodeId != null) "Tap canvas to add node and auto-connect to $selectedNodeId" else "Tap anywhere on empty canvas to plant a new node"
+            GraphTool.LINK -> if (selectedNodeId != null) "Selected Node $selectedNodeId: Tap target node to connect" else "Tap or drag from one node to another to create an edge"
+            GraphTool.WEIGHT -> "Tap any edge weight pill to cycle weight (1..9)"
+            GraphTool.ENDPOINTS -> "Tap node to set START (green) • Tap another to set TARGET (pink) • Tap to clear"
+            GraphTool.DELETE -> "Tap any node or edge to delete it"
         }
         Text(
             text = hintText,
@@ -528,5 +665,183 @@ fun GraphBuilderBanner(
             fontSize = AlgoType.microSize,
             fontWeight = FontWeight.Medium
         )
+    }
+}
+
+/**
+ * Floating bottom glass toolbar for the node graph editor and fullscreen mode.
+ */
+@Composable
+fun GraphFloatingToolbar(
+    activeTool: GraphTool,
+    onToolSelected: (GraphTool) -> Unit,
+    onCenterView: () -> Unit,
+    onResetGraph: () -> Unit,
+    onToggleFullscreen: () -> Unit,
+    isFullscreen: Boolean,
+    canReset: Boolean,
+    isPanned: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .padding(AlgoTokens.space2)
+            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+            .background(DarkBackground.copy(alpha = 0.94f))
+            .border(
+                AlgoTokens.strokeThin,
+                PrimaryCyan.copy(alpha = 0.35f),
+                RoundedCornerShape(AlgoTokens.radiusMd)
+            )
+            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
+    ) {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+        ) {
+            // 6 Tools
+            GraphTool.entries.forEach { tool ->
+                val isSelected = (tool == activeTool)
+                val glyph = when (tool) {
+                    GraphTool.MOVE -> AlgoGlyphs.Tap
+                    GraphTool.ADD -> AlgoGlyphs.Plus
+                    GraphTool.LINK -> AlgoGlyphs.Nodes
+                    GraphTool.WEIGHT -> AlgoGlyphs.Speed
+                    GraphTool.ENDPOINTS -> AlgoGlyphs.Target
+                    GraphTool.DELETE -> AlgoGlyphs.Trash
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(if (isSelected) CyanSubtle else CanvasBackground)
+                        .border(
+                            AlgoTokens.strokeThin,
+                            if (isSelected) PrimaryCyan else BorderSubtle,
+                            RoundedCornerShape(AlgoTokens.radiusXs)
+                        )
+                        .clickable { onToolSelected(tool) }
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = glyph,
+                            contentDescription = tool.label,
+                            tint = if (isSelected) PrimaryCyan else TextMuted,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Text(
+                            text = tool.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) PrimaryCyan else TextMuted,
+                            fontSize = AlgoType.microSize,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            // Divider
+            Box(
+                modifier = Modifier
+                    .size(width = 1.dp, height = 18.dp)
+                    .background(BorderSubtle)
+            )
+
+            // Center View (when panned)
+            if (isPanned) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(CanvasBackground)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                        .clickable { onCenterView() }
+                        .padding(horizontal = 7.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Center",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PrimaryCyan,
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            // Reset Graph (when modified)
+            if (canReset) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(CanvasBackground)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                        .clickable { onResetGraph() }
+                        .padding(horizontal = 7.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = AlgoGlyphs.Refresh,
+                            contentDescription = "Reset",
+                            tint = AccentPink,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = "Reset",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AccentPink,
+                            fontSize = AlgoType.microSize,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            // Fullscreen toggle
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                    .background(if (isFullscreen) PrimaryCyan else CanvasBackground)
+                    .border(
+                        AlgoTokens.strokeThin,
+                        if (isFullscreen) PrimaryCyan else BorderSubtle,
+                        RoundedCornerShape(AlgoTokens.radiusXs)
+                    )
+                    .clickable { onToggleFullscreen() }
+                    .padding(horizontal = 7.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isFullscreen) AlgoGlyphs.Close else AlgoGlyphs.Expand,
+                        contentDescription = if (isFullscreen) "Exit Fullscreen" else "Fullscreen",
+                        tint = if (isFullscreen) DarkBackground else PrimaryCyan,
+                        modifier = Modifier.size(10.dp)
+                    )
+                    Text(
+                        text = if (isFullscreen) "Exit" else "Fullscreen",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isFullscreen) DarkBackground else PrimaryCyan,
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
     }
 }

@@ -61,6 +61,7 @@ object AlgorithmStepRepository {
         bstValues: List<Int> = defaultBstValues,
         bstSearchKey: Int = defaultBstSearchKey,
         traversalStartNodeId: String = "A",
+        targetNodeId: String? = null,
         customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
     ): List<VisualizerStep> {
         val spec = AlgorithmRegistry.specFor(algorithm.id)
@@ -88,8 +89,9 @@ object AlgorithmStepRepository {
             AlgorithmId.QUEUE -> generateQueueSteps(queueOps.ifEmpty { defaultQueueOps() })
             AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps(bstValues.ifEmpty { defaultBstValues }, bstSearchKey)
             AlgorithmId.HEAP -> generateHeapSteps(inputArray.ifEmpty { DEFAULT_HEAP_INPUT }, sortOrder)
-            AlgorithmId.BFS -> generateBFSSteps(traversalStartNodeId, customGraph)
-            AlgorithmId.DFS -> generateDFSSteps(traversalStartNodeId, customGraph)
+            AlgorithmId.BFS -> generateBFSSteps(traversalStartNodeId, customGraph, targetNodeId)
+            AlgorithmId.DFS -> generateDFSSteps(traversalStartNodeId, customGraph, targetNodeId)
+            AlgorithmId.DIJKSTRA -> generateDijkstraSteps(traversalStartNodeId, customGraph, targetNodeId)
         }
     }
 
@@ -1382,51 +1384,6 @@ object AlgorithmStepRepository {
         val byId = nodes.associateBy { it.id }
         val childrenById = edges.groupBy { it.from }.mapValues { (_, es) -> es.map { it.to } }
 
-        // Emit incremental BST insertion steps from the exact input prefix (0..i)
-        val insertedIds = linkedSetOf<String>()
-        for (i in nodes.indices) {
-            val insertedNode = nodes[i]
-            val latestId = insertedNode.id
-            insertedIds.add(latestId)
-            val visibleNodes = nodes.subList(0, i + 1).map {
-                if (it.id == latestId) it.copy(state = ElementState.ACTIVE)
-                else it.copy(state = ElementState.VISITED)
-            }
-            val visibleEdges = edges.filter { it.from in insertedIds && it.to in insertedIds }.map {
-                if (it.to == latestId) it.copy(isHighlighted = true) else it
-            }
-            steps.add(
-                VisualizerStep(
-                    stepIndex = sIdx++,
-                    description = if (i == 0) "BST Insert: Placed root node ${cleanValues[i]}."
-                    else "BST Insert: Inserted ${cleanValues[i]} into binary search tree (${insertedIds.size}/${cleanValues.size} nodes).",
-                    comparisonExpr = "INSERT(${cleanValues[i]}) · target = $searchKey",
-                    phaseLabel = "INSERTING",
-                    renderMode = VisualizerRenderMode.GRAPH_TREE,
-                    nodes = visibleNodes,
-                    edges = visibleEdges,
-                    buffer = insertedIds.mapIndexed { idx, id ->
-                        BufferItem(
-                            id = "ins_$idx",
-                            value = byId[id]?.label ?: id,
-                            state = if (id == latestId) ElementState.ACTIVE else ElementState.IDLE,
-                            nodeId = id
-                        )
-                    },
-                    bufferLabel = "BST INSERTION ORDER",
-                    activeNodeId = latestId,
-                    visitedNodeIds = insertedIds.toSet(),
-                    activeCodeLines = listOf(1, 2),
-                    variables = mapOf(
-                        "inserted" to cleanValues[i].toString(),
-                        "treeSize" to insertedIds.size.toString(),
-                        "searchKey" to searchKey.toString()
-                    ),
-                    callStack = listOf("BST.build()", "insert(${cleanValues[i]})")
-                )
-            )
-        }
-
         val rootId = nodes.firstOrNull()?.id
         if (rootId == null) {
             steps.add(
@@ -1442,12 +1399,13 @@ object AlgorithmStepRepository {
             return steps
         }
 
+        // Step 0: Show fully pre-built tree — skip incremental construction phase.
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "BST constructed (${nodes.size} nodes). Starting search from root ${byId[rootId]?.label} for target key = $searchKey.",
+                description = "BST ready (${nodes.size} nodes). Starting search from root ${byId[rootId]?.label} for target key = $searchKey.",
                 comparisonExpr = "SEARCH: target = $searchKey",
-                phaseLabel = "SEARCHING",
+                phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = nodes.map { if (it.id == rootId) it.copy(state = ElementState.ACTIVE) else it },
                 edges = edges,
@@ -1841,7 +1799,8 @@ object AlgorithmStepRepository {
     // ─────────────────────────────────────────────────────────────
     private fun generateBFSSteps(
         startNodeId: String = "A",
-        customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null
+        customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
+        targetNodeId: String? = null
     ): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -1850,6 +1809,7 @@ object AlgorithmStepRepository {
         val baseEdges = rawEdges.map { it.copy(isHighlighted = false) }
         val validIds = baseNodes.map { it.id }.toSet()
         val start = if (startNodeId.uppercase() in validIds) startNodeId.uppercase() else (baseNodes.firstOrNull()?.id ?: "A")
+        val target = targetNodeId?.uppercase()?.takeIf { it in validIds && it != start }
 
         val adj = mutableMapOf<String, MutableList<Pair<String, Int>>>()
         baseNodes.forEach { adj[it.id] = mutableListOf() }
@@ -1866,6 +1826,8 @@ object AlgorithmStepRepository {
         val queue = ArrayDeque<String>()
         val treeEdges = mutableSetOf<Pair<String, String>>()
         val distMap = mutableMapOf<String, Int>()
+        val parentMap = mutableMapOf<String, String>()
+        var foundTarget = false
 
         visited.add(start)
         queue.addLast(start)
@@ -1887,7 +1849,8 @@ object AlgorithmStepRepository {
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "BFS: Initialized source node $start (dist=0). Enqueued $start into frontier.",
+                description = "BFS: Initialized source node $start (dist=0). Enqueued $start into frontier." +
+                    if (target != null) " Goal: reach node $target." else "",
                 comparisonExpr = "QUEUE: [$start]",
                 phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
@@ -1907,7 +1870,7 @@ object AlgorithmStepRepository {
             )
         )
 
-        while (queue.isNotEmpty()) {
+        while (queue.isNotEmpty() && !foundTarget) {
             val curr = queue.removeFirst()
             val currDist = distMap[curr] ?: 0
             val neighbors = adj[curr].orEmpty()
@@ -1917,16 +1880,24 @@ object AlgorithmStepRepository {
                 if (nextId !in visited) {
                     visited.add(nextId)
                     distMap[nextId] = currDist + weight
+                    parentMap[nextId] = curr
                     treeEdges.add(curr to nextId)
                     queue.addLast(nextId)
                     newlyDiscovered.add("$nextId(w=$weight)")
+                    if (nextId == target) {
+                        foundTarget = true
+                        break
+                    }
                 }
             }
 
-            val desc = if (newlyDiscovered.isNotEmpty()) {
-                "BFS: Dequeued $curr (dist=$currDist). Discovered ${newlyDiscovered.joinToString(", ")}. Queue = [${queue.joinToString(", ")}]"
-            } else {
-                "BFS: Dequeued $curr (dist=$currDist). All neighbors already visited. Queue = [${queue.joinToString(", ")}]"
+            val desc = when {
+                foundTarget ->
+                    "BFS: Dequeued $curr (dist=$currDist). TARGET $target discovered — shortest-hop route locked. Queue = [${queue.joinToString(", ")}]"
+                newlyDiscovered.isNotEmpty() ->
+                    "BFS: Dequeued $curr (dist=$currDist). Discovered ${newlyDiscovered.joinToString(", ")}. Queue = [${queue.joinToString(", ")}]"
+                else ->
+                    "BFS: Dequeued $curr (dist=$currDist). All neighbors already visited. Queue = [${queue.joinToString(", ")}]"
             }
 
             steps.add(
@@ -1963,32 +1934,77 @@ object AlgorithmStepRepository {
             )
         }
 
+        // Path reconstruction via parentMap when the search was goal-directed.
+        val goalPath = if (target != null && foundTarget) {
+            val rev = mutableListOf(target)
+            var cur: String = target
+            while (parentMap.containsKey(cur)) {
+                cur = parentMap.getValue(cur)
+                rev.add(0, cur)
+            }
+            rev
+        } else null
+        val goalPathEdges: Set<Pair<String, String>> =
+            goalPath?.zipWithNext()?.map { it.first to it.second }?.toSet() ?: emptySet()
+
+        fun isGoalEdge(e: GraphEdgeState): Boolean =
+            (e.from to e.to) in goalPathEdges || (e.to to e.from) in goalPathEdges
+
         val lastVisited = visited.lastOrNull() ?: start
+        val terminalFocal = if (target != null && foundTarget) target else lastVisited
+        val terminalDesc = when {
+            target != null && foundTarget ->
+                "TARGET REACHED: ${goalPath?.joinToString(" → ")} (${(goalPath?.size ?: 1) - 1} hops) after ${visited.size} expansions."
+            target != null ->
+                "TARGET UNREACHABLE: $target was never discovered. Explored ${visited.size} nodes: ${visited.joinToString(" → ")}."
+            else ->
+                "BFS Traversal Complete! Order: ${visited.joinToString(" → ")}."
+        }
+        val terminalPhase = when {
+            target != null && foundTarget -> "FOUND"
+            target != null -> "NOT_FOUND"
+            else -> "SORTED"
+        }
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "BFS Traversal Complete! Order: ${visited.joinToString(" → ")}.",
-                comparisonExpr = "COMPLETE: ${visited.size} nodes visited",
-                phaseLabel = "SORTED",
+                description = terminalDesc,
+                comparisonExpr = if (target != null && foundTarget) {
+                    "PATH: ${goalPath?.joinToString("→")}"
+                } else {
+                    "COMPLETE: ${visited.size} nodes visited"
+                },
+                phaseLabel = terminalPhase,
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = baseNodes.map {
-                    if (it.id == lastVisited) it.copy(state = ElementState.FOUND)
-                    else if (it.id in visited) it.copy(state = ElementState.VISITED)
-                    else it
+                    when {
+                        it.id == terminalFocal -> it.copy(state = ElementState.FOUND)
+                        it.id in visited -> it.copy(state = ElementState.VISITED)
+                        else -> it
+                    }
                 },
                 edges = baseEdges.map { e ->
-                    if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                    when {
+                        isGoalEdge(e) -> e.copy(isHighlighted = true)
+                        isTreeEdge(e) -> e.copy(isHighlighted = true)
+                        else -> e
+                    }
                 },
                 buffer = emptyList(),
                 bufferLabel = "BFS FRONTIER QUEUE",
-                activeNodeId = lastVisited,
+                activeNodeId = terminalFocal,
                 visitedNodeIds = visited.toSet(),
                 activeCodeLines = listOf(3),
-                variables = mapOf(
-                    "source" to start,
-                    "visitedOrder" to visited.joinToString("→"),
-                    "totalVisited" to visited.size.toString()
-                ),
+                variables = buildMap {
+                    put("source", start)
+                    put("visitedOrder", visited.joinToString("→"))
+                    put("totalVisited", visited.size.toString())
+                    if (target != null) {
+                        put("target", target)
+                        put("targetFound", foundTarget.toString())
+                        if (goalPath != null) put("path", goalPath.joinToString("→"))
+                    }
+                },
                 callStack = listOf("bfs(start=$start) -> complete")
             )
         )
@@ -2001,7 +2017,8 @@ object AlgorithmStepRepository {
     // ─────────────────────────────────────────────────────────────
     private fun generateDFSSteps(
         startNodeId: String = "A",
-        customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null
+        customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
+        targetNodeId: String? = null
     ): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
@@ -2010,6 +2027,7 @@ object AlgorithmStepRepository {
         val baseEdges = rawEdges.map { it.copy(isHighlighted = false) }
         val validIds = baseNodes.map { it.id }.toSet()
         val start = if (startNodeId.uppercase() in validIds) startNodeId.uppercase() else (baseNodes.firstOrNull()?.id ?: "A")
+        val target = targetNodeId?.uppercase()?.takeIf { it in validIds && it != start }
 
         val adj = mutableMapOf<String, MutableList<Pair<String, Int>>>()
         baseNodes.forEach { adj[it.id] = mutableListOf() }
@@ -2025,6 +2043,8 @@ object AlgorithmStepRepository {
         val visited = linkedSetOf<String>()
         val callStack = mutableListOf<String>()
         val treeEdges = mutableSetOf<Pair<String, String>>()
+        val parentMap = mutableMapOf<String, String>()
+        var foundTarget = false
 
         fun isTreeEdge(e: GraphEdgeState): Boolean =
             (e.from to e.to) in treeEdges || (e.to to e.from) in treeEdges
@@ -2040,20 +2060,24 @@ object AlgorithmStepRepository {
             }
 
         fun dfs(u: String, incomingWeight: Int?) {
+            if (foundTarget) return
             visited.add(u)
             callStack.add(u)
             val weightInfo = if (incomingWeight != null) " via edge (w=$incomingWeight)" else ""
+            val hitTarget = u == target
+            if (hitTarget) foundTarget = true
 
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "DFS: Visiting node $u$weightInfo. Call Stack = [${callStack.joinToString(" → ")}]",
+                    description = "DFS: Visiting node $u$weightInfo. Call Stack = [${callStack.joinToString(" → ")}]" +
+                        if (hitTarget) " TARGET REACHED — recursion stops here." else "",
                     comparisonExpr = "CALL STACK: [${callStack.joinToString(", ") { "dfs($it)" }}]",
                     phaseLabel = if (callStack.size == 1) "INITIALIZING" else "VISITING",
                     renderMode = VisualizerRenderMode.GRAPH_TREE,
                     nodes = baseNodes.map { node ->
                         when {
-                            node.id == u -> node.copy(state = ElementState.ACTIVE)
+                            node.id == u -> node.copy(state = if (hitTarget) ElementState.FOUND else ElementState.ACTIVE)
                             node.id in callStack -> node.copy(state = ElementState.COMPARING)
                             node.id in visited -> node.copy(state = ElementState.VISITED)
                             else -> node
@@ -2076,13 +2100,18 @@ object AlgorithmStepRepository {
                 )
             )
 
+            if (hitTarget) return
+
             for ((v, w) in adj[u].orEmpty()) {
                 if (v !in visited) {
                     treeEdges.add(u to v)
+                    parentMap[v] = u
                     dfs(v, w)
+                    if (foundTarget) return
                 }
             }
 
+            if (foundTarget) return
             callStack.removeAt(callStack.lastIndex)
             if (callStack.isNotEmpty()) {
                 val parent = callStack.last()
@@ -2122,12 +2151,27 @@ object AlgorithmStepRepository {
 
         dfs(start, null)
 
-        val lastNode = visited.lastOrNull() ?: start
+        val goalPath: List<String> = if (foundTarget && target != null) {
+            val p = mutableListOf(target)
+            var cur: String = target
+            while (parentMap.containsKey(cur)) {
+                cur = parentMap.getValue(cur)
+                p.add(0, cur)
+            }
+            p
+        } else emptyList()
+        val goalEdgePairs: Set<Pair<String, String>> = goalPath.zipWithNext().map { it.first to it.second }.toSet()
+
+        val lastNode = if (foundTarget) target ?: start else (visited.lastOrNull() ?: start)
         steps.add(
             VisualizerStep(
                 stepIndex = sIdx++,
-                description = "DFS Complete! Visited order: ${visited.joinToString(" → ")}.",
-                comparisonExpr = "COMPLETE: ${visited.size} nodes visited",
+                description = when {
+                    foundTarget -> "TARGET REACHED: ${goalPath.joinToString(" → ")} (${(goalPath.size - 1).coerceAtLeast(0)} hops) after ${visited.size} visits. The call stack held the whole route."
+                    target != null -> "TARGET UNREACHABLE: $target was never discovered. Visited ${visited.size} nodes: ${visited.joinToString(" → ")}."
+                    else -> "DFS Complete! Visited order: ${visited.joinToString(" → ")}."
+                },
+                comparisonExpr = if (foundTarget) "PATH: ${goalPath.joinToString(" -> ")}" else "COMPLETE: ${visited.size} nodes visited",
                 phaseLabel = "FOUND",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = baseNodes.map {
@@ -2136,22 +2180,435 @@ object AlgorithmStepRepository {
                     else it
                 },
                 edges = baseEdges.map { e ->
-                    if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                    if (goalEdgePairs.isNotEmpty()) {
+                        if ((e.from to e.to) in goalEdgePairs || (e.to to e.from) in goalEdgePairs) e.copy(isHighlighted = true) else e
+                    } else if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
                 },
                 buffer = emptyList(),
                 bufferLabel = "DFS CALL STACK",
                 activeNodeId = lastNode,
                 visitedNodeIds = visited.toSet(),
                 activeCodeLines = listOf(5),
-                variables = mapOf(
-                    "source" to start,
-                    "visitedOrder" to visited.joinToString("→"),
-                    "totalVisited" to visited.size.toString()
-                ),
+                variables = buildMap {
+                    put("source", start)
+                    put("visitedOrder", visited.joinToString("→"))
+                    put("totalVisited", visited.size.toString())
+                    if (target != null) put("target", target)
+                    if (foundTarget) put("path", goalPath.joinToString("→"))
+                },
                 callStack = listOf("dfs(start=$start) -> complete")
             )
         )
 
         return steps
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // 14. Dijkstra's Shortest Path Algorithm
+    // ─────────────────────────────────────────────────────────────
+    fun generateDijkstraSteps(
+        startNodeId: String = "A",
+        customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
+        targetNodeId: String? = null
+    ): List<VisualizerStep> {
+        val steps = mutableListOf<VisualizerStep>()
+        var sIdx = 0
+        val (rawNodes, rawEdges) = customGraph?.takeIf { it.first.isNotEmpty() } ?: canonicalWeightedGraph()
+        val baseNodes = rawNodes.map { it.copy(state = ElementState.IDLE) }
+        val baseEdges = rawEdges.map { it.copy(isHighlighted = false) }
+        val validIds = baseNodes.map { it.id }.toSet()
+        val start = if (startNodeId.uppercase() in validIds) startNodeId.uppercase() else (baseNodes.firstOrNull()?.id ?: "A")
+        val target = targetNodeId?.uppercase()?.takeIf { it in validIds && it != start }
+
+        val adj = mutableMapOf<String, MutableList<Pair<String, Int>>>()
+        baseNodes.forEach { adj[it.id] = mutableListOf() }
+        baseEdges.forEach { e ->
+            val w = e.weight ?: 1
+            adj[e.from]?.add(e.to to w)
+            if (!e.isDirected) {
+                adj[e.to]?.add(e.from to w)
+            }
+        }
+        adj.values.forEach { it.sortBy { n -> n.first } }
+
+        val dist = mutableMapOf<String, Int>().apply {
+            baseNodes.forEach { put(it.id, Int.MAX_VALUE) }
+        }
+        dist[start] = 0
+        val prev = mutableMapOf<String, String>()
+        val settled = mutableSetOf<String>()
+        val treeEdges = mutableSetOf<Pair<String, String>>()
+
+        // Min-Priority Queue ordered by distance, tie-breaking on node ID
+        val pq = java.util.PriorityQueue<Pair<String, Int>>(
+            compareBy<Pair<String, Int>> { it.second }.thenBy { it.first }
+        )
+        pq.add(start to 0)
+
+        fun pqBufferItems(activeId: String? = null): List<BufferItem> {
+            val list = pq.toList().sortedWith(compareBy<Pair<String, Int>> { it.second }.thenBy { it.first })
+            return list.mapIndexed { idx, pair ->
+                BufferItem(
+                    id = "pq_${idx}_${pair.first}_${pair.second}",
+                    value = "${pair.first}(d=${pair.second})",
+                    state = if (pair.first == activeId) ElementState.ACTIVE else ElementState.IDLE,
+                    nodeId = pair.first
+                )
+            }
+        }
+
+        fun isTreeEdge(e: GraphEdgeState): Boolean =
+            (e.from to e.to) in treeEdges || (e.to to e.from) in treeEdges
+
+        // 1. Initial Step: INITIALIZING
+        steps.add(
+            VisualizerStep(
+                stepIndex = sIdx++,
+                description = "Dijkstra: Initialized dist[$start]=0, all other nodes dist=∞. Added ($start, d=0) to Priority Queue.",
+                comparisonExpr = "INITIALIZE: dist[$start] = 0",
+                phaseLabel = "INITIALIZING",
+                renderMode = VisualizerRenderMode.GRAPH_TREE,
+                nodes = baseNodes.map { node ->
+                    if (node.id == start) node.copy(state = ElementState.ACTIVE)
+                    else node
+                },
+                edges = baseEdges,
+                buffer = pqBufferItems(start),
+                bufferLabel = "PRIORITY QUEUE",
+                activeNodeId = start,
+                visitedNodeIds = emptySet(),
+                activeCodeLines = listOf(1, 2, 3),
+                variables = buildMap {
+                    put("source", start)
+                    put("dist[$start]", "0")
+                    if (target != null) put("target", target)
+                },
+                callStack = listOf("dijkstra(start=$start)")
+            )
+        )
+
+        var foundTarget = false
+
+        while (pq.isNotEmpty() && !foundTarget) {
+            val (u, d) = pq.poll() ?: break
+
+            // Skip obsolete priority queue entry if we already found a shorter path
+            if (d > (dist[u] ?: Int.MAX_VALUE)) {
+                continue
+            }
+            if (u in settled) {
+                continue
+            }
+
+            settled.add(u)
+            if (prev.containsKey(u)) {
+                treeEdges.add(prev.getValue(u) to u)
+            }
+
+            // Step: EXTRACT_MIN / SETTLED
+            val isGoal = (u == target)
+            if (isGoal) {
+                foundTarget = true
+            }
+
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = if (isGoal) {
+                        "Target $target extracted from Priority Queue with confirmed shortest distance $d."
+                    } else {
+                        "Settled node $u with optimal distance dist[$u]=$d. Expanding adjacent edges."
+                    },
+                    comparisonExpr = "EXTRACT-MIN: $u (dist = $d)",
+                    phaseLabel = if (isGoal) "FOUND" else "SETTLED",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = baseNodes.map { node ->
+                        when {
+                            node.id == u -> if (isGoal) ElementState.FOUND else ElementState.ACTIVE
+                            node.id in settled -> ElementState.VISITED
+                            else -> ElementState.IDLE
+                        }.let { state -> node.copy(state = state) }
+                    },
+                    edges = baseEdges.map { e ->
+                        if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                    },
+                    buffer = pqBufferItems(),
+                    bufferLabel = "PRIORITY QUEUE",
+                    activeNodeId = u,
+                    visitedNodeIds = settled.toSet(),
+                    activeCodeLines = listOf(5),
+                    variables = buildMap {
+                        put("settledNode", u)
+                        put("dist[$u]", d.toString())
+                        put("settledCount", settled.size.toString())
+                        put("pqSize", pq.size.toString())
+                    },
+                    callStack = listOf("settled: $u (cost=$d)")
+                )
+            )
+
+            if (isGoal) {
+                break
+            }
+
+            // Inspect and relax outgoing edges
+            for ((v, weight) in adj[u].orEmpty()) {
+                val currentDistV = dist[v] ?: Int.MAX_VALUE
+                val candidateDist = d + weight
+
+                if (v in settled) {
+                    continue
+                }
+
+                // Step: RELAXING / COMPARING
+                steps.add(
+                    VisualizerStep(
+                        stepIndex = sIdx++,
+                        description = "Inspecting edge ($u → $v, weight $weight): candidate dist = $d + $weight = $candidateDist vs current dist[$v] = ${if (currentDistV == Int.MAX_VALUE) "∞" else currentDistV.toString()}.",
+                        comparisonExpr = "RELAX: $d + $weight ${if (candidateDist < currentDistV) "<" else "≥"} ${if (currentDistV == Int.MAX_VALUE) "∞" else currentDistV}",
+                        phaseLabel = "RELAXING",
+                        renderMode = VisualizerRenderMode.GRAPH_TREE,
+                        nodes = baseNodes.map { node ->
+                            when {
+                                node.id == u -> node.copy(state = ElementState.ACTIVE)
+                                node.id == v -> node.copy(state = ElementState.COMPARING)
+                                node.id in settled -> node.copy(state = ElementState.VISITED)
+                                else -> node
+                            }
+                        },
+                        edges = baseEdges.map { e ->
+                            val isCurrentEdge = (e.from == u && e.to == v) || (e.to == u && e.from == v)
+                            if (isCurrentEdge || isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                        },
+                        buffer = pqBufferItems(),
+                        bufferLabel = "PRIORITY QUEUE",
+                        activeNodeId = v,
+                        visitedNodeIds = settled.toSet(),
+                        activeCodeLines = listOf(8, 9),
+                        variables = buildMap {
+                            put("u", u)
+                            put("v", v)
+                            put("edgeWeight", weight.toString())
+                            put("newDist", candidateDist.toString())
+                            put("oldDist", if (currentDistV == Int.MAX_VALUE) "∞" else currentDistV.toString())
+                        },
+                        callStack = listOf("relax(edge=$u->$v, w=$weight)")
+                    )
+                )
+
+                if (candidateDist < currentDistV) {
+                    dist[v] = candidateDist
+                    prev[v] = u
+                    pq.add(v to candidateDist)
+
+                    // Step: UPDATING
+                    steps.add(
+                        VisualizerStep(
+                            stepIndex = sIdx++,
+                            description = "Shorter path to $v found via $u! Updated dist[$v] = $candidateDist and enqueued ($v, d=$candidateDist).",
+                            comparisonExpr = "UPDATE: dist[$v] = $candidateDist",
+                            phaseLabel = "UPDATING",
+                            renderMode = VisualizerRenderMode.GRAPH_TREE,
+                            nodes = baseNodes.map { node ->
+                                when {
+                                    node.id == v -> node.copy(state = ElementState.ACTIVE)
+                                    node.id == u -> node.copy(state = ElementState.ACTIVE)
+                                    node.id in settled -> node.copy(state = ElementState.VISITED)
+                                    else -> node
+                                }
+                            },
+                            edges = baseEdges.map { e ->
+                                val isCurrentEdge = (e.from == u && e.to == v) || (e.to == u && e.from == v)
+                                if (isCurrentEdge || isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                            },
+                            buffer = pqBufferItems(v),
+                            bufferLabel = "PRIORITY QUEUE",
+                            activeNodeId = v,
+                            visitedNodeIds = settled.toSet(),
+                            activeCodeLines = listOf(10, 11),
+                            variables = buildMap {
+                                put("relaxedNode", v)
+                                put("dist[$v]", candidateDist.toString())
+                                put("parent[$v]", u)
+                            },
+                            callStack = listOf("dist[$v] := $candidateDist")
+                        )
+                    )
+                }
+            }
+        }
+
+        // Reconstruct path
+        val goalPath = if (foundTarget && target != null) {
+            val p = mutableListOf(target)
+            var cur: String = target
+            while (prev.containsKey(cur)) {
+                cur = prev.getValue(cur)
+                p.add(0, cur)
+            }
+            p
+        } else emptyList()
+        val goalEdgePairs: Set<Pair<String, String>> = goalPath.zipWithNext().map { it.first to it.second }.toSet()
+
+        val lastNode = if (foundTarget) target ?: start else (settled.lastOrNull() ?: start)
+        val finalCost = if (foundTarget && target != null) dist[target] ?: 0 else 0
+
+        steps.add(
+            VisualizerStep(
+                stepIndex = sIdx++,
+                description = when {
+                    foundTarget -> "TARGET REACHED: Shortest path is ${goalPath.joinToString(" → ")} (total cost: $finalCost) after settling ${settled.size} nodes."
+                    target != null -> "TARGET UNREACHABLE: Target node $target is not reachable from source $start. Settled ${settled.size} nodes: ${settled.joinToString(" → ")}."
+                    else -> "Dijkstra Complete! Settled all reachable nodes from $start: ${settled.joinToString(" → ")}."
+                },
+                comparisonExpr = if (foundTarget) "SHORTEST PATH: cost = $finalCost" else "COMPLETE: ${settled.size} settled",
+                phaseLabel = if (foundTarget) "FOUND" else if (target != null) "NOT_FOUND" else "SORTED",
+                renderMode = VisualizerRenderMode.GRAPH_TREE,
+                nodes = baseNodes.map { node ->
+                    val state = when {
+                        node.id == lastNode -> if (foundTarget) ElementState.FOUND else ElementState.VISITED
+                        node.id in goalPath -> ElementState.FOUND
+                        node.id in settled -> ElementState.VISITED
+                        else -> node.state
+                    }
+                    node.copy(state = state)
+                },
+                edges = baseEdges.map { e ->
+                    if (goalEdgePairs.isNotEmpty()) {
+                        if ((e.from to e.to) in goalEdgePairs || (e.to to e.from) in goalEdgePairs) e.copy(isHighlighted = true) else e
+                    } else if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                },
+                buffer = emptyList(),
+                bufferLabel = "PRIORITY QUEUE",
+                activeNodeId = lastNode,
+                visitedNodeIds = settled.toSet(),
+                activeCodeLines = listOf(11),
+                variables = buildMap {
+                    put("source", start)
+                    put("settledCount", settled.size.toString())
+                    if (target != null) put("target", target)
+                    if (foundTarget) {
+                        put("path", goalPath.joinToString("→"))
+                        put("cost", finalCost.toString())
+                    }
+                },
+                callStack = listOf("dijkstra(start=$start) -> complete")
+            )
+        )
+
+        return steps
+    }
+}
+
+/**
+ * Shared pure graph-search engine used by the BFS/DFS step generators, the
+ * node-graph editor's live path preview, and unit tests.
+ *
+ * When [target] is `null` the searches run exhaustive traversals (visiting
+ * everything reachable from the source — the classic textbook behaviour).
+ * When a [target] is given the search is goal-directed: BFS stops the moment
+ * the target is *discovered* (fewest-hops guarantee) and DFS stops when its
+ * walk *reaches* the target (a valid path, not necessarily the shortest).
+ */
+object GraphSearch {
+
+    /** Immutability marker: order and parents are owned by the receiver. */
+    class Result(
+        val order: List<String>,
+        val parents: Map<String, String>,
+        val targetFound: Boolean,
+        val target: String?
+    ) {
+        /** Reconstructs source→target hop list from the parent map, or empty. */
+        fun pathToTarget(): List<String> {
+            if (!targetFound || target == null) return emptyList()
+            val path = mutableListOf(target)
+            var cur: String = target
+            while (parents.containsKey(cur)) {
+                cur = parents.getValue(cur)
+                path.add(0, cur)
+            }
+            return path
+        }
+
+        /** Parent-map edges of the source→target route, order-independent pairs. */
+        fun pathEdgePairs(): Set<Pair<String, String>> {
+            val p = pathToTarget()
+            return if (p.size < 2) emptySet()
+            else p.zipWithNext().map { it.first to it.second }.toSet()
+        }
+    }
+
+    /** Adjacency with edge weights; undirected edges expand both ways. */
+    fun buildAdjacency(edges: List<GraphEdgeState>): Map<String, MutableList<Pair<String, Int>>> {
+        val adj = mutableMapOf<String, MutableList<Pair<String, Int>>>()
+        edges.forEach { e ->
+            val w = e.weight ?: 1
+            adj.getOrPut(e.from) { mutableListOf() }.add(e.to to w)
+            if (!e.isDirected) {
+                adj.getOrPut(e.to) { mutableListOf() }.add(e.from to w)
+            }
+        }
+        adj.values.forEach { it.sortBy { n -> n.first } }
+        return adj
+    }
+
+    fun bfs(adj: Map<String, List<Pair<String, Int>>>, start: String, target: String? = null): Result {
+        val order = mutableListOf(start)
+        val parents = mutableMapOf<String, String>()
+        val visited = mutableSetOf(start)
+        val queue = ArrayDeque<String>()
+        queue.addLast(start)
+        var found = start == target && target != null
+        while (queue.isNotEmpty() && !found) {
+            val curr = queue.removeFirst()
+            for ((v, _) in adj[curr].orEmpty()) {
+                if (v !in visited) {
+                    visited.add(v)
+                    parents[v] = curr
+                    order.add(v)
+                    if (v == target) {
+                        found = true
+                        break
+                    }
+                    queue.addLast(v)
+                }
+            }
+        }
+        return Result(order, parents, found, target)
+    }
+
+    /**
+     * Iterative DFS mirroring the recursive generator's visit order (neighbors
+     * in label order, deepest-first). Stops early when [target] is reached.
+     */
+    fun dfs(adj: Map<String, List<Pair<String, Int>>>, start: String, target: String? = null): Result {
+        val order = mutableListOf<String>()
+        val parents = mutableMapOf<String, String>()
+        val visited = mutableSetOf<String>()
+        val stack = ArrayDeque<String>()
+        stack.addLast(start)
+        var found = false
+        while (stack.isNotEmpty() && !found) {
+            val u = stack.removeLast()
+            if (u in visited) continue
+            visited.add(u)
+            order.add(u)
+            if (u == target) {
+                found = true
+                break
+            }
+            for ((v, _) in adj[u].orEmpty().asReversed()) {
+                if (v !in visited) {
+                    parents.putIfAbsent(v, u)
+                    stack.addLast(v)
+                }
+            }
+        }
+        return Result(order, parents, found, target)
+    }
+
+    /** Shortest path (fewest hops) between two nodes via BFS, or empty list. */
+    fun shortestPath(adj: Map<String, List<Pair<String, Int>>>, start: String, end: String): List<String> =
+        bfs(adj, start, end).pathToTarget()
 }

@@ -98,7 +98,7 @@ object ProjectAlgorithmRecommender {
         }
 
         val graphGoal = when {
-            lower.contains("weighted") || lower.contains("dijkstra") || lower.contains("a*") ||
+            lower.contains("weighted") || lower.contains("dijkstra") || lower.contains("bellman") || lower.contains("floyd") || lower.contains("a*") ||
                 lower.contains("gps") || lower.contains("traffic") || lower.contains("road cost") ->
                 ProjectConstraintBrief.GraphGoal.WEIGHTED_SHORTEST_PATH
             lower.contains("shortest") || lower.contains("minimum hops") || lower.contains("unweighted") ||
@@ -135,7 +135,7 @@ object ProjectAlgorithmRecommender {
 
         // 1. Detect Out-of-Catalog domains first for strict honesty
         val needsWeightedShortestPath = brief.graphGoal == ProjectConstraintBrief.GraphGoal.WEIGHTED_SHORTEST_PATH ||
-            goalLower.contains("dijkstra") || goalLower.contains("a*") ||
+            goalLower.contains("dijkstra") || goalLower.contains("bellman") || goalLower.contains("floyd") || goalLower.contains("a*") ||
             (goalLower.contains("weighted") && (goalLower.contains("shortest") || goalLower.contains("gps") || goalLower.contains("route")))
         val needsStringTrieOrKmp = goalLower.contains("autocomplete") || goalLower.contains("trie") ||
             goalLower.contains("regex") || goalLower.contains("substring") || goalLower.contains("kmp")
@@ -145,24 +145,27 @@ object ProjectAlgorithmRecommender {
             goalLower.contains("encryption") || goalLower.contains("hash table") || goalLower.contains("cryptography")
 
         if (needsWeightedShortestPath) {
-            outOfCatalogNotice =
-                "Out-of-Catalog Notice: Weighted shortest-path routing (such as Dijkstra's Algorithm, A* Search, or Bellman-Ford) is not part of AVIA's 13-algorithm catalog. " +
-                    "Below are the closest foundational algorithms in the catalog: Breadth-First Search (for unweighted shortest hop count) and Heap (the priority-queue backbone used inside Dijkstra)."
+            val isOutOfCatalogSpecific = goalLower.contains("bellman") || goalLower.contains("floyd")
+            if (isOutOfCatalogSpecific) {
+                outOfCatalogNotice =
+                    "Out-of-Catalog Notice: Negative-weight or all-pairs algorithms (such as Bellman-Ford or Floyd-Warshall) are outside AVIA's 14-algorithm catalog. " +
+                        "We recommend Dijkstra's Shortest Path as the foundational non-negative single-source shortest path engine in our verified catalog."
+            }
+            validateAndGroundCandidate(
+                id = AlgorithmId.DIJKSTRA,
+                fitReason = "Solves single-source shortest paths on non-negative weighted graphs in O((V + E) log V) time using Min-Priority Queue relaxation.",
+                tradeOffs = "Requires non-negative edge weights (w >= 0). For negative weights, use Bellman-Ford."
+            )?.let { candidates.add(it) }
             validateAndGroundCandidate(
                 id = AlgorithmId.BFS,
-                fitReason = "Finds shortest paths when all edge weights are equal (unweighted hop count).",
-                tradeOffs = "Does not account for varying positive edge weights; use Dijkstra + Min-Heap in production weighted networks."
+                fitReason = "Alternative when all edge weights are uniform (unweighted hop count) in O(V + E) time.",
+                tradeOffs = "Does not respect non-uniform edge weights."
             )?.let { candidates.add(it) }
-            validateAndGroundCandidate(
-                id = AlgorithmId.HEAP,
-                fitReason = "Provides O(log n) priority extraction required to schedule the next closest vertex in weighted pathfinding.",
-                tradeOffs = "Models the priority queue structure rather than full graph relaxation."
-            )?.let { candidates.add(it) }
-            assumptions.add("Your graph has non-uniform edge costs (e.g., distance or travel time).")
-            alternatives.add("Use Dijkstra's Algorithm or A* in your project code, combining AVIA's BFS traversal pattern with a Heap priority queue.")
+            assumptions.add("Your graph has non-negative edge weights (w >= 0).")
+            alternatives.add("For heuristic-guided point-to-point pathfinding, upgrade to A* search with Euclidean/Manhattan distance.")
         } else if (needsStringTrieOrKmp) {
             outOfCatalogNotice =
-                "Out-of-Catalog Notice: Specialized string/prefix structures (Trie, KMP, Suffix Array) are outside AVIA's 13-algorithm catalog. " +
+                "Out-of-Catalog Notice: Specialized string/prefix structures (Trie, KMP, Suffix Array) are outside AVIA's 14-algorithm catalog. " +
                     "We recommend Binary Search (over a sorted dictionary array) or Binary Search Tree (for dynamic ordered keys) as the closest catalog foundations."
             validateAndGroundCandidate(
                 id = AlgorithmId.BINARY_SEARCH,
@@ -178,7 +181,7 @@ object ProjectAlgorithmRecommender {
             alternatives.add("For high-throughput prefix autocomplete, pair a Trie (prefix tree) with a Heap for top-K ranking.")
         } else if (needsDynamicProgramming || needsCryptoOrMl) {
             outOfCatalogNotice =
-                "Out-of-Catalog Notice: This domain (${if (needsDynamicProgramming) "Dynamic Programming / Memoization" else "Machine Learning / Cryptography / Hashing"}) is outside AVIA's 13-algorithm catalog, which focuses on canonical sorting, searching, linear buffers, trees, and graph traversals."
+                "Out-of-Catalog Notice: This domain (${if (needsDynamicProgramming) "Dynamic Programming / Memoization" else "Machine Learning / Cryptography / Hashing"}) is outside AVIA's 14-algorithm catalog, which focuses on canonical sorting, searching, linear buffers, trees, and graph traversals."
             validateAndGroundCandidate(
                 id = AlgorithmId.DFS,
                 fitReason = "Demonstrates recursive state-space exploration and call-stack backtracking.",
@@ -189,7 +192,7 @@ object ProjectAlgorithmRecommender {
                 fitReason = "Useful for tracking top-K candidate states or priority-bounded search.",
                 tradeOffs = "Maintains partial order (extremum at root) rather than full key lookup."
             )?.let { candidates.add(it) }
-            assumptions.add("Showing the closest state-traversal and priority primitives available in the 13-algorithm catalog.")
+            assumptions.add("Showing the closest state-traversal and priority primitives available in the 14-algorithm catalog.")
             alternatives.add("Consider dedicated tabular DP or hash-indexed structures in your target language standard library.")
         }
 
@@ -396,7 +399,7 @@ object ProjectAlgorithmRecommender {
                 append("> [!WARNING]\n")
                 append("> ${payload.outOfCatalogNotice}\n\n")
             }
-            append("Evaluated against AVIA's 13-algorithm verified registry. See the structured candidates, complexity trade-offs, and assumptions below.")
+            append("Evaluated against AVIA's 14-algorithm verified registry. See the structured candidates, complexity trade-offs, and assumptions below.")
         }
 
         val actions = payload.candidates.map { candidate ->

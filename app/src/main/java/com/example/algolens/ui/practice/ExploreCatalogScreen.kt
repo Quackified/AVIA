@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,7 +98,7 @@ fun ExploreCatalogScreen(
             PracticeTrack(
                 category = "All",
                 title = "All Challenges",
-                description = "Comprehensive challenge track covering all 13 algorithms, pointer mechanics, data structures, and traversals.",
+                description = "Comprehensive challenge track covering all 14 algorithms, pointer mechanics, data structures, and traversals.",
                 icon = AlgoGlyphs.Spark,
                 accent = PrimaryCyan,
                 accentSubtle = CyanSubtle,
@@ -173,18 +174,22 @@ fun ExploreCatalogScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Explore & Practice",
                         style = MaterialTheme.typography.titleLarge,
                         color = PrimaryCyan,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.5).sp
+                        letterSpacing = (-0.5).sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "Curated challenge catalogs for algorithmic mastery",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
@@ -192,7 +197,7 @@ fun ExploreCatalogScreen(
                 // Global Total Pill
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                         .background(CyanSubtle)
                         .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
                         .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
@@ -202,7 +207,8 @@ fun ExploreCatalogScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = PrimaryCyan,
                         fontWeight = FontWeight.Bold,
-                        fontSize = AlgoType.microSize
+                        fontSize = AlgoType.microSize,
+                        maxLines = 1
                     )
                 }
             }
@@ -222,7 +228,7 @@ fun ExploreCatalogScreen(
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+                                                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                             .background(chipBg)
                             .border(AlgoTokens.bezelInset, chipBorder, RoundedCornerShape(AlgoTokens.radiusXxs))
                             .clickable { selectedFilter = cat }
@@ -233,7 +239,8 @@ fun ExploreCatalogScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = chipText,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = AlgoType.microSize
+                            fontSize = AlgoType.microSize,
+                            maxLines = 1
                         )
                     }
                 }
@@ -285,6 +292,7 @@ private fun TrackCatalogCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                 ) {
@@ -304,18 +312,22 @@ private fun TrackCatalogCard(
                         )
                     }
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = track.title,
                             style = MaterialTheme.typography.titleMedium,
                             color = TextPrimary,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = track.topics,
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
-                            fontSize = AlgoType.microSize
+                            fontSize = AlgoType.microSize,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -323,7 +335,7 @@ private fun TrackCatalogCard(
                 // Question count badge
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                         .background(track.accentSubtle)
                         .padding(horizontal = AlgoTokens.space3, vertical = 4.dp)
                 ) {
@@ -332,7 +344,8 @@ private fun TrackCatalogCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = track.accent,
                         fontSize = AlgoType.microSize,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
             }
@@ -342,7 +355,9 @@ private fun TrackCatalogCard(
                 text = track.description,
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
-                lineHeight = AlgoType.leadingBodyDefault
+                lineHeight = AlgoType.leadingBodyDefault,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
 
             // Start Practice CTA Button

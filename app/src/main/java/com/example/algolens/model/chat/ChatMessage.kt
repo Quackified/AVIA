@@ -99,7 +99,7 @@ data class ProjectConstraintBrief(
 }
 
 /**
- * Verified candidate algorithm from the 13-algorithm catalog with registry-backed properties.
+ * Verified candidate algorithm from the 14-algorithm catalog with registry-backed properties.
  */
 @Immutable
 data class RecommendedAlgorithmCandidate(

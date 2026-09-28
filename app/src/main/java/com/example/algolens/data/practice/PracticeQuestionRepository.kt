@@ -12,11 +12,11 @@ import com.example.algolens.ui.visualizer.ElementState
 /**
  * Repository containing curated practice challenges and quiz questions for AlgoLens.
  *
- * Questions cover all 13 algorithms grouped into 4 core categories:
+ * Questions cover all 14 algorithms grouped into 4 core categories:
  *  - Sorting (Bubble, Selection, Insertion, Merge, Quick)
  *  - Searching (Linear, Binary)
  *  - Data Structures (Stack, Queue, BST, Heap)
- *  - Graph Traversal (BFS, DFS)
+ *  - Graph Traversal & Shortest Path (BFS, DFS, Dijkstra)
  *
  * Each question features:
  *  - Difficulty tier: Easy (fundamentals, complexities, properties), Medium (step calculations,

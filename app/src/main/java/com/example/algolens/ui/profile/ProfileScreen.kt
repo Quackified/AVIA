@@ -670,14 +670,14 @@ fun ProfileScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Offline Catalogue", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                                Text("13 Algorithms", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+                                Text("14 Algorithms", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Code Traces", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                                Text("52 Multi-language", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+                                Text("56 Multi-language", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -783,7 +783,7 @@ fun ProfileScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Catalog Coverage", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                                Text("13/13 Offline Ready", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+                                Text("14/14 Offline Ready", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),

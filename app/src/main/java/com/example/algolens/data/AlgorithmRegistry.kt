@@ -99,7 +99,7 @@ object AlgorithmRegistry {
             graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.HEAP_ARRAY,
         ),
 
-        // ── Graph Traversal (2) ──
+        // ── Graph Traversal & Shortest Path (3) ──
         AlgorithmId.BFS to AlgorithmSpec(
             id = AlgorithmId.BFS,
             defaultInput = emptyList(),
@@ -114,6 +114,14 @@ object AlgorithmRegistry {
             supportsCustomInput = true,
             builderEnabled = true,
             graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.DFS_STACK,
+            overlays = listOf(WeightBadgeOverlay),
+        ),
+        AlgorithmId.DIJKSTRA to AlgorithmSpec(
+            id = AlgorithmId.DIJKSTRA,
+            defaultInput = emptyList(),
+            supportsCustomInput = true,
+            builderEnabled = true,
+            graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.DIJKSTRA_PQ,
             overlays = listOf(WeightBadgeOverlay),
         ),
     )

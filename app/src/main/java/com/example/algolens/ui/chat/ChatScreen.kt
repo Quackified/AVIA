@@ -833,7 +833,7 @@ private fun EmptyConversationStarters(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Match data scale, ordering, and memory constraints against the 13-algorithm catalog",
+                        text = "Match data scale, ordering, and memory constraints against the 14-algorithm catalog",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary
                     )

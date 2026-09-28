@@ -306,13 +306,13 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "13 of 13 algorithms verified",
+                            text = "14 of 14 algorithms verified",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextDark,
                             fontSize = AlgoType.microSize
                         )
                         Text(
-                            text = "52 code traces",
+                            text = "56 code traces",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextDark,
                             fontSize = AlgoType.microSize

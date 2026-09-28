@@ -45,7 +45,7 @@ class FeatureEnhancementsTest {
     }
 
     @Test
-    fun multiLanguageRegistry_supportsAll13AlgorithmsAnd4LanguagesWithValidLineMappings() {
+    fun multiLanguageRegistry_supportsAll14AlgorithmsAnd4LanguagesWithValidLineMappings() {
         val languages = TraceLanguage.entries
         val bubbleKotlinLines = AlgorithmCodeRegistry.getCode(
             AlgorithmId.BUBBLE_SORT,
@@ -246,15 +246,23 @@ class FeatureEnhancementsTest {
             assertEquals(theory.spaceComplexity, candidate.spaceComplexity)
         }
 
-        // 2. Out-of-catalog weighted shortest path project (Dijkstra / A*)
-        val weightedPayload = ProjectAlgorithmRecommender.recommendFromNaturalLanguage(
+        // 2. In-catalog Dijkstra recommendation vs out-of-catalog Bellman-Ford notice
+        val dijkstraPayload = ProjectAlgorithmRecommender.recommendFromNaturalLanguage(
             "I need a project algorithm for weighted GPS road network shortest path routing with Dijkstra"
         )
-        assertNotNull(
-            "Out-of-catalog notice must be explicitly populated for weighted shortest path / Dijkstra",
-            weightedPayload.outOfCatalogNotice
+        assertTrue(
+            "Dijkstra must be recommended as an in-catalog candidate",
+            dijkstraPayload.candidates.any { it.algorithmId == AlgorithmId.DIJKSTRA }
         )
-        assertTrue(weightedPayload.outOfCatalogNotice!!.contains("Dijkstra"))
+
+        val outOfCatalogPayload = ProjectAlgorithmRecommender.recommendFromNaturalLanguage(
+            "I need Bellman-Ford algorithm for negative edge cycle detection"
+        )
+        assertNotNull(
+            "Out-of-catalog notice must be explicitly populated for Bellman-Ford",
+            outOfCatalogPayload.outOfCatalogNotice
+        )
+        assertTrue(outOfCatalogPayload.outOfCatalogNotice!!.contains("Bellman-Ford"))
     }
 
     @Test
@@ -335,7 +343,7 @@ class FeatureEnhancementsTest {
     }
 
     @Test
-    fun algorithmTheoryRepository_containsDataForAll13Algorithms() {
+    fun algorithmTheoryRepository_containsDataForAll14Algorithms() {
         for (algo in SampleData.algorithms) {
             val theory = AlgorithmTheoryRepository.getTheory(algo.name)
             assertNotNull("Theory for ${algo.name} should not be null", theory)

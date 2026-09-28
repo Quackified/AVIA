@@ -62,6 +62,9 @@ fun GraphTreeRenderer(
     currentDragPos: Offset?,
     nodeScales: Map<String, Float>,
     challengeTargetNodeIds: Set<String> = emptySet(),
+    startNodeId: String? = null,
+    targetNodeId: String? = null,
+    previewPath: List<String> = emptyList(),
     panOffset: Offset = Offset.Zero,
     referenceHeight: Float = 0f,
     modifier: Modifier = Modifier
@@ -201,6 +204,31 @@ fun GraphTreeRenderer(
             )
         }
 
+        // ── 2B. Draw Live Goal Path Preview ──
+        if (previewPath.size >= 2) {
+            for (i in 0 until previewPath.size - 1) {
+                val u = previewPath[i]
+                val v = previewPath[i + 1]
+                val fromNode = nodes.find { it.id == u } ?: continue
+                val toNode = nodes.find { it.id == v } ?: continue
+                val pStart = geom.toCanvasOffset(fromNode.x, fromNode.y)
+                val pEnd = geom.toCanvasOffset(toNode.x, toNode.y)
+                drawLine(
+                    color = AccentGreen.copy(alpha = 0.25f),
+                    start = pStart,
+                    end = pEnd,
+                    strokeWidth = 9.5f
+                )
+                drawLine(
+                    color = AccentGreen,
+                    start = pStart,
+                    end = pEnd,
+                    strokeWidth = 3.5f,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
+                )
+            }
+        }
+
         // ── 3. Draw Nodes with Glowing Halos ──
         for (node in nodes) {
             val center = geom.toCanvasOffset(node.x, node.y)
@@ -264,6 +292,25 @@ fun GraphTreeRenderer(
                 )
             }
 
+            // Endpoint Halos (START = AccentGreen, TARGET = AccentPink)
+            if (node.id == startNodeId) {
+                val breathe = activeHaloPulse.value
+                drawCircle(
+                    color = AccentGreen.copy(alpha = 0.38f + 0.16f * breathe),
+                    radius = (r * 1.38f + 2.5f * breathe) * popScale,
+                    center = center,
+                    style = Stroke(width = 2.4f)
+                )
+            } else if (node.id == targetNodeId) {
+                val breathe = activeHaloPulse.value
+                drawCircle(
+                    color = AccentPink.copy(alpha = 0.38f + 0.16f * breathe),
+                    radius = (r * 1.38f + 2.5f * breathe) * popScale,
+                    center = center,
+                    style = Stroke(width = 2.4f)
+                )
+            }
+
             // Node background circle
             drawCircle(
                 color = fillColor,
@@ -292,6 +339,27 @@ fun GraphTreeRenderer(
                     typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                 }
                 drawText(node.label, center.x, center.y + (fontSize * 0.35f), textPaint)
+
+                // Endpoint Tag Caption above node
+                if (node.id == startNodeId) {
+                    val badgePaint = Paint().apply {
+                        isAntiAlias = true
+                        color = AccentGreen.toArgb()
+                        textSize = (r * 0.55f).coerceIn(9f, 13f) * popScale
+                        textAlign = Paint.Align.CENTER
+                        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                    }
+                    drawText("START", center.x, center.y - (r * 1.45f * popScale), badgePaint)
+                } else if (node.id == targetNodeId) {
+                    val badgePaint = Paint().apply {
+                        isAntiAlias = true
+                        color = AccentPink.toArgb()
+                        textSize = (r * 0.55f).coerceIn(9f, 13f) * popScale
+                        textAlign = Paint.Align.CENTER
+                        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                    }
+                    drawText("TARGET", center.x, center.y - (r * 1.45f * popScale), badgePaint)
+                }
             }
         }
     }

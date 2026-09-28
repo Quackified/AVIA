@@ -204,6 +204,8 @@ fun buildPredictionQuestion(
         AlgorithmId.HEAP -> heapQuestion(currentStep, nextStep)
         AlgorithmId.BFS -> graphVisitQuestion(currentStep, nextStep)
         AlgorithmId.DFS -> graphVisitQuestion(currentStep, nextStep)
+        // Dijkstra prediction prompts are deferred — see docs/FUTURE_WORK.md.
+        AlgorithmId.DIJKSTRA -> null
     }
 }
 

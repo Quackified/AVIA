@@ -20,11 +20,12 @@ class ExampleUnitTest {
 
     @Test
     fun sampleData_containsExpectedAlgorithms() {
-        assertEquals(13, SampleData.algorithms.size)
+        assertEquals(14, SampleData.algorithms.size)
         assertTrue(SampleData.categories.contains("Sorting"))
         assertTrue(SampleData.categories.contains("Searching"))
         assertTrue(SampleData.categories.contains("Data Structures"))
         assertTrue(SampleData.categories.contains("Graph Traversal"))
+        assertTrue(SampleData.categories.contains("Shortest Path"))
     }
 
     @Test
@@ -34,12 +35,12 @@ class ExampleUnitTest {
         assertEquals(2, grouped["Searching"]?.size)
         assertEquals(4, grouped["Data Structures"]?.size)
         assertEquals(2, grouped["Graph Traversal"]?.size)
+        assertEquals(1, grouped["Shortest Path"]?.size)
     }
 
     @Test
     fun sampleData_noPurgedEntries() {
         val names = SampleData.algorithms.map { it.name }
-        assertTrue("Dijkstra's should be purged", "Dijkstra's" !in names)
         assertTrue("Knapsack 0/1 should be purged", "Knapsack 0/1" !in names)
         assertTrue("Longest CS should be purged", "Longest CS" !in names)
 

@@ -141,7 +141,7 @@ class AiChatBackendTest {
     @Test
     fun engine_handlesCatalogueAndHelpQueries() {
         val catalogueResponse = AiChatEngine.processQuery("What algorithms are in the catalogue?")
-        assertTrue("Must report 13 verified algorithms", catalogueResponse.content.contains("13 fully verified offline algorithms"))
+        assertTrue("Must report 14 verified algorithms", catalogueResponse.content.contains("14 fully verified offline algorithms"))
 
         val helpResponse = AiChatEngine.processQuery("Help me, what can you do?")
         assertTrue("Help response must emphasize offline capabilities", helpResponse.content.contains("100% offline"))

@@ -634,7 +634,7 @@ fun ProjectPlannerSheet(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Grounded against AlgoLens's 13-algorithm repository",
+                            text = "Grounded against AlgoLens's 14-algorithm repository",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary
                         )

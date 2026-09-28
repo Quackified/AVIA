@@ -133,8 +133,12 @@ class VisualizerScreenState(
     //    the active variant. ──
     var graphConfig: GraphCustomization? by mutableStateOf(null)
 
-    // ── Interactive Graph Builder topology (BFS / DFS). Null uses canonicalWeightedGraph(). ──
+    // ── Interactive Graph Builder topology (BFS / DFS / Dijkstra). Null uses canonicalWeightedGraph(). ──
     var customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? by mutableStateOf(null)
+
+    // ── Goal-directed graph endpoints (START / TARGET) ──
+    var graphStartNodeId: String? by mutableStateOf(null)
+    var graphTargetNodeId: String? by mutableStateOf(null)
 
     // ── Derived helpers ──
     /** Clamped to ≥ 1 so scrubbers / counters never render `Step 0 of 0`. */
@@ -479,6 +483,8 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
         state.queueOps,
         state.graphConfig,
         state.customGraph,
+        state.graphStartNodeId,
+        state.graphTargetNodeId,
     ) {
         val heapValues = (state.graphConfig as? GraphCustomization.ForHeap)?.values
         val effectiveInput = if (algorithm.id == AlgorithmId.HEAP && !heapValues.isNullOrEmpty()) {
@@ -490,7 +496,8 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             ?: AlgorithmStepRepository.defaultBstValues
         val bstSearchKey = (state.graphConfig as? GraphCustomization.ForBst)?.searchKey
             ?: AlgorithmStepRepository.defaultBstSearchKey
-        val traversalStart = state.effectiveTraversalStartNodeId
+        val traversalStart = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId
+        val traversalTarget = state.graphTargetNodeId
 
         state.steps = AlgorithmStepRepository.generateStepsForAlgorithm(
             algorithm,
@@ -502,6 +509,7 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             bstValues = bstValues,
             bstSearchKey = bstSearchKey,
             traversalStartNodeId = traversalStart,
+            targetNodeId = traversalTarget,
             customGraph = state.customGraph,
         )
         val targetIdx = state.pendingStepAfterRegen

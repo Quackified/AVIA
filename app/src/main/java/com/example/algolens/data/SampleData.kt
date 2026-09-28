@@ -29,9 +29,10 @@ object SampleData {
         Algorithm(id = AlgorithmId.BINARY_SEARCH_TREE),
         Algorithm(id = AlgorithmId.HEAP),
 
-        // ── Graph Traversal (2) ──
+        // ── Graph Traversal & Shortest Path (3) ──
         Algorithm(id = AlgorithmId.BFS),
         Algorithm(id = AlgorithmId.DFS),
+        Algorithm(id = AlgorithmId.DIJKSTRA),
     )
 
     /** Category labels shown as filter chips on the dashboard. Derived from the enum. */

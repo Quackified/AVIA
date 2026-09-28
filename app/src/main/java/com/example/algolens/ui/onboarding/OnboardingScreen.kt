@@ -311,7 +311,7 @@ private fun OnboardingSlideVisualizer() {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
             ) {
-                FeatureChip(label = "13 Algorithms")
+                FeatureChip(label = "14 Algorithms")
                 FeatureChip(label = "Comparison Bridges")
                 FeatureChip(label = "Divide & Conquer")
             }

@@ -328,6 +328,33 @@ object AlgorithmTheoryRepository {
                 ),
                 proTips = "Combining DFS with discovery/finish timestamps enables Tarjan's and Kosaraju's strongly connected components algorithms."
             )
+            "dijkstra's shortest path", "dijkstra", "dijkstra shortest path" -> AlgorithmTheoryData(
+                name = "Dijkstra's Shortest Path",
+                overview = "An optimal greedy graph search algorithm that finds the shortest path between nodes in a graph with non-negative edge weights using a Min-Priority Queue.",
+                howItWorks = listOf(
+                    "Initialize dist[start] = 0 and all other nodes to infinity (∞).",
+                    "Insert (start, 0) into a Min-Priority Queue.",
+                    "While the priority queue is not empty: extract node u with minimum distance d.",
+                    "For each neighbor v of u with edge weight w: if d + w < dist[v], update dist[v] = d + w and enqueue (v, d + w).",
+                    "Repeat until the target node is extracted or all reachable nodes are settled."
+                ),
+                whenToUse = listOf(
+                    "GPS routing and map turn-by-turn navigation (Google Maps, OpenStreetMap).",
+                    "Network packet routing protocols (OSPF, IS-IS).",
+                    "Shortest path in weighted state graphs and game pathfinding."
+                ),
+                bestCase = "O((V + E) log V)",
+                averageCase = "O((V + E) log V)",
+                worstCase = "O((V + E) log V)",
+                spaceComplexity = "O(V) Priority Queue & Distance Map",
+                isStable = true,
+                isInPlace = false,
+                commonPitfalls = listOf(
+                    "Dijkstra fails or produces incorrect paths on graphs with negative edge weights; use Bellman-Ford instead.",
+                    "Not skipping stale (already settled) entries in the priority queue causes unnecessary relaxations."
+                ),
+                proTips = "For goal-directed search with a known destination, Dijkstra can terminate immediately the moment the target node is extracted from the Priority Queue!"
+            )
             "stack" -> AlgorithmTheoryData(
                 name = "Stack (LIFO)",
                 overview = "A linear data structure following the Last-In, First-Out (LIFO) principle. Elements can only be added (pushed) or removed (popped) from the top.",

@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.algolens.data.practice.PracticeQuestionRepository
@@ -110,6 +111,7 @@ fun PracticeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                 ) {
@@ -126,18 +128,22 @@ fun PracticeScreen(
                         )
                     }
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Explore: Practice",
                             style = MaterialTheme.typography.titleLarge,
                             color = PrimaryCyan,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.5).sp
+                            letterSpacing = (-0.5).sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = "Interactive challenge mode · ${manager.questions.size} questions available",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }
@@ -145,6 +151,7 @@ fun PracticeScreen(
 
                 // Score & Streak Badges
                 Row(
+                    modifier = Modifier,
                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -161,7 +168,8 @@ fun PracticeScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AccentOrange,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = AlgoType.microSize
+                                fontSize = AlgoType.microSize,
+                                maxLines = 1
                             )
                         }
                     }
@@ -178,7 +186,8 @@ fun PracticeScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
                             fontWeight = FontWeight.Bold,
-                            fontSize = AlgoType.microSize
+                            fontSize = AlgoType.microSize,
+                            maxLines = 1
                         )
                     }
                 }
@@ -199,7 +208,7 @@ fun PracticeScreen(
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+                                                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                             .background(chipBg)
                             .border(AlgoTokens.bezelInset, chipBorder, RoundedCornerShape(AlgoTokens.radiusXxs))
                             .clickable { manager.selectCategory(cat) }
@@ -210,7 +219,8 @@ fun PracticeScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = chipText,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = AlgoType.microSize
+                            fontSize = AlgoType.microSize,
+                            maxLines = 1
                         )
                     }
                 }

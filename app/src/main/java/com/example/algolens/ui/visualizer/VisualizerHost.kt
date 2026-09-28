@@ -220,6 +220,12 @@ private fun GraphTreeCanvas(
             telemetryMode = spec.graphTelemetryMode,
             isCustomGraph = state.customGraph != null,
             challengeTargetNodeIds = challengeNodeIds,
+            startNodeId = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId,
+            targetNodeId = state.graphTargetNodeId,
+            onEndpointsChanged = { newStart, newTarget ->
+                state.graphStartNodeId = newStart
+                state.graphTargetNodeId = newTarget
+            },
             onNodeClick = { nodeId ->
                 state.submitNodePrediction(nodeId, algorithmId)
             },

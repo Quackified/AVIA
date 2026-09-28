@@ -38,7 +38,7 @@ class VisualizerOverlayTest {
 
     @Test
     fun graphTraversal_specsIncludeWeightBadgeOverlay() {
-        for (id in listOf(AlgorithmId.BFS, AlgorithmId.DFS)) {
+        for (id in listOf(AlgorithmId.BFS, AlgorithmId.DFS, AlgorithmId.DIJKSTRA)) {
             val spec = AlgorithmRegistry.specFor(id)
             assertNotNull("$id must be in the registry", spec)
             assertTrue(
@@ -48,7 +48,7 @@ class VisualizerOverlayTest {
         }
         // Non-graph algorithms must not carry the weight-badge overlay.
         for (id in AlgorithmId.values()) {
-            if (id == AlgorithmId.BFS || id == AlgorithmId.DFS) continue
+            if (id == AlgorithmId.BFS || id == AlgorithmId.DFS || id == AlgorithmId.DIJKSTRA) continue
             val other = AlgorithmRegistry.specFor(id) ?: continue
             assertTrue(
                 "$id must not carry WeightBadgeOverlay",

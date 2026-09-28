@@ -1,7 +1,5 @@
 package com.example.algolens.ui.visualizer
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,12 +12,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.example.algolens.ui.components.AlgoGlyphs
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -77,6 +83,9 @@ fun GraphTreeVisualizer(
     telemetryMode: com.example.algolens.model.GraphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.NONE,
     isCustomGraph: Boolean = false,
     challengeTargetNodeIds: Set<String> = emptySet(),
+    startNodeId: String? = null,
+    targetNodeId: String? = null,
+    onEndpointsChanged: ((String?, String?) -> Unit)? = null,
     onNodeClick: ((String) -> Unit)? = null,
     onGraphModified: ((List<GraphNodeState>, List<GraphEdgeState>) -> Unit)? = null
 ) {
@@ -90,33 +99,24 @@ fun GraphTreeVisualizer(
     var currentDragPos by remember { mutableStateOf<Offset?>(null) }
     var hoveredTargetNodeId by remember { mutableStateOf<String?>(null) }
     var isBuilderActive by remember { mutableStateOf(false) }
+    var isFullscreen by remember { mutableStateOf(false) }
+    var activeTool by remember { mutableStateOf(GraphTool.MOVE) }
     var panOffset by remember(algorithmKey) { mutableStateOf(Offset.Zero) }
     var maxObservedCanvasHeightPx by remember(algorithmKey) { mutableStateOf(0f) }
+
+    val livePreviewPath = remember(dynamicEdges, startNodeId, targetNodeId) {
+        if (startNodeId != null && targetNodeId != null) {
+            val adj = com.example.algolens.data.GraphSearch.buildAdjacency(dynamicEdges)
+            com.example.algolens.data.GraphSearch.shortestPath(adj, startNodeId, targetNodeId)
+        } else {
+            emptyList()
+        }
+    }
 
     LaunchedEffect(step.nodes, step.edges, isBuilderActive) {
         if (!isBuilderActive) {
             dynamicNodes = step.nodes
             dynamicEdges = step.edges
-        }
-    }
-
-    // ── Per-node "first visit" / "just became active" scale pop ──
-    val nodeScales = remember { mutableMapOf<String, Animatable<Float, *>>() }
-    val poppedIds = remember { mutableStateOf(setOf<String>()) }
-    LaunchedEffect(dynamicNodes, step.activeNodeId) {
-        val candidates = (dynamicNodes.map { it.id } + listOfNotNull(step.activeNodeId)).toSet()
-        candidates.forEach { id ->
-            if (id !in poppedIds.value) {
-                val anim = nodeScales.getOrPut(id) { Animatable(1f) }
-                anim.snapTo(0.55f)
-                anim.animateTo(1f, tween(durationMillis = 280))
-                poppedIds.value = poppedIds.value + id
-            }
-        }
-        val stale = nodeScales.keys - candidates
-        if (stale.isNotEmpty()) {
-            stale.forEach { nodeScales.remove(it) }
-            poppedIds.value = poppedIds.value - stale
         }
     }
 
@@ -130,9 +130,8 @@ fun GraphTreeVisualizer(
         return "N${existing.size + 1}"
     }
 
-    val nodeScalesSnapshot = remember(dynamicNodes, poppedIds.value) {
-        dynamicNodes.associate { it.id to (nodeScales[it.id]?.value ?: 1f) }
-    }
+    // Nodes render at stable scale 1f — active-halo pulse is handled by GraphTreeRenderer.
+    val nodeScalesSnapshot: Map<String, Float> = emptyMap()
 
     val resolvedMode = remember(telemetryMode, algorithmKey) {
         if (telemetryMode != com.example.algolens.model.GraphTelemetryMode.NONE) {
@@ -172,6 +171,7 @@ fun GraphTreeVisualizer(
                         hoveredTargetNodeId = null
                         panOffset = Offset.Zero
                         hasLocalEdits = false
+                        onEndpointsChanged?.invoke(null, null)
                         if (onGraphModified != null) {
                             onGraphModified(emptyList(), emptyList())
                         } else {
@@ -194,7 +194,11 @@ fun GraphTreeVisualizer(
                         dynamicNodes = updated
                         hasLocalEdits = true
                         onGraphModified?.invoke(updated, dynamicEdges)
-                    }
+                    },
+                    activeTool = activeTool,
+                    onToolSelected = { activeTool = it },
+                    isFullscreen = isFullscreen,
+                    onToggleFullscreen = { isFullscreen = !isFullscreen }
                 )
             }
 
@@ -223,6 +227,9 @@ fun GraphTreeVisualizer(
                     selectedNodeId = selectedNodeId,
                     dragStartNode = dragStartNode,
                     hoveredTargetNodeId = hoveredTargetNodeId,
+                    activeTool = activeTool,
+                    startNodeId = startNodeId,
+                    targetNodeId = targetNodeId,
                     panOffset = panOffset,
                     referenceHeight = maxObservedCanvasHeightPx,
                     onPanChanged = { panOffset = it },
@@ -232,6 +239,7 @@ fun GraphTreeVisualizer(
                     onDragStartNodeChanged = { dragStartNode = it },
                     onCurrentDragPosChanged = { currentDragPos = it },
                     onHoveredTargetNodeIdChanged = { hoveredTargetNodeId = it },
+                    onEndpointsChanged = onEndpointsChanged,
                     onGraphModified = onGraphModified,
                     getNextNodeLabel = ::getNextNodeLabel,
                     onNodeClick = onNodeClick,
@@ -249,18 +257,53 @@ fun GraphTreeVisualizer(
                     currentDragPos = currentDragPos,
                     nodeScales = nodeScalesSnapshot,
                     challengeTargetNodeIds = challengeTargetNodeIds,
+                    startNodeId = startNodeId,
+                    targetNodeId = targetNodeId,
+                    previewPath = livePreviewPath,
                     panOffset = panOffset,
                     referenceHeight = maxObservedCanvasHeightPx,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Builder instruction banner overlay
+                // Builder instruction banner overlay & floating toolbar
                 if (builderEnabled) {
-                    GraphBuilderBanner(
-                        isBuilderActive = isBuilderActive,
-                        selectedNodeId = selectedNodeId,
-                        modifier = Modifier.align(Alignment.BottomCenter)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = AlgoTokens.space2),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                    ) {
+                        GraphBuilderBanner(
+                            isBuilderActive = isBuilderActive,
+                            activeTool = activeTool,
+                            selectedNodeId = selectedNodeId
+                        )
+                        GraphFloatingToolbar(
+                            activeTool = activeTool,
+                            onToolSelected = { activeTool = it },
+                            onCenterView = { panOffset = Offset.Zero },
+                            onResetGraph = {
+                                selectedNodeId = null
+                                dragStartNode = null
+                                currentDragPos = null
+                                hoveredTargetNodeId = null
+                                panOffset = Offset.Zero
+                                hasLocalEdits = false
+                                onEndpointsChanged?.invoke(null, null)
+                                if (onGraphModified != null) {
+                                    onGraphModified(emptyList(), emptyList())
+                                } else {
+                                    dynamicNodes = step.nodes
+                                    dynamicEdges = step.edges
+                                }
+                            },
+                            onToggleFullscreen = { isFullscreen = !isFullscreen },
+                            isFullscreen = isFullscreen,
+                            canReset = isCustomGraph || hasLocalEdits || dynamicNodes != step.nodes || dynamicEdges != step.edges,
+                            isPanned = panOffset != Offset.Zero
+                        )
+                    }
                 }
             }
 
@@ -278,6 +321,200 @@ fun GraphTreeVisualizer(
                     telemetryMode = resolvedMode,
                     onNodeClick = onNodeClick
                 )
+            }
+        }
+    }
+
+    // ── Fullscreen Interactive Canvas Overlay ──
+    if (isFullscreen) {
+        Dialog(
+            onDismissRequest = { isFullscreen = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkBackground)
+                    .statusBarsPadding()
+                    .displayCutoutPadding()
+                    .navigationBarsPadding()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(AlgoTokens.space3),
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                ) {
+                    // Top minimal bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                        ) {
+                            Text(
+                                text = if (algorithmKey.isNotEmpty()) "$algorithmKey Fullscreen Canvas" else "Graph Canvas",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = PrimaryCyan,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${dynamicNodes.size} nodes • ${dynamicEdges.size} edges",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextMuted,
+                                fontSize = AlgoType.microSize
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                .background(CanvasBackground)
+                                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                                .clickable { isFullscreen = false }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = AlgoGlyphs.Close,
+                                contentDescription = "Exit Fullscreen",
+                                tint = PrimaryCyan,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Text(
+                                text = "Exit",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PrimaryCyan,
+                                fontSize = AlgoType.microSize,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Stage in fullscreen
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .background(CanvasBackground)
+                            .border(
+                                width = AlgoTokens.strokeThin,
+                                color = AccentGreen.copy(alpha = 0.16f),
+                                shape = RoundedCornerShape(AlgoTokens.radiusSm)
+                            )
+                    ) {
+                        GraphBuilderGestures(
+                            dynamicNodes = dynamicNodes,
+                            dynamicEdges = dynamicEdges,
+                            isBuilderActive = isBuilderActive && builderEnabled,
+                            selectedNodeId = selectedNodeId,
+                            dragStartNode = dragStartNode,
+                            hoveredTargetNodeId = hoveredTargetNodeId,
+                            activeTool = activeTool,
+                            startNodeId = startNodeId,
+                            targetNodeId = targetNodeId,
+                            panOffset = panOffset,
+                            referenceHeight = maxObservedCanvasHeightPx,
+                            onPanChanged = { panOffset = it },
+                            onNodesChanged = { dynamicNodes = it; hasLocalEdits = true },
+                            onEdgesChanged = { dynamicEdges = it; hasLocalEdits = true },
+                            onSelectedNodeIdChanged = { selectedNodeId = it },
+                            onDragStartNodeChanged = { dragStartNode = it },
+                            onCurrentDragPosChanged = { currentDragPos = it },
+                            onHoveredTargetNodeIdChanged = { hoveredTargetNodeId = it },
+                            onEndpointsChanged = onEndpointsChanged,
+                            onGraphModified = onGraphModified,
+                            getNextNodeLabel = ::getNextNodeLabel,
+                            onNodeClick = onNodeClick,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        GraphTreeRenderer(
+                            nodes = dynamicNodes,
+                            edges = dynamicEdges,
+                            visitedNodeIds = step.visitedNodeIds,
+                            activeNodeId = step.activeNodeId,
+                            selectedNodeId = selectedNodeId,
+                            hoveredTargetNodeId = hoveredTargetNodeId,
+                            dragStartNode = dragStartNode,
+                            currentDragPos = currentDragPos,
+                            nodeScales = nodeScalesSnapshot,
+                            challengeTargetNodeIds = challengeTargetNodeIds,
+                            startNodeId = startNodeId,
+                            targetNodeId = targetNodeId,
+                            previewPath = livePreviewPath,
+                            panOffset = panOffset,
+                            referenceHeight = maxObservedCanvasHeightPx,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        if (builderEnabled) {
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = AlgoTokens.space2),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                            ) {
+                                GraphBuilderBanner(
+                                    isBuilderActive = isBuilderActive,
+                                    activeTool = activeTool,
+                                    selectedNodeId = selectedNodeId
+                                )
+                                GraphFloatingToolbar(
+                                    activeTool = activeTool,
+                                    onToolSelected = { activeTool = it },
+                                    onCenterView = { panOffset = Offset.Zero },
+                                    onResetGraph = {
+                                        selectedNodeId = null
+                                        dragStartNode = null
+                                        currentDragPos = null
+                                        hoveredTargetNodeId = null
+                                        panOffset = Offset.Zero
+                                        hasLocalEdits = false
+                                        onEndpointsChanged?.invoke(null, null)
+                                        if (onGraphModified != null) {
+                                            onGraphModified(emptyList(), emptyList())
+                                        } else {
+                                            dynamicNodes = step.nodes
+                                            dynamicEdges = step.edges
+                                        }
+                                    },
+                                    onToggleFullscreen = { isFullscreen = false },
+                                    isFullscreen = true,
+                                    canReset = isCustomGraph || hasLocalEdits || dynamicNodes != step.nodes || dynamicEdges != step.edges,
+                                    isPanned = panOffset != Offset.Zero
+                                )
+                            }
+                        }
+                    }
+
+                    // Bottom telemetry in fullscreen
+                    if (resolvedMode == com.example.algolens.model.GraphTelemetryMode.HEAP_ARRAY) {
+                        HeapSynchronizedArrayStrip(
+                            step = step,
+                            nodes = dynamicNodes,
+                            onCellClick = { idx -> onNodeClick?.invoke(idx.toString()) }
+                        )
+                    } else {
+                        GraphFrontierTelemetryStrip(
+                            step = step,
+                            edges = dynamicEdges,
+                            telemetryMode = resolvedMode,
+                            onNodeClick = onNodeClick
+                        )
+                    }
+                }
             }
         }
     }

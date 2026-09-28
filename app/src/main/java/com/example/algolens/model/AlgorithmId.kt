@@ -38,7 +38,8 @@ enum class AlgorithmId(
     BINARY_SEARCH_TREE("Binary Search Tree", VisualizerFamily.GRAPH_2D, InputKind.NONE, "Medium", "O(log n) avg", "O(n)", AccentOrange, "Data Structures"),
     HEAP("Heap", VisualizerFamily.GRAPH_2D, InputKind.ARRAY, "Medium", "O(log n) ins", "O(n)", AccentOrange, "Data Structures"),
     BFS("Breadth-First Search (BFS)", VisualizerFamily.GRAPH_2D, InputKind.NONE, "Easy", "O(V+E)", "O(V)", AccentGreen, "Graph Traversal"),
-    DFS("Depth-First Search (DFS)", VisualizerFamily.GRAPH_2D, InputKind.NONE, "Easy", "O(V+E)", "O(V)", AccentGreen, "Graph Traversal");
+    DFS("Depth-First Search (DFS)", VisualizerFamily.GRAPH_2D, InputKind.NONE, "Easy", "O(V+E)", "O(V)", AccentGreen, "Graph Traversal"),
+    DIJKSTRA("Dijkstra's Shortest Path", VisualizerFamily.GRAPH_2D, InputKind.NONE, "Medium", "O((V+E) log V)", "O(V)", AccentGreen, "Shortest Path");
 
     companion object {
         /** Lookup by legacy free-form name (case-insensitive, trimmed). Use only for migration shims. */
@@ -78,6 +79,7 @@ enum class GraphTelemetryMode(val frontierLabel: String) {
     BST_TARGET("TARGET"),
     BFS_QUEUE("QUEUE"),
     DFS_STACK("STACK"),
+    DIJKSTRA_PQ("PRIORITY QUEUE"),
 }
 
 /**
