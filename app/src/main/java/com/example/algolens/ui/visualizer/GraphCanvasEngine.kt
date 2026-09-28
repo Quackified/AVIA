@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
@@ -38,6 +39,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.Dialog
@@ -265,7 +267,13 @@ fun GraphCanvasEngine(
     onBstDeleteNode: ((nodeId: String) -> Unit)? = null,
     onHeapPushValue: ((value: Int) -> Unit)? = null,
     onHeapExtractRoot: (() -> Unit)? = null,
-    onHeapRemoveTail: (() -> Unit)? = null
+    onHeapRemoveTail: (() -> Unit)? = null,
+    canUndo: Boolean = false,
+    canRedo: Boolean = false,
+    onUndo: () -> Unit = {},
+    onRedo: () -> Unit = {},
+    onNodeDragStarted: () -> Unit = {},
+    onNodeDragFinished: () -> Unit = {}
 ) {
     val density = LocalDensity.current.density
 
@@ -279,6 +287,7 @@ fun GraphCanvasEngine(
     var dragStartNode by remember { mutableStateOf<GraphNodeState?>(null) }
     var currentDragPos by remember { mutableStateOf<Offset?>(null) }
     var hoveredTargetNodeId by remember { mutableStateOf<String?>(null) }
+    var selectedEdgeIndex by remember { mutableStateOf<Int?>(null) }
 
     // Dialogs state
     var showBstInsertDialog by remember { mutableStateOf(false) }
@@ -450,6 +459,9 @@ fun GraphCanvasEngine(
             onDragStartNodeChanged = { dragStartNode = it },
             onCurrentDragPosChanged = { currentDragPos = it },
             onHoveredTargetNodeIdChanged = { hoveredTargetNodeId = it },
+            onEdgeSelected = { selectedEdgeIndex = it },
+            onNodeDragStarted = onNodeDragStarted,
+            onNodeDragFinished = onNodeDragFinished,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -468,14 +480,15 @@ fun GraphCanvasEngine(
             startNodeId = startNodeId,
             targetNodeId = targetNodeId,
             previewPath = livePreviewPath,
+            selectedEdgeIndex = selectedEdgeIndex,
             panOffset = panOffset,
             zoom = zoom,
             referenceHeight = maxObservedCanvasHeightPx,
             modifier = Modifier.fillMaxSize()
         )
 
-        // 3. Floating Bottom Chrome: Banner + Floating Toolbar (only when editing tools are supported)
-        if (profile.allowedTools.isNotEmpty()) {
+        // 3. Floating Bottom Chrome: Banner + Floating Toolbar (only when Interactive Mode is active)
+        if (isBuilderActive && profile.allowedTools.isNotEmpty()) {
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -483,24 +496,121 @@ fun GraphCanvasEngine(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
             ) {
-                if (isBuilderActive) {
-                    val bannerText = profile.hintProvider(activeTool, selectedNodeId)
-                    Box(
+                // 3a. Compact Edge Weight Counter Stepper on top of the Floating Toolbar
+                val activeEdgeIndex: Int? = selectedEdgeIndex ?: selectedNodeId?.let { id ->
+                    val idx = edges.indexOfFirst { it.from == id || it.to == id }
+                    if (idx >= 0) idx else null
+                }
+                val activeEdge = activeEdgeIndex?.let { edges.getOrNull(it) }
+
+                if (activeEdge != null && profile.canEditEdgeWeights) {
+                    val curWeight = activeEdge.weight ?: 1
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
                         modifier = Modifier
                             .padding(bottom = AlgoTokens.space1)
-                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                            .background(DarkBackground.copy(alpha = 0.90f))
-                            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                            .clip(RoundedCornerShape(percent = 50))
+                            .background(DarkBackground.copy(alpha = 0.95f))
+                            .border(
+                                AlgoTokens.strokeThin,
+                                PrimaryCyan.copy(alpha = 0.60f),
+                                RoundedCornerShape(percent = 50)
+                            )
                             .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
                     ) {
-                        Text(
-                            text = bannerText,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = PrimaryCyan,
-                            fontSize = AlgoType.microSize,
-                            fontWeight = FontWeight.Medium
-                        )
+                        // Minus (-1)
+                        Box(
+                            modifier = Modifier
+                                .size(AlgoTokens.iconButtonXs)
+                                .clip(CircleShape)
+                                .background(CanvasBackground)
+                                .clickable {
+                                    val nextWeight = (curWeight - 1).coerceAtLeast(1)
+                                    val updated = GraphTreeMutations.setEdgeWeight(edges, activeEdge.from, activeEdge.to, nextWeight)
+                                    onGraphModified?.invoke(effectiveNodes, updated)
+                                }
+                                .semantics {
+                                    this.role = Role.Button
+                                    this.contentDescription = "Decrease edge weight"
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = AlgoGlyphs.Minus,
+                                contentDescription = null,
+                                tint = PrimaryCyan,
+                                modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                            )
+                        }
+
+                        // Compact Weight display: "A ➔ B: 5" (clicking opens direct entry dialog)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
+                            modifier = Modifier
+                                .clickable { editingEdgeIndex = activeEdgeIndex }
+                                .padding(horizontal = AlgoTokens.space2)
+                        ) {
+                            Text(
+                                text = "${activeEdge.from} ➔ ${activeEdge.to}:",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextMuted,
+                                fontSize = AlgoType.microSize,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "$curWeight",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PrimaryCyan,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = AlgoType.microSize,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Plus (+1)
+                        Box(
+                            modifier = Modifier
+                                .size(AlgoTokens.iconButtonXs)
+                                .clip(CircleShape)
+                                .background(CanvasBackground)
+                                .clickable {
+                                    val nextWeight = (curWeight + 1).coerceAtMost(99)
+                                    val updated = GraphTreeMutations.setEdgeWeight(edges, activeEdge.from, activeEdge.to, nextWeight)
+                                    onGraphModified?.invoke(effectiveNodes, updated)
+                                }
+                                .semantics {
+                                    this.role = Role.Button
+                                    this.contentDescription = "Increase edge weight"
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = AlgoGlyphs.Plus,
+                                contentDescription = null,
+                                tint = PrimaryCyan,
+                                modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                            )
+                        }
                     }
+                }
+                val bannerText = profile.hintProvider(activeTool, selectedNodeId)
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = AlgoTokens.space1)
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(DarkBackground.copy(alpha = 0.90f))
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                ) {
+                    Text(
+                        text = bannerText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PrimaryCyan,
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
 
                 GraphFloatingToolbar(
@@ -545,13 +655,68 @@ fun GraphCanvasEngine(
             }
         }
 
-        // 4. Top-Right Canvas Icon: Fullscreen Toggle (only when fullscreen mode is supported)
+        // 4a. Top-Left Canvas Controls: Undo & Redo (only when interactive builder is active)
+        if (isBuilderActive && profile.allowedTools.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(AlgoTokens.space2),
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Undo
+                Box(
+                    modifier = Modifier
+                        .size(AlgoTokens.iconButtonSm)
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(DarkBackground.copy(alpha = 0.75f))
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                        .semantics {
+                            this.role = Role.Button
+                            this.contentDescription = "Undo graph edit"
+                        }
+                        .clickable(enabled = canUndo) { onUndo() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = AlgoGlyphs.Undo,
+                        contentDescription = null,
+                        tint = if (canUndo) PrimaryCyan else TextMuted.copy(alpha = 0.35f),
+                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                    )
+                }
+
+                // Redo
+                Box(
+                    modifier = Modifier
+                        .size(AlgoTokens.iconButtonSm)
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(DarkBackground.copy(alpha = 0.75f))
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                        .semantics {
+                            this.role = Role.Button
+                            this.contentDescription = "Redo graph edit"
+                        }
+                        .clickable(enabled = canRedo) { onRedo() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = AlgoGlyphs.Redo,
+                        contentDescription = null,
+                        tint = if (canRedo) PrimaryCyan else TextMuted.copy(alpha = 0.35f),
+                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                    )
+                }
+            }
+        }
+
+        // 4b. Top-Right Canvas Icon: Fullscreen Toggle (only when fullscreen mode is supported)
         if (profile.supportsFullscreen) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(AlgoTokens.space2)
-                    .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.minTouchTarget)
+                    .size(AlgoTokens.iconButtonSm)
                     .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                     .background(DarkBackground.copy(alpha = 0.75f))
                     .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
@@ -559,15 +724,14 @@ fun GraphCanvasEngine(
                         this.role = Role.Button
                         this.contentDescription = if (isFullscreen) "Exit Fullscreen" else "Open Fullscreen"
                     }
-                    .clickable { onToggleFullscreen() }
-                    .padding(AlgoTokens.space2),
+                    .clickable { onToggleFullscreen() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = if (isFullscreen) AlgoGlyphs.Close else AlgoGlyphs.Expand,
                     contentDescription = null,
                     tint = TextMuted,
-                    modifier = Modifier.size(AlgoTokens.inlineIconMd)
+                    modifier = Modifier.size(AlgoTokens.inlineIconSm)
                 )
             }
         }

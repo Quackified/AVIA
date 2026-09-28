@@ -229,6 +229,7 @@ private fun GraphTreeCanvas(
             startNodeId = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId.takeIf { it.isNotEmpty() },
             targetNodeId = state.graphTargetNodeId,
             onEndpointsChanged = { newStart, newTarget ->
+                state.recordGraphSnapshot()
                 state.graphStartNodeId = newStart
                 state.graphTargetNodeId = newTarget
             },
@@ -237,27 +238,39 @@ private fun GraphTreeCanvas(
             },
             onGraphModified = if (spec.builderEnabled) {
                 { nodes, edges ->
+                    state.recordGraphSnapshot()
                     state.customGraph = (nodes to edges)
                 }
             } else null,
             onBstInsertKey = { key ->
+                state.recordGraphSnapshot()
                 state.insertBstKey(key)
             },
             onBstDeleteNode = { nodeId ->
+                state.recordGraphSnapshot()
                 state.deleteBstNode(nodeId)
             },
             onHeapPushValue = { value ->
+                state.recordGraphSnapshot()
                 state.pushHeapValue(value)
             },
             onHeapExtractRoot = {
+                state.recordGraphSnapshot()
                 state.extractHeapRoot()
             },
             onHeapRemoveTail = {
+                state.recordGraphSnapshot()
                 state.removeHeapTail()
             },
             onResetGraph = {
+                state.recordGraphSnapshot()
                 state.resetGraphOverrides()
             },
+            canUndo = state.canUndoGraph,
+            canRedo = state.canRedoGraph,
+            onUndo = state::undoGraph,
+            onRedo = state::redoGraph,
+            onNodeDragStarted = state::recordGraphSnapshot,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)

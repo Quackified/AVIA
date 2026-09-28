@@ -484,4 +484,98 @@ class UnifiedGraphEditorTest {
         assertTrue("Empty custom graph must yield empty traversal IDs", state.effectiveTraversalNodeIds.isEmpty())
         assertEquals("", state.effectiveTraversalStartNodeId)
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // 8. Undo / Redo History & Workspace Widget Deck
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun visualizerScreenState_undoAndRedoGraphMutations() {
+        val state = VisualizerScreenState(Algorithm(id = AlgorithmId.DIJKSTRA))
+        assertFalse(state.canUndoGraph)
+        assertFalse(state.canRedoGraph)
+
+        // Mutation 1: Move Node A to (50, 50)
+        state.recordGraphSnapshot()
+        state.updateUserCustomCoordinate("A", Offset(50f, 50f))
+        assertTrue(state.canUndoGraph)
+        assertFalse(state.canRedoGraph)
+
+        // Mutation 2: Move Node A to (100, 100) and set Start Node to "A"
+        state.recordGraphSnapshot()
+        state.updateUserCustomCoordinate("A", Offset(100f, 100f))
+        state.graphStartNodeId = "A"
+
+        assertEquals(Offset(100f, 100f), state.userCustomCoordinates["A"])
+        assertEquals("A", state.graphStartNodeId)
+
+        // Undo Mutation 2 -> reverts back to (50, 50) and null start node
+        state.undoGraph()
+        assertTrue(state.canUndoGraph)
+        assertTrue(state.canRedoGraph)
+        assertEquals(Offset(50f, 50f), state.userCustomCoordinates["A"])
+        assertNull(state.graphStartNodeId)
+
+        // Undo Mutation 1 -> reverts back to empty coordinates
+        state.undoGraph()
+        assertFalse(state.canUndoGraph)
+        assertTrue(state.canRedoGraph)
+        assertTrue(state.userCustomCoordinates.isEmpty())
+
+        // Redo Mutation 1 -> restores (50, 50)
+        state.redoGraph()
+        assertTrue(state.canUndoGraph)
+        assertEquals(Offset(50f, 50f), state.userCustomCoordinates["A"])
+
+        // Redo Mutation 2 -> restores (100, 100) and "A"
+        state.redoGraph()
+        assertFalse(state.canRedoGraph)
+        assertEquals(Offset(100f, 100f), state.userCustomCoordinates["A"])
+        assertEquals("A", state.graphStartNodeId)
+    }
+
+    @Test
+    fun visualizerScreenState_widgetDeckManagementAndFocusMode() {
+        val state = VisualizerScreenState(Algorithm(id = AlgorithmId.DIJKSTRA))
+        assertFalse(state.canvasFocusMode)
+
+        // Toggle Focus Mode
+        state.canvasFocusMode = true
+        assertTrue(state.canvasFocusMode)
+
+        // Initial default widgets
+        assertEquals(
+            listOf(com.example.algolens.ui.visualizer.WidgetType.TRACE, com.example.algolens.ui.visualizer.WidgetType.STATE, com.example.algolens.ui.visualizer.WidgetType.TELEMETRY),
+            state.enabledWidgets
+        )
+
+        // Reorder widgets: move TELEMETRY (index 2) to first position (index 0)
+        state.moveWidget(2, 0)
+        assertEquals(
+            listOf(com.example.algolens.ui.visualizer.WidgetType.TELEMETRY, com.example.algolens.ui.visualizer.WidgetType.TRACE, com.example.algolens.ui.visualizer.WidgetType.STATE),
+            state.enabledWidgets
+        )
+        assertEquals(0, state.activeWidgetIndex)
+
+        // Toggle widget visibility: disable STATE
+        state.toggleWidget(com.example.algolens.ui.visualizer.WidgetType.STATE)
+        assertFalse(state.enabledWidgets.contains(com.example.algolens.ui.visualizer.WidgetType.STATE))
+        assertEquals(2, state.enabledWidgets.size)
+
+        // Toggle widget back on
+        state.toggleWidget(com.example.algolens.ui.visualizer.WidgetType.STATE)
+        assertTrue(state.enabledWidgets.contains(com.example.algolens.ui.visualizer.WidgetType.STATE))
+        assertEquals(3, state.enabledWidgets.size)
+
+        // At least 1 widget must always remain enabled
+        state.toggleWidget(com.example.algolens.ui.visualizer.WidgetType.TRACE)
+        state.toggleWidget(com.example.algolens.ui.visualizer.WidgetType.STATE)
+        assertEquals(1, state.enabledWidgets.size)
+        assertEquals(com.example.algolens.ui.visualizer.WidgetType.TELEMETRY, state.enabledWidgets.first())
+
+        // Attempting to disable the last widget should be a no-op
+        state.toggleWidget(com.example.algolens.ui.visualizer.WidgetType.TELEMETRY)
+        assertEquals(1, state.enabledWidgets.size)
+        assertEquals(com.example.algolens.ui.visualizer.WidgetType.TELEMETRY, state.enabledWidgets.first())
+    }
 }

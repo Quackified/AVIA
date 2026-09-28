@@ -66,6 +66,7 @@ fun GraphTreeRenderer(
     startNodeId: String? = null,
     targetNodeId: String? = null,
     previewPath: List<String> = emptyList(),
+    selectedEdgeIndex: Int? = null,
     panOffset: Offset = Offset.Zero,
     zoom: Float = 1f,
     referenceHeight: Float = 0f
@@ -95,16 +96,25 @@ fun GraphTreeRenderer(
         val r = geom.nodeRadius * geom.zoom
 
         // ── 1. Draw Existing Edges ──
-        for (edge in edges) {
+        for ((edgeIdx, edge) in edges.withIndex()) {
             val fromNode = nodes.find { it.id == edge.from } ?: continue
             val toNode = nodes.find { it.id == edge.to } ?: continue
 
             val start = geom.toCanvasOffset(fromNode.x, fromNode.y)
             val end = geom.toCanvasOffset(toNode.x, toNode.y)
 
-            val isHighlighted = edge.isHighlighted
-            val edgeColor = if (isHighlighted) AccentGreen else GraphEdgeDefault
-            val strokeWidth = if (isHighlighted) 4.5f else 2.2f
+            val isSelectedEdge = (selectedEdgeIndex == edgeIdx)
+            val isHighlighted = edge.isHighlighted || isSelectedEdge
+            val edgeColor = when {
+                isSelectedEdge -> PrimaryCyan
+                edge.isHighlighted -> AccentGreen
+                else -> GraphEdgeDefault
+            }
+            val strokeWidth = when {
+                isSelectedEdge -> 5f
+                edge.isHighlighted -> 4.5f
+                else -> 2.2f
+            }
 
             // Draw path highlight glow
             if (isHighlighted) {
@@ -433,8 +443,23 @@ data class GraphCanvasGeometry(
             val nodeCenterX = (minX + maxX) / 2f
             val nodeCenterY = (minY + maxY) / 2f
 
-            val spanX = (maxX - minX + 50f).coerceAtLeast(10f)
-            val spanY = (maxY - minY + 50f).coerceAtLeast(10f)
+            val rawSpanX = (maxX - minX + 50f).coerceAtLeast(10f)
+            val rawSpanY = (maxY - minY + 50f).coerceAtLeast(10f)
+
+            // Soft-damped span expansion prevents runaway zoom-out when moving nodes further away
+            val baseSpanX = 220f
+            val baseSpanY = 180f
+            val spanX = if (rawSpanX > baseSpanX) {
+                baseSpanX + Math.pow((rawSpanX - baseSpanX).toDouble(), 0.75).toFloat()
+            } else {
+                rawSpanX
+            }
+            val spanY = if (rawSpanY > baseSpanY) {
+                baseSpanY + Math.pow((rawSpanY - baseSpanY).toDouble(), 0.75).toFloat()
+            } else {
+                rawSpanY
+            }
+
             val padding = if (nodes.size > 10) 24f else 32f
 
             val availW = (drawSize.width - (padding * 2f)).coerceAtLeast(10f)

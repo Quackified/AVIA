@@ -72,93 +72,12 @@ fun StateDeckPage(
     onToggleExpand: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val stateFileName = remember(algorithmName) {
-        algorithmName.lowercase().replace(" ", "_").replace("-", "_") + ".state"
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(CanvasBackground)
     ) {
-        // ── Terminal Header Bar (matches CodeListing's header bar, no duplicate expand button) ──
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(AlgoTokens.iconButtonMd + AlgoTokens.space1)
-                .background(CardBackgroundElevated)
-                .padding(horizontal = AlgoTokens.space5),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left: Terminal Window Traffic-Light Dots + State File Name
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(AlgoTokens.space3)
-                            .clip(CircleShape)
-                            .background(AccentRed.copy(alpha = 0.85f))
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(AlgoTokens.space3)
-                            .clip(CircleShape)
-                            .background(AccentYellow.copy(alpha = 0.85f))
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(AlgoTokens.space3)
-                            .clip(CircleShape)
-                            .background(AccentGreen.copy(alpha = 0.85f))
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-                ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Terminal,
-                        contentDescription = null,
-                        tint = PurpleGlow,
-                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
-                    )
-                    Text(
-                        text = stateFileName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = AlgoType.microSize
-                    )
-                }
-            }
-
-            Text(
-                text = "LIVE TELEMETRY",
-                style = MaterialTheme.typography.labelSmall,
-                color = TextMuted,
-                fontFamily = FontFamily.Monospace,
-                fontSize = AlgoType.microSize
-            )
-        }
-
-        // Terminal Header Separator Hairline
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(AlgoTokens.strokeThin)
-                .background(BorderSubtle)
-        )
-
-        // ── Wrapping Terminal State Body (compact peek vs scrollable expanded) ──
+        // ── Scrollable Terminal State Body ──
         Column(
             modifier = Modifier
                 .fillMaxWidth()

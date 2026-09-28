@@ -92,7 +92,13 @@ fun GraphTreeVisualizer(
     onHeapPushValue: ((Int) -> Unit)? = null,
     onHeapExtractRoot: (() -> Unit)? = null,
     onHeapRemoveTail: (() -> Unit)? = null,
-    onResetGraph: (() -> Unit)? = null
+    onResetGraph: (() -> Unit)? = null,
+    canUndo: Boolean = false,
+    canRedo: Boolean = false,
+    onUndo: () -> Unit = {},
+    onRedo: () -> Unit = {},
+    onNodeDragStarted: () -> Unit = {},
+    onNodeDragFinished: () -> Unit = {}
 ) {
     val resolvedProfile = remember(profile, algorithmKey, builderEnabled) {
         if (profile != null) return@remember profile
@@ -170,7 +176,7 @@ fun GraphTreeVisualizer(
                                 modifier = Modifier.size(AlgoTokens.inlineIconSm)
                             )
                             Text(
-                                text = if (isBuilderActive) "Builder: Active" else "Interactive Mode",
+                                text = "Interactive Mode",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (isBuilderActive) PrimaryCyan else TextMuted,
                                 fontSize = AlgoType.microSize,
@@ -220,6 +226,12 @@ fun GraphTreeVisualizer(
                     selectedNodeId = null
                     onResetGraph?.invoke()
                 },
+                canUndo = canUndo,
+                canRedo = canRedo,
+                onUndo = onUndo,
+                onRedo = onRedo,
+                onNodeDragStarted = onNodeDragStarted,
+                onNodeDragFinished = onNodeDragFinished,
                 isFullscreen = isFullscreen,
                 onToggleFullscreen = { isFullscreen = !isFullscreen },
                 modifier = Modifier
@@ -270,17 +282,17 @@ fun GraphTreeVisualizer(
                         .padding(AlgoTokens.space3),
                     verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                 ) {
-                    // Fullscreen Header
+                    // Fullscreen Header (expanded with Interactive Mode button)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
+                            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                         ) {
                             Text(
                                 text = if (algorithmKey.isNotEmpty()) "$algorithmKey Fullscreen Canvas" else "Graph Canvas",
@@ -294,6 +306,41 @@ fun GraphTreeVisualizer(
                                 color = TextMuted,
                                 fontSize = AlgoType.microSize
                             )
+                        }
+
+                        if (resolvedProfile.allowedTools.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                    .background(if (isBuilderActive) CyanSubtle else CanvasBackground)
+                                    .border(
+                                        AlgoTokens.strokeThin,
+                                        if (isBuilderActive) PrimaryCyan else BorderSubtle,
+                                        RoundedCornerShape(AlgoTokens.radiusXs)
+                                    )
+                                    .clickable { isBuilderActive = !isBuilderActive }
+                                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                                ) {
+                                    Icon(
+                                        imageVector = AlgoGlyphs.Tap,
+                                        contentDescription = null,
+                                        tint = if (isBuilderActive) PrimaryCyan else TextMuted,
+                                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                                    )
+                                    Text(
+                                        text = "Interactive Mode",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isBuilderActive) PrimaryCyan else TextMuted,
+                                        fontSize = AlgoType.microSize,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -327,6 +374,12 @@ fun GraphTreeVisualizer(
                             selectedNodeId = null
                             onResetGraph?.invoke()
                         },
+                        canUndo = canUndo,
+                        canRedo = canRedo,
+                        onUndo = onUndo,
+                        onRedo = onRedo,
+                        onNodeDragStarted = onNodeDragStarted,
+                        onNodeDragFinished = onNodeDragFinished,
                         isFullscreen = true,
                         onToggleFullscreen = { isFullscreen = false },
                         modifier = Modifier

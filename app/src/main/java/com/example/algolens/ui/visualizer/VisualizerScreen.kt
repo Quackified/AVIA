@@ -123,16 +123,6 @@ fun VisualizerScreen(
                 .fillMaxSize()
                 .blur(backdropBlur)
         ) {
-            val fallbackDockHeight = if (state.deckExpanded) DOCK_EXPANDED_TOTAL_HEIGHT else DOCK_PEEK_TOTAL_HEIGHT
-            val animatedDockHeight by animateDpAsState(
-                targetValue = state.measuredDockHeight.takeIf { it > 0.dp } ?: fallbackDockHeight,
-                animationSpec = androidx.compose.animation.core.spring(
-                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
-                    stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
-                ),
-                label = "animatedDockHeight"
-            )
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -155,16 +145,17 @@ fun VisualizerScreen(
                         .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
                 )
 
-                // ── Unified Live Narrative Stage + Docked Terminal ──
-                Box(
+                // ── Workspace Area: [Canvas Visualizer > Deck Instruments] ──
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                 ) {
+                    // 1. Canvas Visualizer (fills available vertical space)
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = animatedDockHeight)
+                            .fillMaxWidth()
+                            .weight(1f)
                     ) {
                         if (spec != null) {
                             VisualizerHost(
@@ -186,39 +177,52 @@ fun VisualizerScreen(
                         }
                     }
 
-                    // Docked 3-Line Peek / Expand Terminal (with attached Trace | State window tabs)
-                    // plus optional Challenge prompt above it.
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                    ) {
-                        AnimatedVisibility(
-                            visible = state.challengeInFlight,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
-                            enter = fadeIn(tween(220)) + expandVertically(),
-                            exit = fadeOut(tween(180)) + shrinkVertically()
-                        ) {
-                            CanvasChallengePrompt(
-                                algorithm = algorithm.id,
-                                step = state.currentStep,
-                                nextStep = state.steps.getOrNull(state.currentStepIdx + 1),
-                                state = state.challengeState,
-                                onStateChange = { state.updateChallenge { it } },
-                                onContinueNext = { state.stepForward() }
-                            )
-                        }
+                    // 2. Expand/Collapse Handle Bar (toggles Focus Mode)
+                    WorkspaceHandleBar(
+                        isFocusMode = state.canvasFocusMode,
+                        onToggleFocusMode = { state.canvasFocusMode = !state.canvasFocusMode }
+                    )
 
+                    // 3. Challenge Prompt (when challenge in flight and not in focus mode)
+                    AnimatedVisibility(
+                        visible = state.challengeInFlight && !state.canvasFocusMode,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
+                        enter = fadeIn(tween(220)) + expandVertically(),
+                        exit = fadeOut(tween(180)) + shrinkVertically()
+                    ) {
+                        CanvasChallengePrompt(
+                            algorithm = algorithm.id,
+                            step = state.currentStep,
+                            nextStep = state.steps.getOrNull(state.currentStepIdx + 1),
+                            state = state.challengeState,
+                            onStateChange = { state.updateChallenge { it } },
+                            onContinueNext = { state.stepForward() }
+                        )
+                    }
+
+                    // 4. Deck Instruments (Slides off-screen when Focus Mode is active)
+                    AnimatedVisibility(
+                        visible = !state.canvasFocusMode,
+                        enter = expandVertically(
+                            animationSpec = androidx.compose.animation.core.spring(
+                                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+                                stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
+                            )
+                        ) + fadeIn(tween(200)),
+                        exit = shrinkVertically(
+                            animationSpec = androidx.compose.animation.core.spring(
+                                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+                                stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow
+                            )
+                        ) + fadeOut(tween(150))
+                    ) {
                         InstrumentDeck(
                             state = state,
                             algorithm = algorithm,
                             currentStep = state.currentStep,
                             syncPulse = syncPulseState,
-                            onMeasuredHeightChanged = { measured ->
-                                state.measuredDockHeight = measured
-                            },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }

@@ -58,7 +58,10 @@ fun GraphBuilderGestures(
     onDeleteEdge: (edgeIndex: Int) -> Unit = {},
     onDragStartNodeChanged: (GraphNodeState?) -> Unit = {},
     onCurrentDragPosChanged: (Offset?) -> Unit = {},
-    onHoveredTargetNodeIdChanged: (String?) -> Unit = {}
+    onHoveredTargetNodeIdChanged: (String?) -> Unit = {},
+    onEdgeSelected: (Int?) -> Unit = {},
+    onNodeDragStarted: () -> Unit = {},
+    onNodeDragFinished: () -> Unit = {}
 ) {
     val density = LocalDensity.current.density
 
@@ -73,7 +76,6 @@ fun GraphBuilderGestures(
     val currentPan = rememberUpdatedState(panOffset)
     val currentZoom = rememberUpdatedState(zoom)
     val currentRefHeight = rememberUpdatedState(referenceHeight)
-
     val currentOnPanAndZoomChanged = rememberUpdatedState(onPanAndZoomChanged)
     val currentOnNodeMoved = rememberUpdatedState(onNodeMoved)
     val currentOnNodeSelected = rememberUpdatedState(onNodeSelected)
@@ -90,6 +92,9 @@ fun GraphBuilderGestures(
     val currentOnDragStartNodeChanged = rememberUpdatedState(onDragStartNodeChanged)
     val currentOnCurrentDragPosChanged = rememberUpdatedState(onCurrentDragPosChanged)
     val currentOnHoveredTargetNodeIdChanged = rememberUpdatedState(onHoveredTargetNodeIdChanged)
+    val currentOnEdgeSelected = rememberUpdatedState(onEdgeSelected)
+    val currentOnNodeDragStarted = rememberUpdatedState(onNodeDragStarted)
+    val currentOnNodeDragFinished = rememberUpdatedState(onNodeDragFinished)
 
     Box(
         modifier = modifier.pointerInput(Unit) {
@@ -193,6 +198,8 @@ fun GraphBuilderGestures(
                 var currentPos = startOffset
                 var isPanningViewport = false
                 var isMovingNode = false
+                var dragStartNodeWorldPos = Offset.Zero
+                var dragStartBaseScale = geom.baseScale
                 var isLinking = false
                 var isLongPressTriggered = false
                 var lastHoveredTargetId: String? = null
@@ -279,7 +286,15 @@ fun GraphBuilderGestures(
                     if (!dragStarted && distFromStart > touchSlop) {
                         dragStarted = true
                         if (builderActive && hitNode != null && tool == GraphTool.MOVE && prof.canMoveNodes) {
-                            isMovingNode = true
+                            // Selection-gated move: ONLY move if this node is already selected (lit green)
+                            if (hitNode.id == selectedId) {
+                                currentOnNodeDragStarted.value()
+                                isMovingNode = true
+                                dragStartNodeWorldPos = Offset(hitNode.x, hitNode.y)
+                                dragStartBaseScale = geom.baseScale
+                            } else {
+                                isPanningViewport = true
+                            }
                         } else if (builderActive && hitNode != null && tool == GraphTool.LINK && prof.canConnectNodes) {
                             isLinking = true
                             currentOnDragStartNodeChanged.value(hitNode)
@@ -303,10 +318,17 @@ fun GraphBuilderGestures(
                         )
 
                         if (isMovingNode && hitNode != null) {
-                            val worldCoord = liveGeom.toWorldCoords(newPos)
+                            // Decoupled 1:1 world delta prevents runaway scale explosions
+                            val deltaScreen = newPos - startOffset
+                            val currentZ = currentZoom.value.coerceAtLeast(0.1f)
+                            val scale = (dragStartBaseScale * currentZ).coerceAtLeast(0.001f)
+                            val deltaWorldX = deltaScreen.x / scale
+                            val deltaWorldY = deltaScreen.y / scale
+                            val newWorldX = (dragStartNodeWorldPos.x + deltaWorldX).coerceIn(5f, 400f)
+                            val newWorldY = (dragStartNodeWorldPos.y + deltaWorldY).coerceIn(5f, 300f)
                             currentOnNodeMoved.value(
                                 hitNode.id,
-                                Offset(worldCoord.x.coerceIn(5f, 400f), worldCoord.y.coerceIn(5f, 300f))
+                                Offset(newWorldX, newWorldY)
                             )
                         } else if (isLinking && hitNode != null) {
                             currentOnCurrentDragPosChanged.value(newPos)
@@ -339,6 +361,9 @@ fun GraphBuilderGestures(
 
                 // ── Gesture Finalization ──
                 if (dragStarted) {
+                    if (isMovingNode) {
+                        currentOnNodeDragFinished.value()
+                    }
                     if (isLinking && hitNode != null) {
                         val targetId = lastHoveredTargetId
                         if (targetId != null && targetId != hitNode.id) {
@@ -350,6 +375,11 @@ fun GraphBuilderGestures(
                     }
                 } else if (!isLongPressTriggered) {
                     // Tap Detected
+                    if (hitEdgeIndex >= 0) {
+                        currentOnEdgeSelected.value(hitEdgeIndex)
+                    } else {
+                        currentOnEdgeSelected.value(null)
+                    }
                     if (!builderActive) {
                         if (hitNode != null) {
                             currentOnNodeClicked.value(hitNode.id)
@@ -396,9 +426,17 @@ fun GraphBuilderGestures(
                             }
                             GraphTool.WEIGHT -> {
                                 if (hitEdgeIndex >= 0 && prof.canEditEdgeWeights) {
+                                    currentOnEdgeSelected.value(hitEdgeIndex)
                                     currentOnCycleWeight.value(hitEdgeIndex)
                                 } else if (hitNode != null) {
-                                    currentOnNodeSelected.value(if (selectedId == hitNode.id) null else hitNode.id)
+                                    val nextSelectedId = if (selectedId == hitNode.id) null else hitNode.id
+                                    currentOnNodeSelected.value(nextSelectedId)
+                                    if (nextSelectedId != null && prof.canEditEdgeWeights) {
+                                        val incidentEdgeIdx = liveEdges.indexOfFirst { it.from == nextSelectedId || it.to == nextSelectedId }
+                                        if (incidentEdgeIdx >= 0) {
+                                            currentOnEdgeSelected.value(incidentEdgeIdx)
+                                        }
+                                    }
                                 }
                             }
                             GraphTool.ENDPOINTS -> {

@@ -25,6 +25,25 @@ import com.example.algolens.model.SortOrder
 import kotlinx.coroutines.delay
 
 /**
+ * Modular widgets available in the Deck Instruments workspace carousel.
+ */
+enum class WidgetType(val title: String, val subtitle: String) {
+    TRACE("CODE TRACE", "Active line highlighting & execution trace"),
+    STATE("ALGORITHM STATE", "Complexity, variables & step explanations"),
+    TELEMETRY("TELEMETRY", "Queue, stack & frontier data structures")
+}
+
+/**
+ * Snapshot of custom graph topological and endpoint mutations for Undo/Redo.
+ */
+data class GraphEditorSnapshot(
+    val customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>?,
+    val userCustomCoordinates: Map<String, Offset>,
+    val graphStartNodeId: String?,
+    val graphTargetNodeId: String?
+)
+
+/**
  * Single source of truth for everything that mutates inside
  * [VisualizerScreen] during a single open of the screen. Lifting all
  * state into one [Stable] class lets the screen body stay declarative
@@ -149,6 +168,94 @@ class VisualizerScreenState(
     // ── Goal-directed graph endpoints (START / TARGET) ──
     var graphStartNodeId: String? by mutableStateOf(null)
     var graphTargetNodeId: String? by mutableStateOf(null)
+
+    // ── Workspace Focus Mode (expands Canvas Visualizer, hides bottom widget deck) ──
+    var canvasFocusMode: Boolean by mutableStateOf(false)
+
+    // ── Modular Widget Carousel ──
+    var activeWidgetIndex: Int by mutableIntStateOf(0)
+    var enabledWidgets: List<WidgetType> by mutableStateOf(
+        listOf(WidgetType.TRACE, WidgetType.STATE, WidgetType.TELEMETRY)
+    )
+
+    fun toggleWidget(type: WidgetType) {
+        if (type in enabledWidgets) {
+            if (enabledWidgets.size > 1) {
+                enabledWidgets = enabledWidgets - type
+                activeWidgetIndex = activeWidgetIndex.coerceAtMost(enabledWidgets.lastIndex)
+            }
+        } else {
+            enabledWidgets = enabledWidgets + type
+        }
+    }
+
+    fun moveWidget(fromIndex: Int, toIndex: Int) {
+        if (fromIndex in enabledWidgets.indices && toIndex in enabledWidgets.indices && fromIndex != toIndex) {
+            val list = enabledWidgets.toMutableList()
+            val item = list.removeAt(fromIndex)
+            list.add(toIndex, item)
+            enabledWidgets = list
+            activeWidgetIndex = toIndex
+        }
+    }
+
+    // ── Undo / Redo History for Graph Editor ──
+    private val undoStack = ArrayDeque<GraphEditorSnapshot>()
+    private val redoStack = ArrayDeque<GraphEditorSnapshot>()
+
+    val canUndoGraph: Boolean get() = undoStack.isNotEmpty()
+    val canRedoGraph: Boolean get() = redoStack.isNotEmpty()
+
+    fun recordGraphSnapshot() {
+        val current = GraphEditorSnapshot(
+            customGraph = customGraph,
+            userCustomCoordinates = userCustomCoordinates,
+            graphStartNodeId = graphStartNodeId,
+            graphTargetNodeId = graphTargetNodeId
+        )
+        if (undoStack.size >= 30) {
+            undoStack.removeFirst()
+        }
+        undoStack.addLast(current)
+        redoStack.clear()
+    }
+
+    fun undoGraph() {
+        if (undoStack.isEmpty()) return
+        val current = GraphEditorSnapshot(
+            customGraph = customGraph,
+            userCustomCoordinates = userCustomCoordinates,
+            graphStartNodeId = graphStartNodeId,
+            graphTargetNodeId = graphTargetNodeId
+        )
+        redoStack.addLast(current)
+        val prev = undoStack.removeLast()
+        customGraph = prev.customGraph
+        userCustomCoordinates = prev.userCustomCoordinates
+        graphStartNodeId = prev.graphStartNodeId
+        graphTargetNodeId = prev.graphTargetNodeId
+    }
+
+    fun redoGraph() {
+        if (redoStack.isEmpty()) return
+        val current = GraphEditorSnapshot(
+            customGraph = customGraph,
+            userCustomCoordinates = userCustomCoordinates,
+            graphStartNodeId = graphStartNodeId,
+            graphTargetNodeId = graphTargetNodeId
+        )
+        undoStack.addLast(current)
+        val next = redoStack.removeLast()
+        customGraph = next.customGraph
+        userCustomCoordinates = next.userCustomCoordinates
+        graphStartNodeId = next.graphStartNodeId
+        graphTargetNodeId = next.graphTargetNodeId
+    }
+
+    fun resetGraphHistory() {
+        undoStack.clear()
+        redoStack.clear()
+    }
 
     // ── Derived helpers ──
     /** Clamped to ≥ 1 so scrubbers / counters never render `Step 0 of 0`. */

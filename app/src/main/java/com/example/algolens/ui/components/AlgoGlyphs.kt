@@ -194,6 +194,10 @@ object AlgoGlyphs {
         line(4.5f, 12f, 19.5f, 12f)
     }
 
+    val Minus: ImageVector = glyph("AlgoGlyphs.Minus") {
+        line(4.5f, 12f, 19.5f, 12f)
+    }
+
     val More: ImageVector = glyph("AlgoGlyphs.More") {
         circle(12f, 5f, 1.4f)
         circle(12f, 12f, 1.4f)
@@ -212,6 +216,25 @@ object AlgoGlyphs {
         moveTo(8f, 4.5f); lineTo(4.5f, 8f); lineTo(8f, 11.5f)
         line(4f, 16f, 19.5f, 16f)
         moveTo(16f, 12.5f); lineTo(19.5f, 16f); lineTo(16f, 19.5f)
+    }
+
+    val Undo: ImageVector = glyph("AlgoGlyphs.Undo") {
+        moveTo(3.5f, 7f); lineTo(3.5f, 13f); lineTo(9.5f, 13f)
+        moveTo(3.5f, 13f)
+        arcTo(11f, 11f, 0f, isMoreThanHalf = false, isPositiveArc = true, 19f, 11f)
+        arcTo(11f, 11f, 0f, isMoreThanHalf = false, isPositiveArc = true, 20.5f, 17f)
+    }
+
+    val Redo: ImageVector = glyph("AlgoGlyphs.Redo") {
+        moveTo(20.5f, 7f); lineTo(20.5f, 13f); lineTo(14.5f, 13f)
+        moveTo(20.5f, 13f)
+        arcTo(11f, 11f, 0f, isMoreThanHalf = false, isPositiveArc = false, 5f, 11f)
+        arcTo(11f, 11f, 0f, isMoreThanHalf = false, isPositiveArc = false, 3.5f, 17f)
+    }
+
+    val DragHandle: ImageVector = glyph("AlgoGlyphs.DragHandle") {
+        line(8f, 9f, 16f, 9f)
+        line(8f, 15f, 16f, 15f)
     }
 
     val Trash: ImageVector = glyph("AlgoGlyphs.Trash") {

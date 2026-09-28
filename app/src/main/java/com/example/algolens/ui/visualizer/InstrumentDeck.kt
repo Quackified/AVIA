@@ -1,8 +1,5 @@
 package com.example.algolens.ui.visualizer
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,23 +10,31 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -37,23 +42,22 @@ import androidx.compose.ui.unit.dp
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.AlgorithmId
 import com.example.algolens.ui.components.AlgoGlyphs
-import com.example.algolens.ui.components.pressPhysics
+import com.example.algolens.ui.theme.AccentGreen
+import com.example.algolens.ui.theme.AccentRed
+import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoLensTheme
 import com.example.algolens.ui.theme.AlgoTokens
+import com.example.algolens.ui.theme.AlgoType
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.theme.CardBackgroundElevated
-import com.example.algolens.ui.theme.CyanSubtle
+import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.PrimaryCyan
-import com.example.algolens.ui.theme.PurpleGlow
-import com.example.algolens.ui.theme.SecondaryPurple
+import com.example.algolens.ui.theme.TextDark
 import com.example.algolens.ui.theme.TextMuted
-import com.example.algolens.ui.theme.TextPrimary
+import com.example.algolens.ui.theme.TextSecondary
+import kotlinx.coroutines.launch
 
-/**
- * Original 3-line Peek height (126.dp) and Expanded height (285.dp) of the
- * docked terminal frame, plus the height of the attached window tabs row (~26.dp).
- */
 internal val TERMINAL_PEEK_HEIGHT = 126.dp
 internal val TERMINAL_EXPANDED_HEIGHT = 228.dp
 internal val ATTACHED_TAB_VISUAL_HEIGHT = 26.dp
@@ -62,17 +66,13 @@ internal val DOCK_PEEK_TOTAL_HEIGHT = TERMINAL_PEEK_HEIGHT + ATTACHED_TABS_HEIGH
 internal val DOCK_EXPANDED_TOTAL_HEIGHT = TERMINAL_EXPANDED_HEIGHT + ATTACHED_TABS_HEIGHT + 8.dp
 
 /**
- * Docked 3-Line Peek / Expand Terminal UI with attached top window tabs
- * (`Trace` | `State`).
+ * Obsidian-style Workspace Deck Widget.
  *
- * - **Always docked**: rests at [TERMINAL_PEEK_HEIGHT] (126.dp, showing the
- *   terminal titlebar + 3 lines of code or live state) and expands to
- *   [TERMINAL_EXPANDED_HEIGHT] (228.dp) when `state.deckExpanded` is true.
- * - **Attached window tabs**: `Trace` and `State` sit directly on top of the
- *   terminal frame (`26.dp` visual height inside a `44.dp` touch target) and
- *   serve as the sole explicit expand/collapse affordance.
- * - **Measured stage reservation**: reports its actual rendered height via
- *   [onMeasuredHeightChanged] so `VisualizerScreen` adapts accurately to font scaling.
+ * Terminal-styled card frame wrapping enabled instruments ([WidgetType.TRACE],
+ * [WidgetType.STATE], [WidgetType.TELEMETRY]) in a horizontally swipeable pager with
+ * infinite wrap-around scroll, bottom-overlay dot indicators, and a More Options button.
+ *
+ * Titlebar: `(ooo | Icon | Widget Name |                         : |)`
  */
 @Composable
 fun InstrumentDeck(
@@ -83,204 +83,236 @@ fun InstrumentDeck(
     modifier: Modifier = Modifier,
     onMeasuredHeightChanged: ((androidx.compose.ui.unit.Dp) -> Unit)? = null
 ) {
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val terminalHeight by animateDpAsState(
-        targetValue = if (state.deckExpanded) TERMINAL_EXPANDED_HEIGHT else TERMINAL_PEEK_HEIGHT,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "instrumentDeckTerminalHeight"
-    )
+    val enabledWidgets = state.enabledWidgets
+    val coroutineScope = rememberCoroutineScope()
+    var showWidgetManagerModal by remember { mutableStateOf(false) }
 
-    Column(
+    val pageCount = if (enabledWidgets.size > 1) 1000 * enabledWidgets.size else 1
+    val initialPage = if (enabledWidgets.size > 1) {
+        500 * enabledWidgets.size + state.activeWidgetIndex.coerceIn(0, enabledWidgets.size - 1)
+    } else 0
+
+    val pagerState = rememberPagerState(initialPage = initialPage) { pageCount }
+
+    val currentWidgetIndex = if (enabledWidgets.isNotEmpty()) {
+        ((pagerState.currentPage % enabledWidgets.size) + enabledWidgets.size) % enabledWidgets.size
+    } else 0
+
+    val currentWidget = enabledWidgets.getOrNull(currentWidgetIndex) ?: WidgetType.TRACE
+
+    LaunchedEffect(pagerState.currentPage, enabledWidgets.size) {
+        if (enabledWidgets.isNotEmpty()) {
+            state.activeWidgetIndex = currentWidgetIndex
+        }
+    }
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .onSizeChanged { size ->
-                if (size.height > 0 && onMeasuredHeightChanged != null) {
-                    with(density) {
-                        onMeasuredHeightChanged(size.height.toDp())
-                    }
-                }
-            }
+            .height(TERMINAL_EXPANDED_HEIGHT)
             .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
     ) {
-        // Attached window tabs sitting flush on top of the terminal frame,
-        // with unified vertical heights and a matching tab-style Expand/Collapse button.
-        AttachedDeckTabs(
-            selected = state.deckPage,
-            isExpanded = state.deckExpanded,
-            onToggleExpand = { state.deckExpanded = !state.deckExpanded },
-            onSelect = { page ->
-                if (state.deckPage == page) {
-                    state.deckExpanded = !state.deckExpanded
-                } else {
-                    state.deckPage = page
-                }
-            }
-        )
-
-        // Unified Terminal UI Frame (126.dp 3-line peek <-> 228.dp expanded)
+        // Outer Card Frame
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(terminalHeight)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 0.dp,
-                        topEnd = 0.dp,
-                        bottomStart = AlgoTokens.radiusMd,
-                        bottomEnd = AlgoTokens.radiusMd
-                    )
-                )
+                .fillMaxSize()
+                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                 .background(CanvasBackground)
                 .border(
                     AlgoTokens.strokeThin,
-                    if (state.deckExpanded) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
-                    RoundedCornerShape(
-                        topStart = 0.dp,
-                        topEnd = 0.dp,
-                        bottomStart = AlgoTokens.radiusMd,
-                        bottomEnd = AlgoTokens.radiusMd
-                    )
+                    BorderSubtle,
+                    RoundedCornerShape(AlgoTokens.radiusMd)
                 )
         ) {
-            when (state.deckPage) {
-                DeckPage.TRACE -> CodeTracePane(
-                    step = currentStep,
-                    algorithmName = algorithm.name,
-                    algorithmId = algorithm.id,
-                    syncPulse = syncPulse,
-                    fillsAvailableHeight = true,
-                    isExpandedOverride = state.deckExpanded,
-                    showHeader = true,
-                    onToggleExpand = { state.deckExpanded = !state.deckExpanded },
-                    modifier = Modifier.fillMaxSize()
-                )
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Terminal UI Style Titlebar Header: [ ooo | Icon | Widget Name |                  : ]
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(AlgoTokens.iconButtonSm)
+                        .background(CardBackgroundElevated)
+                        .border(
+                            AlgoTokens.strokeHairline,
+                            BorderSubtle.copy(alpha = 0.5f),
+                            RoundedCornerShape(topStart = AlgoTokens.radiusMd, topEnd = AlgoTokens.radiusMd)
+                        )
+                        .padding(horizontal = AlgoTokens.space4),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Left: Traffic Light Dots (ooo) + Icon + Widget Name
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                    ) {
+                        // Traffic light dots (red, yellow, green)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(AlgoTokens.space3)
+                                    .clip(CircleShape)
+                                    .background(AccentRed.copy(alpha = 0.85f))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(AlgoTokens.space3)
+                                    .clip(CircleShape)
+                                    .background(AccentYellow.copy(alpha = 0.85f))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(AlgoTokens.space3)
+                                    .clip(CircleShape)
+                                    .background(AccentGreen.copy(alpha = 0.85f))
+                            )
+                        }
 
-                DeckPage.STATE -> StateDeckPage(
-                    algorithmName = algorithm.name,
-                    step = currentStep,
-                    timeComplexity = algorithm.timeComplexity,
-                    spaceComplexity = algorithm.spaceComplexity,
-                    onComplexityClick = { state.showTheorySheet = true },
-                    isExpanded = state.deckExpanded,
-                    onToggleExpand = { state.deckExpanded = !state.deckExpanded },
-                    modifier = Modifier.fillMaxSize()
-                )
+                        // Widget Icon + Name
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                        ) {
+                            val widgetGlyph = when (currentWidget) {
+                                WidgetType.TRACE -> AlgoGlyphs.Code
+                                WidgetType.STATE -> AlgoGlyphs.Terminal
+                                WidgetType.TELEMETRY -> AlgoGlyphs.Nodes
+                            }
+                            Icon(
+                                imageVector = widgetGlyph,
+                                contentDescription = null,
+                                tint = PrimaryCyan,
+                                modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                            )
+                            val formattedName = when (currentWidget) {
+                                WidgetType.TRACE -> ">_ code_trace"
+                                WidgetType.STATE -> ">_ state"
+                                WidgetType.TELEMETRY -> ">_ telemetry"
+                            }
+                            Text(
+                                text = formattedName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = AlgoType.microSize,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    // Right: More Options button (opens widget manager modal)
+                    Box(
+                        modifier = Modifier
+                            .size(AlgoTokens.iconButtonXs)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                            .clickable { showWidgetManagerModal = true }
+                            .semantics {
+                                this.role = Role.Button
+                                this.contentDescription = "Manage workspace widgets"
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = AlgoGlyphs.More,
+                            contentDescription = null,
+                            tint = TextMuted,
+                            modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                        )
+                    }
+                }
+
+                // Pager Content Area
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) { page ->
+                    val actualWidget = if (enabledWidgets.isNotEmpty()) {
+                        enabledWidgets[((page % enabledWidgets.size) + enabledWidgets.size) % enabledWidgets.size]
+                    } else WidgetType.TRACE
+
+                    when (actualWidget) {
+                        WidgetType.TRACE -> CodeTracePane(
+                            step = currentStep,
+                            algorithmName = algorithm.name,
+                            algorithmId = algorithm.id,
+                            syncPulse = syncPulse,
+                            fillsAvailableHeight = true,
+                            isExpandedOverride = true,
+                            showHeader = false,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        WidgetType.STATE -> StateDeckPage(
+                            algorithmName = algorithm.name,
+                            step = currentStep,
+                            timeComplexity = algorithm.timeComplexity,
+                            spaceComplexity = algorithm.spaceComplexity,
+                            onComplexityClick = { state.showTheorySheet = true },
+                            isExpanded = true,
+                            onToggleExpand = {},
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        WidgetType.TELEMETRY -> TelemetryDeckPage(
+                            step = currentStep,
+                            algorithmName = algorithm.name,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
             }
-        }
-    }
-}
 
-/**
- * Window tabs (`Trace` | `State`) attached directly to the top-left edge of
- * the terminal frame, plus a matching tab-style `Expand` / `Collapse` button
- * on the top-right edge. All window tabs share an identical [ATTACHED_TAB_VISUAL_HEIGHT]
- * (`26.dp`) visual height inside a `44.dp` accessible hit box.
- */
-@Composable
-private fun AttachedDeckTabs(
-    selected: DeckPage,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
-    onSelect: (DeckPage) -> Unit
-) {
-    val tabShape = RoundedCornerShape(
-        topStart = AlgoTokens.radiusSm,
-        topEnd = AlgoTokens.radiusSm
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = AlgoTokens.space2),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom
-    ) {
-        // Left: Trace & State Window Tabs (identical 26dp height)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            for (page in DeckPage.entries) {
-                val isSelected = page == selected
-
+            // Bottom-Center Floating Ellipses (...) Overlay
+            if (enabledWidgets.size > 1) {
                 Box(
                     modifier = Modifier
-                        .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                        .clickable { onSelect(page) },
-                    contentAlignment = Alignment.BottomStart
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = AlgoTokens.space2)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(DarkBackground.copy(alpha = 0.85f))
+                        .border(
+                            AlgoTokens.strokeHairline,
+                            BorderSubtle.copy(alpha = 0.6f),
+                            RoundedCornerShape(percent = 50)
+                        )
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .height(ATTACHED_TAB_VISUAL_HEIGHT)
-                            .pressPhysics(shape = tabShape, accent = PrimaryCyan)
-                            .clip(tabShape)
-                            .background(if (isSelected) CardBackgroundElevated else CanvasBackground.copy(alpha = 0.85f))
-                            .border(
-                                width = AlgoTokens.strokeThin,
-                                color = if (isSelected) PrimaryCyan.copy(alpha = 0.35f) else BorderSubtle,
-                                shape = tabShape
-                            )
-                            .padding(horizontal = AlgoTokens.space4),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(AlgoTokens.space3)
-                                .clip(CircleShape)
-                                .background(
-                                    if (isSelected) PrimaryCyan else TextMuted.copy(alpha = 0.45f)
-                                )
-                        )
-                        Text(
-                            text = page.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) TextPrimary else TextMuted,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                        )
+                        for (idx in enabledWidgets.indices) {
+                            val isActive = idx == currentWidgetIndex
+                            Box(
+                                modifier = Modifier
+                                    .height(AlgoTokens.space1)
+                                    .width(if (isActive) AlgoTokens.space4 else AlgoTokens.space1)
+                                    .clip(RoundedCornerShape(percent = 50))
+                                    .background(if (isActive) PrimaryCyan else TextDark)
+                                    .clickable {
+                                        val diff = idx - currentWidgetIndex
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(pagerState.currentPage + diff)
+                                        }
+                                    }
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Right: Expand / Collapse Window Tab Button (same tab style & 26dp height)
-        Box(
-            modifier = Modifier
-                .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                .clickable { onToggleExpand() },
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            Row(
-                modifier = Modifier
-                    .height(ATTACHED_TAB_VISUAL_HEIGHT)
-                    .pressPhysics(shape = tabShape, accent = PrimaryCyan)
-                    .clip(tabShape)
-                    .background(if (isExpanded) CyanSubtle else CardBackgroundElevated)
-                    .border(
-                        width = AlgoTokens.strokeThin,
-                        color = if (isExpanded) PrimaryCyan.copy(alpha = 0.45f) else BorderSubtle,
-                        shape = tabShape
-                    )
-                    .padding(horizontal = AlgoTokens.space4),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-            ) {
-                Text(
-                    text = if (isExpanded) "Collapse" else "Expand",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PrimaryCyan,
-                    fontWeight = FontWeight.Bold
-                )
-                Icon(
-                    imageVector = if (isExpanded) AlgoGlyphs.ChevronDown else AlgoGlyphs.ChevronUp,
-                    contentDescription = if (isExpanded) "Collapse deck" else "Expand deck",
-                    tint = PrimaryCyan,
-                    modifier = Modifier.size(AlgoTokens.inlineIconSm)
-                )
-            }
+        // Widget Manager Modal
+        if (showWidgetManagerModal) {
+            WidgetManagerModal(
+                state = state,
+                onDismiss = { showWidgetManagerModal = false }
+            )
         }
     }
 }
