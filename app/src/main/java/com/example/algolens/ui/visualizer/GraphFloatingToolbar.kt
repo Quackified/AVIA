@@ -29,6 +29,7 @@ import com.example.algolens.model.GraphCapabilityProfile
 import com.example.algolens.model.GraphTool
 import com.example.algolens.ui.components.AlgoGlyphs
 import com.example.algolens.ui.theme.AccentPink
+import com.example.algolens.ui.theme.AccentRed
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.AlgoType
 import com.example.algolens.ui.theme.BorderSubtle
@@ -53,6 +54,8 @@ fun GraphFloatingToolbar(
     onResetGraph: () -> Unit,
     canReset: Boolean,
     modifier: Modifier = Modifier,
+    canClear: Boolean = false,
+    onClearCanvas: (() -> Unit)? = null,
     isPannedOrZoomed: Boolean = false
 ) {
     val allowedTools = GraphTool.entries.filter { it in profile.allowedTools }
@@ -60,12 +63,12 @@ fun GraphFloatingToolbar(
     Box(
         modifier = modifier
             .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
-            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
             .background(DarkBackground.copy(alpha = 0.94f))
             .border(
                 AlgoTokens.strokeThin,
                 PrimaryCyan.copy(alpha = 0.35f),
-                RoundedCornerShape(AlgoTokens.radiusMd)
+                RoundedCornerShape(AlgoTokens.radiusXs)
             )
             .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
     ) {
@@ -207,6 +210,44 @@ fun GraphFloatingToolbar(
                 }
             }
 
+            // Clear Canvas (wipes canvas clean to plant nodes from scratch)
+            if (canClear && onClearCanvas != null) {
+                Box(
+                    modifier = Modifier
+                        .sizeIn(minWidth = AlgoTokens.minTouchTarget, minHeight = AlgoTokens.iconButtonSm)
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(CanvasBackground)
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                        .semantics {
+                            this.role = Role.Button
+                            this.contentDescription = "Clear all nodes and edges"
+                        }
+                        .clickable { onClearCanvas() }
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                    ) {
+                        Icon(
+                            imageVector = AlgoGlyphs.Trash,
+                            contentDescription = null,
+                            tint = AccentRed,
+                            modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                        )
+                        Text(
+                            text = "Clear",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AccentRed,
+                            fontSize = AlgoType.microSize,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
             // Reset Graph (visible when modifications exist)
             if (canReset) {
                 Box(
@@ -259,7 +300,9 @@ fun GraphFloatingToolbar(
     onResetGraph: () -> Unit,
     canReset: Boolean,
     isPanned: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    canClear: Boolean = false,
+    onClearCanvas: (() -> Unit)? = null
 ) {
     GraphFloatingToolbar(
         profile = GraphCapabilityProfile.dijkstraProfile(),
@@ -269,6 +312,8 @@ fun GraphFloatingToolbar(
         onFitToScreen = onCenterView,
         onResetGraph = onResetGraph,
         canReset = canReset,
+        canClear = canClear,
+        onClearCanvas = onClearCanvas,
         isPannedOrZoomed = isPanned,
         modifier = modifier
     )

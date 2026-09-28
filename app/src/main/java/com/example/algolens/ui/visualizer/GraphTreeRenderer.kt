@@ -428,6 +428,11 @@ data class GraphCanvasGeometry(
         const val MIN_ZOOM = 0.5f
         const val MAX_ZOOM = 2.5f
 
+        const val CANONICAL_CENTER_X = 130f
+        const val CANONICAL_CENTER_Y = 75f
+        const val CANONICAL_SPAN_X = 220f
+        const val CANONICAL_SPAN_Y = 180f
+
         fun from(
             nodes: List<GraphNodeState>,
             drawSize: Size,
@@ -440,27 +445,13 @@ data class GraphCanvasGeometry(
             val minY = nodes.minOfOrNull { it.y } ?: 0f
             val maxY = nodes.maxOfOrNull { it.y } ?: 100f
 
-            val nodeCenterX = (minX + maxX) / 2f
-            val nodeCenterY = (minY + maxY) / 2f
+            val nodeCenterX = CANONICAL_CENTER_X
+            val nodeCenterY = CANONICAL_CENTER_Y
 
-            val rawSpanX = (maxX - minX + 50f).coerceAtLeast(10f)
-            val rawSpanY = (maxY - minY + 50f).coerceAtLeast(10f)
+            val spanX = CANONICAL_SPAN_X
+            val spanY = CANONICAL_SPAN_Y
 
-            // Soft-damped span expansion prevents runaway zoom-out when moving nodes further away
-            val baseSpanX = 220f
-            val baseSpanY = 180f
-            val spanX = if (rawSpanX > baseSpanX) {
-                baseSpanX + Math.pow((rawSpanX - baseSpanX).toDouble(), 0.75).toFloat()
-            } else {
-                rawSpanX
-            }
-            val spanY = if (rawSpanY > baseSpanY) {
-                baseSpanY + Math.pow((rawSpanY - baseSpanY).toDouble(), 0.75).toFloat()
-            } else {
-                rawSpanY
-            }
-
-            val padding = if (nodes.size > 10) 24f else 32f
+            val padding = 32f
 
             val availW = (drawSize.width - (padding * 2f)).coerceAtLeast(10f)
             val effectiveHeight = if (referenceHeight > 0f) referenceHeight else drawSize.height
@@ -469,30 +460,11 @@ data class GraphCanvasGeometry(
             // Isotropic uniform scale: X and Y scale identically to prevent distortion
             val baseScale = minOf(availW / spanX, availH / spanY).coerceIn(0.2f, 15f)
 
-            // Measure pairwise distance in pixels at baseScale
-            var minDistPx = Float.MAX_VALUE
-            for (i in nodes.indices) {
-                for (j in i + 1 until nodes.size) {
-                    val dx = (nodes[i].x - nodes[j].x) * baseScale
-                    val dy = (nodes[i].y - nodes[j].y) * baseScale
-                    val dist = kotlin.math.sqrt(dx * dx + dy * dy)
-                    if (dist > 0.5f && dist < minDistPx) {
-                        minDistPx = dist
-                    }
-                }
-            }
-
-            val adaptiveRadius = if (minDistPx < Float.MAX_VALUE) {
-                (minDistPx * 0.42f).coerceIn(MIN_READABLE_RADIUS, MAX_READABLE_RADIUS)
-            } else {
-                MAX_READABLE_RADIUS
-            }
-
             return GraphCanvasGeometry(
                 nodeCenterX = nodeCenterX,
                 nodeCenterY = nodeCenterY,
                 baseScale = baseScale,
-                nodeRadius = adaptiveRadius,
+                nodeRadius = MAX_READABLE_RADIUS,
                 panOffset = panOffset,
                 zoom = zoom,
                 viewportWidth = drawSize.width,

@@ -36,10 +36,10 @@ class UnifiedGraphEditorTest {
     // ─────────────────────────────────────────────────────────────
 
     @Test
-    fun dijkstraProfile_containsAllSixToolsAndWeightedPositiveEditing() {
+    fun dijkstraProfile_containsAllFiveToolsAndWeightedPositiveEditing() {
         val profile = GraphCapabilityProfile.dijkstraProfile()
         assertEquals(
-            setOf(GraphTool.MOVE, GraphTool.ADD, GraphTool.LINK, GraphTool.WEIGHT, GraphTool.ENDPOINTS, GraphTool.DELETE),
+            setOf(GraphTool.MOVE, GraphTool.ADD, GraphTool.LINK, GraphTool.ENDPOINTS, GraphTool.DELETE),
             profile.allowedTools
         )
         assertTrue(profile.canMoveNodes)
@@ -53,14 +53,13 @@ class UnifiedGraphEditorTest {
     }
 
     @Test
-    fun bfsDfsProfile_hasNoWeightToolAndDisablesWeightEditing() {
+    fun bfsDfsProfile_allowsToolsAndEnablesWeightEditing() {
         val profile = GraphCapabilityProfile.bfsDfsProfile()
         assertEquals(
             setOf(GraphTool.MOVE, GraphTool.ADD, GraphTool.LINK, GraphTool.ENDPOINTS, GraphTool.DELETE),
             profile.allowedTools
         )
-        assertFalse("BFS/DFS must not allow WEIGHT tool", profile.allowedTools.contains(GraphTool.WEIGHT))
-        assertFalse(profile.canEditEdgeWeights)
+        assertTrue(profile.canEditEdgeWeights)
         assertTrue(profile.canConnectNodes)
         assertTrue(profile.canSetEndpoints)
     }
@@ -118,7 +117,7 @@ class UnifiedGraphEditorTest {
 
         val bfsSpec = AlgorithmRegistry.specFor(AlgorithmId.BFS)
         assertNotNull(bfsSpec?.capabilityProfile)
-        assertFalse(bfsSpec!!.capabilityProfile!!.canEditEdgeWeights)
+        assertTrue(bfsSpec!!.capabilityProfile!!.canEditEdgeWeights)
         assertTrue(bfsSpec.builderEnabled)
         assertTrue(bfsSpec.capabilityProfile!!.supportsFullscreen)
 
@@ -138,6 +137,49 @@ class UnifiedGraphEditorTest {
     // ─────────────────────────────────────────────────────────────
     // 2. Pure Structure-Aware Mutations — General Graph
     // ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun getNextAvailableWeight_findsSmallestMissingPositiveInteger() {
+        // Empty edges -> returns 1
+        assertEquals(1, GraphTreeMutations.getNextAvailableWeight(emptyList()))
+
+        // Consecutive weights 1..5 -> returns 6
+        val edges1to5 = (1..5).map { GraphEdgeState(from = "A", to = "B$it", weight = it) }
+        assertEquals(6, GraphTreeMutations.getNextAvailableWeight(edges1to5))
+
+        // Weights 1, 2, 4, 5 (missing 3) -> returns 3
+        val edgesMissing3 = listOf(1, 2, 4, 5).map { GraphEdgeState(from = "A", to = "B$it", weight = it) }
+        assertEquals(3, GraphTreeMutations.getNextAvailableWeight(edgesMissing3))
+
+        // User case: 1..10 implemented, 6 removed -> returns 6
+        val edges1to10Minus6 = (1..10).filter { it != 6 }.map { GraphEdgeState(from = "A", to = "B$it", weight = it) }
+        assertEquals(6, GraphTreeMutations.getNextAvailableWeight(edges1to10Minus6))
+
+        // Weights with nulls ignored
+        val edgesWithNulls = listOf(
+            GraphEdgeState(from = "A", to = "B", weight = null),
+            GraphEdgeState(from = "B", to = "C", weight = 1),
+            GraphEdgeState(from = "C", to = "D", weight = 2)
+        )
+        assertEquals(3, GraphTreeMutations.getNextAvailableWeight(edgesWithNulls))
+    }
+
+    @Test
+    fun addGeneralGraphNode_autoLinksWithNextAvailableWeight() {
+        val nA = GraphNodeState("A", "A", 0f, 0f)
+        val nB = GraphNodeState("B", "B", 100f, 0f)
+        val e1 = GraphEdgeState("A", "B", weight = 1)
+        val (updatedNodes, updatedEdges) = GraphTreeMutations.addGeneralGraphNode(
+            nodes = listOf(nA, nB),
+            edges = listOf(e1),
+            x = 200f,
+            y = 0f,
+            autoLinkFromNodeId = "B"
+        )
+        assertEquals(3, updatedNodes.size)
+        assertEquals(2, updatedEdges.size)
+        assertEquals(2, updatedEdges.last().weight) // MEX is 2
+    }
 
     @Test
     fun getNextAvailableNodeLabel_generatesAlphabetThenSafeNLabels() {
@@ -413,6 +455,37 @@ class UnifiedGraphEditorTest {
         val fullDistY = fullC.y - fullA.y
         assertEquals("Fullscreen aspect ratio must be 1:1 (isotropic)", fullDistX, fullDistY, 0.01f)
         assertEquals("Fullscreen must not stretch scale relative to reference", embDistX, fullDistX, 0.01f)
+    }
+
+    @Test
+    fun geometry_worldToScreen_and_toWorldCoords_areExactInverses_and_invariantToNodes() {
+        val drawSize = Size(600f, 400f)
+        val emptyGeom = GraphCanvasGeometry.from(emptyList(), drawSize)
+        val testScreenOffset = Offset(250f, 180f)
+
+        // Converting screen touch to world
+        val worldCoord = emptyGeom.toWorldCoords(testScreenOffset)
+
+        // Single node added at that world coordinate
+        val nodeA = GraphNodeState("A", "A", worldCoord.x, worldCoord.y)
+        val geomWithA = GraphCanvasGeometry.from(listOf(nodeA), drawSize)
+
+        // Invariant: baseScale and nodeCenter must be completely invariant
+        assertEquals(emptyGeom.baseScale, geomWithA.baseScale, 0.0001f)
+        assertEquals(emptyGeom.nodeCenterX, geomWithA.nodeCenterX, 0.0001f)
+        assertEquals(emptyGeom.nodeCenterY, geomWithA.nodeCenterY, 0.0001f)
+
+        // Invariant: screen position of nodeA matches exactly where the user tapped
+        val screenPosA = geomWithA.toCanvasOffset(nodeA.x, nodeA.y)
+        assertEquals(testScreenOffset.x, screenPosA.x, 0.01f)
+        assertEquals(testScreenOffset.y, screenPosA.y, 0.01f)
+
+        // Invariant: adding second node does not shift nodeA
+        val nodeB = GraphNodeState("B", "B", 50f, 50f)
+        val geomWithAB = GraphCanvasGeometry.from(listOf(nodeA, nodeB), drawSize)
+        val screenPosAAfterB = geomWithAB.toCanvasOffset(nodeA.x, nodeA.y)
+        assertEquals(screenPosA.x, screenPosAAfterB.x, 0.01f)
+        assertEquals(screenPosA.y, screenPosAAfterB.y, 0.01f)
     }
 
     // ─────────────────────────────────────────────────────────────

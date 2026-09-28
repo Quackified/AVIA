@@ -1,5 +1,6 @@
 package com.example.algolens.ui.visualizer
 
+import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,12 +18,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,11 +35,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import com.example.algolens.data.GraphSearch
 import com.example.algolens.model.GraphCapabilityProfile
 import com.example.algolens.model.GraphTelemetryMode
@@ -226,6 +231,12 @@ fun GraphTreeVisualizer(
                     selectedNodeId = null
                     onResetGraph?.invoke()
                 },
+                canClear = isBuilderActive && resolvedProfile.canDeleteElements && step.nodes.isNotEmpty(),
+                onClearCanvas = {
+                    selectedNodeId = null
+                    onEndpointsChanged?.invoke(null, null)
+                    onGraphModified?.invoke(emptyList(), emptyList())
+                },
                 canUndo = canUndo,
                 canRedo = canRedo,
                 onUndo = onUndo,
@@ -268,6 +279,27 @@ fun GraphTreeVisualizer(
                 decorFitsSystemWindows = false
             )
         ) {
+            val view = LocalView.current
+            DisposableEffect(view) {
+                var parent = view.parent
+                var dialogWindow: android.view.Window? = null
+                while (parent != null) {
+                    if (parent is DialogWindowProvider) {
+                        dialogWindow = parent.window
+                        break
+                    }
+                    parent = parent.parent
+                }
+                dialogWindow?.let { win ->
+                    win.setLayout(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    win.setBackgroundDrawableResource(android.R.color.transparent)
+                }
+                onDispose {}
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -282,32 +314,22 @@ fun GraphTreeVisualizer(
                         .padding(AlgoTokens.space3),
                     verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                 ) {
-                    // Fullscreen Header (expanded with Interactive Mode button)
-                    Row(
+                    // Fullscreen Header (2-Line layout: Title on top, Interactive Mode on new line below)
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
+                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-                        ) {
-                            Text(
-                                text = if (algorithmKey.isNotEmpty()) "$algorithmKey Fullscreen Canvas" else "Graph Canvas",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = PrimaryCyan,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${step.nodes.size} nodes • ${step.edges.size} edges",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextMuted,
-                                fontSize = AlgoType.microSize
-                            )
-                        }
+                        // Line 1: Title & node/edge count
+                        Text(
+                            text = if (algorithmKey.isNotEmpty()) "$algorithmKey Full Screen Canvas - ${step.nodes.size} nodes - ${step.edges.size} edges" else "Graph Canvas - ${step.nodes.size} nodes - ${step.edges.size} edges",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = PrimaryCyan,
+                            fontWeight = FontWeight.Bold
+                        )
 
+                        // Line 2: Interactive Mode toggle button (at the bottom on a new line)
                         if (resolvedProfile.allowedTools.isNotEmpty()) {
                             Box(
                                 modifier = Modifier
@@ -373,6 +395,12 @@ fun GraphTreeVisualizer(
                         onResetGraph = {
                             selectedNodeId = null
                             onResetGraph?.invoke()
+                        },
+                        canClear = isBuilderActive && resolvedProfile.canDeleteElements && step.nodes.isNotEmpty(),
+                        onClearCanvas = {
+                            selectedNodeId = null
+                            onEndpointsChanged?.invoke(null, null)
+                            onGraphModified?.invoke(emptyList(), emptyList())
                         },
                         canUndo = canUndo,
                         canRedo = canRedo,

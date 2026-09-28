@@ -1,8 +1,10 @@
 package com.example.algolens.ui.visualizer
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -238,6 +240,7 @@ fun GraphIntegerEntryDialog(
  * - Integer entry dialogs for BST key, Heap value, and direct edge weight
  * - Synchronized preview path (Dijkstra least-cost or BFS fewest hops)
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GraphCanvasEngine(
     nodes: List<GraphNodeState>,
@@ -252,6 +255,8 @@ fun GraphCanvasEngine(
     onNodeMoved: (nodeId: String, newWorldCoords: Offset) -> Unit,
     canReset: Boolean,
     onResetGraph: () -> Unit,
+    canClear: Boolean = false,
+    onClearCanvas: (() -> Unit)? = null,
     isFullscreen: Boolean,
     onToggleFullscreen: () -> Unit,
     modifier: Modifier = Modifier,
@@ -355,7 +360,12 @@ fun GraphCanvasEngine(
             onNodeMoved = { id, coords ->
                 onNodeMoved(id, coords)
             },
-            onNodeSelected = onSelectedNodeIdChanged,
+            onNodeSelected = { id ->
+                if (id != selectedNodeId) {
+                    selectedEdgeIndex = null
+                }
+                onSelectedNodeIdChanged(id)
+            },
             onNodeClicked = { id ->
                 onNodeClicked?.invoke(id)
             },
@@ -386,7 +396,7 @@ fun GraphCanvasEngine(
                         fromId = fromId,
                         toId = toId,
                         isDirected = profile.supportsDirectedEdges,
-                        weight = ((edges.size * 2) % 9) + 1
+                        weight = GraphTreeMutations.getNextAvailableWeight(edges)
                     )
                     if (updatedEdges != null) {
                         onGraphModified?.invoke(effectiveNodes, updatedEdges)
@@ -465,6 +475,17 @@ fun GraphCanvasEngine(
             modifier = Modifier.fillMaxSize()
         )
 
+        val activeEdgeIndex: Int? = selectedEdgeIndex
+            ?: selectedNodeId?.let { id ->
+                val idx = edges.indexOfFirst { it.from == id || it.to == id }
+                if (idx >= 0) idx else null
+            }
+            ?: if (profile.canEditEdgeWeights && activeTool == GraphTool.WEIGHT) {
+                val firstWeighted = edges.indexOfFirst { it.weight != null }
+                if (firstWeighted >= 0) firstWeighted else edges.indices.firstOrNull()
+            } else null
+        val activeEdge = activeEdgeIndex?.let { edges.getOrNull(it) }
+
         // 2. Rendering Layer
         GraphTreeRenderer(
             nodes = effectiveNodes,
@@ -480,14 +501,14 @@ fun GraphCanvasEngine(
             startNodeId = startNodeId,
             targetNodeId = targetNodeId,
             previewPath = livePreviewPath,
-            selectedEdgeIndex = selectedEdgeIndex,
+            selectedEdgeIndex = activeEdgeIndex,
             panOffset = panOffset,
             zoom = zoom,
             referenceHeight = maxObservedCanvasHeightPx,
             modifier = Modifier.fillMaxSize()
         )
 
-        // 3. Floating Bottom Chrome: Banner + Floating Toolbar (only when Interactive Mode is active)
+        // 3. Floating Bottom Chrome: Banner / Counter Stepper + Floating Toolbar (only when Interactive Mode is active)
         if (isBuilderActive && profile.allowedTools.isNotEmpty()) {
             Column(
                 modifier = Modifier
@@ -496,15 +517,38 @@ fun GraphCanvasEngine(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
             ) {
-                // 3a. Compact Edge Weight Counter Stepper on top of the Floating Toolbar
-                val activeEdgeIndex: Int? = selectedEdgeIndex ?: selectedNodeId?.let { id ->
-                    val idx = edges.indexOfFirst { it.from == id || it.to == id }
-                    if (idx >= 0) idx else null
+                // 3a. Tooltip Info Banner
+                val bannerText = profile.hintProvider(activeTool, selectedNodeId)
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = AlgoTokens.space1)
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                        .background(DarkBackground.copy(alpha = 0.90f))
+                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                ) {
+                    Text(
+                        text = bannerText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PrimaryCyan,
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
-                val activeEdge = activeEdgeIndex?.let { edges.getOrNull(it) }
 
-                if (activeEdge != null && profile.canEditEdgeWeights) {
-                    val curWeight = activeEdge.weight ?: 1
+                // 3b. Compact Edge Weight Counter Stepper on top of the Floating Toolbar
+                val curEdge = activeEdge
+                val isStepperVisible = profile.canEditEdgeWeights &&
+                    (selectedEdgeIndex != null || selectedNodeId != null)
+
+                if (isStepperVisible && curEdge != null) {
+                    val curWeight = curEdge.weight ?: 1
+                    val incidentEdges = if (selectedNodeId != null) {
+                        edges.indices.filter { edges[it].from == selectedNodeId || edges[it].to == selectedNodeId }
+                    } else {
+                        edges.indices.toList()
+                    }
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
@@ -527,7 +571,7 @@ fun GraphCanvasEngine(
                                 .background(CanvasBackground)
                                 .clickable {
                                     val nextWeight = (curWeight - 1).coerceAtLeast(1)
-                                    val updated = GraphTreeMutations.setEdgeWeight(edges, activeEdge.from, activeEdge.to, nextWeight)
+                                    val updated = GraphTreeMutations.setEdgeWeight(edges, curEdge.from, curEdge.to, nextWeight)
                                     onGraphModified?.invoke(effectiveNodes, updated)
                                 }
                                 .semantics {
@@ -544,16 +588,32 @@ fun GraphCanvasEngine(
                             )
                         }
 
-                        // Compact Weight display: "A ➔ B: 5" (clicking opens direct entry dialog)
+                        // Compact Weight display: "A ➔ B: 5"
+                        // Tapping cycles through incident edges (if multiple) or opens numeric entry (if single).
+                        // Long-press always opens direct numeric entry dialog.
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1),
                             modifier = Modifier
-                                .clickable { editingEdgeIndex = activeEdgeIndex }
-                                .padding(horizontal = AlgoTokens.space2)
+                                .clip(RoundedCornerShape(percent = 50))
+                                .combinedClickable(
+                                    onClick = {
+                                        if (incidentEdges.size > 1) {
+                                            val currentPos = incidentEdges.indexOf(activeEdgeIndex)
+                                            val nextIdx = incidentEdges[(currentPos + 1).coerceAtLeast(0) % incidentEdges.size]
+                                            selectedEdgeIndex = nextIdx
+                                        } else {
+                                            editingEdgeIndex = activeEdgeIndex
+                                        }
+                                    },
+                                    onLongClick = {
+                                        editingEdgeIndex = activeEdgeIndex
+                                    }
+                                )
+                                .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
                         ) {
                             Text(
-                                text = "${activeEdge.from} ➔ ${activeEdge.to}:",
+                                text = "${curEdge.from} ➔ ${curEdge.to}:",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextMuted,
                                 fontSize = AlgoType.microSize,
@@ -567,6 +627,15 @@ fun GraphCanvasEngine(
                                 fontSize = AlgoType.microSize,
                                 fontWeight = FontWeight.Bold
                             )
+                            if (incidentEdges.size > 1) {
+                                Text(
+                                    text = "↻",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PrimaryCyan.copy(alpha = 0.7f),
+                                    fontSize = AlgoType.microSize,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
 
                         // Plus (+1)
@@ -577,7 +646,7 @@ fun GraphCanvasEngine(
                                 .background(CanvasBackground)
                                 .clickable {
                                     val nextWeight = (curWeight + 1).coerceAtMost(99)
-                                    val updated = GraphTreeMutations.setEdgeWeight(edges, activeEdge.from, activeEdge.to, nextWeight)
+                                    val updated = GraphTreeMutations.setEdgeWeight(edges, curEdge.from, curEdge.to, nextWeight)
                                     onGraphModified?.invoke(effectiveNodes, updated)
                                 }
                                 .semantics {
@@ -595,28 +664,18 @@ fun GraphCanvasEngine(
                         }
                     }
                 }
-                val bannerText = profile.hintProvider(activeTool, selectedNodeId)
-                Box(
-                    modifier = Modifier
-                        .padding(bottom = AlgoTokens.space1)
-                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                        .background(DarkBackground.copy(alpha = 0.90f))
-                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
-                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
-                ) {
-                    Text(
-                        text = bannerText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PrimaryCyan,
-                        fontSize = AlgoType.microSize,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
 
                 GraphFloatingToolbar(
                     profile = profile,
                     activeTool = activeTool,
-                    onToolSelected = onToolSelected,
+                    onToolSelected = { tool ->
+                        onToolSelected(tool)
+                        if (tool == GraphTool.WEIGHT && selectedEdgeIndex == null && profile.canEditEdgeWeights) {
+                            val defaultIdx = edges.indexOfFirst { it.weight != null }
+                                .takeIf { it >= 0 } ?: edges.indices.firstOrNull()
+                            selectedEdgeIndex = defaultIdx
+                        }
+                    },
                     onCenterView = {
                         if (canvasSize.width > 0f && canvasSize.height > 0f) {
                             panOffset = GraphCanvasGeometry.computeCenterPan(
@@ -650,6 +709,13 @@ fun GraphCanvasEngine(
                         onResetGraph()
                     },
                     canReset = canReset,
+                    canClear = canClear || (effectiveNodes.isNotEmpty() && profile.canDeleteElements),
+                    onClearCanvas = {
+                        selectedEdgeIndex = null
+                        onSelectedNodeIdChanged(null)
+                        onEndpointsChanged?.invoke(null, null)
+                        onClearCanvas?.invoke() ?: onGraphModified?.invoke(emptyList(), emptyList())
+                    },
                     isPannedOrZoomed = isPannedOrZoomed
                 )
             }

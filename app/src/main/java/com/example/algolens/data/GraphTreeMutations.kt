@@ -38,6 +38,21 @@ object GraphTreeMutations {
     }
 
     /**
+     * Determines the next available positive integer weight using the MEX
+     * (Minimum Excluded Positive Integer) algorithm. If edges have weights
+     * 1..10 and weight 6 was removed, the next created edge takes 6, and
+     * subsequent edges resume at 11.
+     */
+    fun getNextAvailableWeight(edges: List<GraphEdgeState>): Int {
+        val used = edges.mapNotNull { it.weight }.toSet()
+        var candidate = 1
+        while (candidate in used) {
+            candidate++
+        }
+        return candidate.coerceIn(1, 99)
+    }
+
+    /**
      * Adds a new node to a general graph. If [autoLinkFromNodeId] is provided and exists,
      * creates an undirected edge between the selected node and the newly added node.
      */
@@ -60,7 +75,7 @@ object GraphTreeMutations {
         val updatedNodes = nodes + newNode
         var updatedEdges = edges
         if (autoLinkFromNodeId != null && nodes.any { it.id == autoLinkFromNodeId }) {
-            val weight = defaultWeight ?: (((edges.size * 2) % 9) + 1)
+            val weight = defaultWeight ?: getNextAvailableWeight(edges)
             updatedEdges = updatedEdges + GraphEdgeState(
                 from = autoLinkFromNodeId,
                 to = nextLabel,
@@ -94,10 +109,11 @@ object GraphTreeMutations {
         }
         if (alreadyExists) return null // Reject duplicate edges
 
+        val effectiveWeight = weight ?: getNextAvailableWeight(edges)
         val newEdge = GraphEdgeState(
             from = fromId,
             to = toId,
-            weight = weight,
+            weight = effectiveWeight,
             isDirected = isDirected,
             isHighlighted = true
         )

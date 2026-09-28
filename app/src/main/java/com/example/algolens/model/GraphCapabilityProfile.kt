@@ -60,7 +60,6 @@ data class GraphCapabilityProfile(
                 GraphTool.MOVE,
                 GraphTool.ADD,
                 GraphTool.LINK,
-                GraphTool.WEIGHT,
                 GraphTool.ENDPOINTS,
                 GraphTool.DELETE
             ),
@@ -69,7 +68,7 @@ data class GraphCapabilityProfile(
                     GraphTool.MOVE -> if (selectedId != null) "Selected Node $selectedId • Drag to reposition • Tap empty space to deselect" else "Drag any node to move • Drag background to pan viewport"
                     GraphTool.ADD -> if (selectedId != null) "Tap canvas to add node and auto-connect to $selectedId" else "Tap anywhere on empty canvas to plant a new node"
                     GraphTool.LINK -> if (selectedId != null) "Selected Node $selectedId: Tap target node to connect" else "Tap or drag from one node to another to create an edge"
-                    GraphTool.WEIGHT -> "Tap weight pill to cycle (1..8) • Tap tool for exact weight (1..99)"
+                    GraphTool.WEIGHT -> "Tap edge to adjust weight with stepper"
                     GraphTool.ENDPOINTS -> "Tap node to set START (green) • Tap another to set TARGET (pink) • Tap to clear"
                     GraphTool.DELETE -> "Tap any node or edge to delete it"
                 }
@@ -81,7 +80,7 @@ data class GraphCapabilityProfile(
             canPanAndZoom = true,
             canAddNode = true,
             canConnectNodes = true,
-            canEditEdgeWeights = false,
+            canEditEdgeWeights = true,
             canSetEndpoints = true,
             canDeleteElements = true,
             supportsDirectedEdges = false,
@@ -99,7 +98,7 @@ data class GraphCapabilityProfile(
                     GraphTool.MOVE -> if (selectedId != null) "Selected Node $selectedId • Drag to reposition • Tap empty space to deselect" else "Drag any node to move • Drag background to pan viewport"
                     GraphTool.ADD -> if (selectedId != null) "Tap canvas to add node and auto-connect to $selectedId" else "Tap anywhere on empty canvas to plant a new node"
                     GraphTool.LINK -> if (selectedId != null) "Selected Node $selectedId: Tap target node to connect" else "Tap or drag from one node to another to create an edge"
-                    GraphTool.WEIGHT -> "BFS and DFS are unweighted; edge weights are disabled."
+                    GraphTool.WEIGHT -> "Tap edge to adjust weight with stepper"
                     GraphTool.ENDPOINTS -> "Tap node to set START (green) • Tap another to set TARGET (pink) • Tap to clear"
                     GraphTool.DELETE -> "Tap any node or edge to delete it"
                 }

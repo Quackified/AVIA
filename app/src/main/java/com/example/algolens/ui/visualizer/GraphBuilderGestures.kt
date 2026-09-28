@@ -115,38 +115,6 @@ fun GraphBuilderGestures(
                 val liveZoom = currentZoom.value
                 val refHeight = currentRefHeight.value
 
-                // If graph is completely empty and builder is active
-                if (liveNodes.isEmpty()) {
-                    var releasedWithoutDrag = true
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                        if (!change.pressed) {
-                            change.consume()
-                            break
-                        }
-                        if ((change.position - startOffset).getDistance() > touchSlop) {
-                            releasedWithoutDrag = false
-                        }
-                    }
-                    if (releasedWithoutDrag && builderActive) {
-                        when (prof.nodePlacementMode) {
-                            NodePlacementMode.FREEFORM -> {
-                                if (prof.canAddNode) {
-                                    currentOnAddNodeFreeform.value(Offset(50f, 50f))
-                                }
-                            }
-                            NodePlacementMode.KEYED_BST_INSERT -> {
-                                currentOnRequestBstInsert.value(Offset(50f, 50f))
-                            }
-                            NodePlacementMode.HEAP_ARRAY_PUSH -> {
-                                currentOnRequestHeapPush.value()
-                            }
-                        }
-                    }
-                    return@awaitEachGesture
-                }
-
                 val geom = GraphCanvasGeometry.from(
                     nodes = liveNodes,
                     drawSize = size.toSize(),
@@ -247,10 +215,10 @@ fun GraphBuilderGestures(
                             val zoomRatio = newZoom / curZoom
                             val cx = size.width / 2f
                             val cy = size.height / 2f
-
+                            val panMultiplier = 1.0f
                             val newPan = Offset(
-                                x = (prevCentroid.x - cx) * (1f - zoomRatio) + curPan.x * zoomRatio + centroidDelta.x,
-                                y = (prevCentroid.y - cy) * (1f - zoomRatio) + curPan.y * zoomRatio + centroidDelta.y
+                                x = (prevCentroid.x - cx) * (1f - zoomRatio) + curPan.x * zoomRatio + centroidDelta.x * panMultiplier,
+                                y = (prevCentroid.y - cy) * (1f - zoomRatio) + curPan.y * zoomRatio + centroidDelta.y * panMultiplier
                             )
                             currentOnPanAndZoomChanged.value(newPan, newZoom)
                         }
@@ -348,11 +316,12 @@ fun GraphBuilderGestures(
                             lastHoveredTargetId = hovered?.id
                             currentOnHoveredTargetNodeIdChanged.value(hovered?.id)
                         } else if (isPanningViewport) {
+                            val panMultiplier = 1.0f
                             val maxPan = 1500f
                             val curPan = currentPan.value
                             val nextPan = Offset(
-                                x = (curPan.x + delta.x).coerceIn(-maxPan, maxPan),
-                                y = (curPan.y + delta.y).coerceIn(-maxPan, maxPan)
+                                x = (curPan.x + delta.x * panMultiplier).coerceIn(-maxPan, maxPan),
+                                y = (curPan.y + delta.y * panMultiplier).coerceIn(-maxPan, maxPan)
                             )
                             currentOnPanAndZoomChanged.value(nextPan, currentZoom.value)
                         }
@@ -377,7 +346,7 @@ fun GraphBuilderGestures(
                     // Tap Detected
                     if (hitEdgeIndex >= 0) {
                         currentOnEdgeSelected.value(hitEdgeIndex)
-                    } else {
+                    } else if (tool != GraphTool.WEIGHT) {
                         currentOnEdgeSelected.value(null)
                     }
                     if (!builderActive) {
@@ -427,7 +396,6 @@ fun GraphBuilderGestures(
                             GraphTool.WEIGHT -> {
                                 if (hitEdgeIndex >= 0 && prof.canEditEdgeWeights) {
                                     currentOnEdgeSelected.value(hitEdgeIndex)
-                                    currentOnCycleWeight.value(hitEdgeIndex)
                                 } else if (hitNode != null) {
                                     val nextSelectedId = if (selectedId == hitNode.id) null else hitNode.id
                                     currentOnNodeSelected.value(nextSelectedId)
