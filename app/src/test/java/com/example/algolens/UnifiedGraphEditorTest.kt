@@ -1,0 +1,477 @@
+package com.example.algolens
+
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import com.example.algolens.data.AlgorithmRegistry
+import com.example.algolens.data.AlgorithmStepRepository
+import com.example.algolens.data.GraphSearch
+import com.example.algolens.data.GraphTreeMutations
+import com.example.algolens.model.Algorithm
+import com.example.algolens.model.AlgorithmId
+import com.example.algolens.model.GraphCapabilityProfile
+import com.example.algolens.model.GraphTool
+import com.example.algolens.model.NodePlacementMode
+import com.example.algolens.ui.visualizer.GraphCanvasGeometry
+import com.example.algolens.ui.visualizer.GraphEdgeState
+import com.example.algolens.ui.visualizer.GraphNodeState
+import com.example.algolens.ui.visualizer.VisualizerScreenState
+import com.example.algolens.ui.visualizer.VisualizerStep
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * Comprehensive unit tests for the Unified Graph and Tree Editor framework.
+ * Tests capability profiles, pure structure mutations (General Graph, BST, Heap),
+ * Dijkstra preview vs fewest hops, geometry transforms and invertibility,
+ * and coordinate persistence across steps in VisualizerScreenState.
+ */
+class UnifiedGraphEditorTest {
+
+    // ─────────────────────────────────────────────────────────────
+    // 1. Graph Capability Profiles
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun dijkstraProfile_containsAllSixToolsAndWeightedPositiveEditing() {
+        val profile = GraphCapabilityProfile.dijkstraProfile()
+        assertEquals(
+            setOf(GraphTool.MOVE, GraphTool.ADD, GraphTool.LINK, GraphTool.WEIGHT, GraphTool.ENDPOINTS, GraphTool.DELETE),
+            profile.allowedTools
+        )
+        assertTrue(profile.canMoveNodes)
+        assertTrue(profile.canAddNode)
+        assertTrue(profile.canConnectNodes)
+        assertTrue(profile.canEditEdgeWeights)
+        assertTrue(profile.canSetEndpoints)
+        assertTrue(profile.canDeleteElements)
+        assertFalse(profile.supportsDirectedEdges)
+        assertEquals(NodePlacementMode.FREEFORM, profile.nodePlacementMode)
+    }
+
+    @Test
+    fun bfsDfsProfile_hasNoWeightToolAndDisablesWeightEditing() {
+        val profile = GraphCapabilityProfile.bfsDfsProfile()
+        assertEquals(
+            setOf(GraphTool.MOVE, GraphTool.ADD, GraphTool.LINK, GraphTool.ENDPOINTS, GraphTool.DELETE),
+            profile.allowedTools
+        )
+        assertFalse("BFS/DFS must not allow WEIGHT tool", profile.allowedTools.contains(GraphTool.WEIGHT))
+        assertFalse(profile.canEditEdgeWeights)
+        assertTrue(profile.canConnectNodes)
+        assertTrue(profile.canSetEndpoints)
+    }
+
+    @Test
+    fun bstProfile_restrictsToMoveAddDeleteWithKeyedPlacement() {
+        val profile = GraphCapabilityProfile.bstProfile()
+        assertEquals(
+            setOf(GraphTool.MOVE, GraphTool.ADD, GraphTool.DELETE),
+            profile.allowedTools
+        )
+        assertFalse(profile.canConnectNodes)
+        assertFalse(profile.canEditEdgeWeights)
+        assertFalse(profile.canSetEndpoints)
+        assertTrue(profile.supportsDirectedEdges)
+        assertEquals(NodePlacementMode.KEYED_BST_INSERT, profile.nodePlacementMode)
+    }
+
+    @Test
+    fun heapProfile_restrictsToMoveAddDeleteWithArrayPushPlacement() {
+        val profile = GraphCapabilityProfile.heapProfile()
+        assertEquals(
+            setOf(GraphTool.MOVE, GraphTool.ADD, GraphTool.DELETE),
+            profile.allowedTools
+        )
+        assertFalse(profile.canConnectNodes)
+        assertFalse(profile.canEditEdgeWeights)
+        assertFalse(profile.canSetEndpoints)
+        assertTrue(profile.supportsDirectedEdges)
+        assertEquals(NodePlacementMode.HEAP_ARRAY_PUSH, profile.nodePlacementMode)
+    }
+
+    @Test
+    fun readOnlyProfile_hasNoAllowedTools() {
+        val profile = GraphCapabilityProfile.readOnlyProfile()
+        assertTrue(profile.allowedTools.isEmpty())
+        assertFalse(profile.canMoveNodes)
+        assertFalse(profile.canAddNode)
+        assertTrue(profile.canPanAndZoom)
+    }
+
+    @Test
+    fun algorithmRegistry_attachesCorrectCapabilityProfiles() {
+        val dijkstraSpec = AlgorithmRegistry.specFor(AlgorithmId.DIJKSTRA)
+        assertNotNull(dijkstraSpec?.capabilityProfile)
+        assertTrue(dijkstraSpec!!.capabilityProfile!!.canEditEdgeWeights)
+        assertTrue(dijkstraSpec.builderEnabled)
+
+        val bfsSpec = AlgorithmRegistry.specFor(AlgorithmId.BFS)
+        assertNotNull(bfsSpec?.capabilityProfile)
+        assertFalse(bfsSpec!!.capabilityProfile!!.canEditEdgeWeights)
+        assertTrue(bfsSpec.builderEnabled)
+
+        val bstSpec = AlgorithmRegistry.specFor(AlgorithmId.BINARY_SEARCH_TREE)
+        assertNotNull(bstSpec?.capabilityProfile)
+        assertEquals(NodePlacementMode.KEYED_BST_INSERT, bstSpec!!.capabilityProfile!!.nodePlacementMode)
+        assertTrue(bstSpec.builderEnabled)
+
+        val heapSpec = AlgorithmRegistry.specFor(AlgorithmId.HEAP)
+        assertNotNull(heapSpec?.capabilityProfile)
+        assertEquals(NodePlacementMode.HEAP_ARRAY_PUSH, heapSpec!!.capabilityProfile!!.nodePlacementMode)
+        assertTrue(heapSpec.builderEnabled)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 2. Pure Structure-Aware Mutations — General Graph
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun getNextAvailableNodeLabel_generatesAlphabetThenSafeNLabels() {
+        val nodesAtoZ = ('A'..'Z').map { GraphNodeState(it.toString(), it.toString(), 0f, 0f) }
+        val next = GraphTreeMutations.getNextAvailableNodeLabel(nodesAtoZ)
+        assertEquals("N1", next)
+
+        val nodesWithN1 = nodesAtoZ + GraphNodeState("N1", "N1", 0f, 0f)
+        assertEquals("N2", GraphTreeMutations.getNextAvailableNodeLabel(nodesWithN1))
+    }
+
+    @Test
+    fun linkGeneralGraphNodes_rejectsSelfLoopsAndDuplicates() {
+        val edges = listOf(GraphEdgeState("A", "B", weight = 3))
+        // Self-loop rejected
+        assertNull(GraphTreeMutations.linkGeneralGraphNodes(edges, "A", "A"))
+        // Existing duplicate edge rejected (undirected)
+        assertNull(GraphTreeMutations.linkGeneralGraphNodes(edges, "A", "B"))
+        assertNull(GraphTreeMutations.linkGeneralGraphNodes(edges, "B", "A"))
+        // Valid edge accepted
+        val updated = GraphTreeMutations.linkGeneralGraphNodes(edges, "B", "C", weight = 5)
+        assertNotNull(updated)
+        assertEquals(2, updated!!.size)
+    }
+
+    @Test
+    fun cycleEdgeWeight_cyclesThroughSequenceAndClampsDirectWeight() {
+        val edges = listOf(GraphEdgeState("A", "B", weight = 1))
+        val step1 = GraphTreeMutations.cycleEdgeWeight(edges, "A", "B")
+        assertEquals(2, step1[0].weight)
+        val step2 = GraphTreeMutations.cycleEdgeWeight(step1, "A", "B")
+        assertEquals(3, step2[0].weight)
+        val step3 = GraphTreeMutations.cycleEdgeWeight(step2, "A", "B")
+        assertEquals(5, step3[0].weight)
+        val step4 = GraphTreeMutations.cycleEdgeWeight(step3, "A", "B")
+        assertEquals(8, step4[0].weight)
+        val step5 = GraphTreeMutations.cycleEdgeWeight(step4, "A", "B")
+        assertEquals(1, step5[0].weight)
+
+        // Non-cycle weight resets to 1
+        val nonCycle = listOf(GraphEdgeState("A", "B", weight = 7))
+        assertEquals(1, GraphTreeMutations.cycleEdgeWeight(nonCycle, "A", "B")[0].weight)
+
+        // Direct weight clamping
+        val clampedHigh = GraphTreeMutations.setEdgeWeight(edges, "A", "B", 150)
+        assertEquals(99, clampedHigh[0].weight)
+        val clampedLow = GraphTreeMutations.setEdgeWeight(edges, "A", "B", -5)
+        assertEquals(1, clampedLow[0].weight)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 3. Pure Structure-Aware Mutations — Binary Search Tree (BST)
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun bstTree_buildsEqualGoesRightAndHandlesDuplicatesWithIdSuffix() {
+        val values = listOf(50, 30, 70, 30)
+        val root = GraphTreeMutations.buildBstTree(values)
+        assertNotNull(root)
+        assertEquals("50", root!!.id)
+        assertEquals(50, root.value)
+        assertEquals("30", root.left?.id)
+        // Equal key 30 goes right of the first 30
+        assertEquals("30#1", root.left?.right?.id)
+        assertEquals(30, root.left?.right?.value)
+    }
+
+    @Test
+    fun bstTree_deletionPreservesInOrderSuccessorPolicy() {
+        // Construct tree: Root 50, Left 30, Right 70, Right's children: 60, 80
+        val root = GraphTreeMutations.buildBstTree(listOf(50, 30, 70, 60, 80))
+        // Delete root 50: in-order successor in right subtree is 60
+        val newRoot = GraphTreeMutations.deleteFromBst(root, "50")
+        assertNotNull(newRoot)
+        assertEquals(60, newRoot!!.value)
+        assertEquals(70, newRoot.right?.value)
+        assertNull(newRoot.right?.left) // 60 was spliced out
+    }
+
+    @Test
+    fun bstPreOrderValues_reproducesIdenticalTreeStructure() {
+        val originalValues = listOf(50, 30, 70, 20, 40, 60, 80)
+        val root = GraphTreeMutations.buildBstTree(originalValues)
+        val preOrder = GraphTreeMutations.bstToPreOrderValues(root)
+        val reconstructedRoot = GraphTreeMutations.buildBstTree(preOrder)
+
+        val origNodes = GraphTreeMutations.collectBstNodesInOrder(root).map { it.value }
+        val reconNodes = GraphTreeMutations.collectBstNodesInOrder(reconstructedRoot).map { it.value }
+        assertEquals(origNodes, reconNodes)
+    }
+
+    @Test
+    fun bstTree_enforcesFifteenNodeCapacityLimit() {
+        var root: GraphTreeMutations.BstTreeNode? = null
+        for (i in 1..15) {
+            root = GraphTreeMutations.insertIntoBst(root, i * 10)
+        }
+        assertEquals(15, GraphTreeMutations.collectBstNodesInOrder(root).size)
+        // 16th insert rejected
+        val overflowRoot = GraphTreeMutations.insertIntoBst(root, 999)
+        assertEquals(15, GraphTreeMutations.collectBstNodesInOrder(overflowRoot).size)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. Pure Structure-Aware Mutations — Binary Heap
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun heapMutations_pushExtractAndTailRemoval() {
+        val initial = listOf(10, 20, 30, 40, 50)
+        val pushed = GraphTreeMutations.pushHeapValue(initial, 60)
+        assertEquals(listOf(10, 20, 30, 40, 50, 60), pushed)
+
+        val tailRemoved = GraphTreeMutations.removeHeapTail(pushed)
+        assertEquals(listOf(10, 20, 30, 40, 50), tailRemoved)
+
+        // Root extract replaces root with tail
+        val rootExtracted = GraphTreeMutations.removeHeapRoot(tailRemoved)
+        assertEquals(50, rootExtracted.first())
+        assertEquals(4, rootExtracted.size)
+
+        // Capacity check (max 15)
+        var maxHeap = (1..15).toList()
+        assertEquals(15, GraphTreeMutations.pushHeapValue(maxHeap, 99).size)
+    }
+
+    @Test
+    fun heapDeletionSlot_validatesOnlyRootAndTail() {
+        assertTrue(GraphTreeMutations.isSupportedHeapDeletionSlot(0, 7)) // root
+        assertTrue(GraphTreeMutations.isSupportedHeapDeletionSlot(6, 7)) // tail
+        assertFalse(GraphTreeMutations.isSupportedHeapDeletionSlot(1, 7)) // interior
+        assertFalse(GraphTreeMutations.isSupportedHeapDeletionSlot(3, 7)) // interior
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 5. Dijkstra Preview Least-Cost Route vs Fewest Hops
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun dijkstraShortestPath_findsLeastCostRouteDifferingFromFewestHops() {
+        // Direct A -> B has 1 hop, weight 10
+        // Route A -> C -> D -> B has 3 hops, weights 2 + 2 + 2 = 6
+        val edges = listOf(
+            GraphEdgeState("A", "B", weight = 10),
+            GraphEdgeState("A", "C", weight = 2),
+            GraphEdgeState("C", "D", weight = 2),
+            GraphEdgeState("D", "B", weight = 2)
+        )
+        val adj = GraphSearch.buildAdjacency(edges)
+
+        // BFS finds fewest hops: ["A", "B"] (1 hop)
+        val bfsPath = GraphSearch.shortestPath(adj, "A", "B")
+        assertEquals(listOf("A", "B"), bfsPath)
+
+        // Dijkstra finds least cost: ["A", "C", "D", "B"] (cost 6)
+        val (dijkstraPath, cost) = GraphSearch.dijkstraShortestPath(adj, "A", "B")
+        assertEquals(listOf("A", "C", "D", "B"), dijkstraPath)
+        assertEquals(6, cost)
+    }
+
+    @Test
+    fun dijkstraShortestPath_handlesSameStartAndTargetAndUnreachable() {
+        val edges = listOf(GraphEdgeState("A", "B", weight = 5))
+        val adj = GraphSearch.buildAdjacency(edges)
+
+        val (samePath, sameCost) = GraphSearch.dijkstraShortestPath(adj, "A", "A")
+        assertEquals(listOf("A"), samePath)
+        assertEquals(0, sameCost)
+
+        val (unreachablePath, unreachableCost) = GraphSearch.dijkstraShortestPath(adj, "A", "Z")
+        assertTrue(unreachablePath.isEmpty())
+        assertEquals(-1, unreachableCost)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 6. GraphCanvasGeometry Viewport & Exact Invertibility
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun geometry_exactInvertibilityAcrossMultipleScalesAndPans() {
+        val nodes = listOf(
+            GraphNodeState("A", "A", 20f, 30f),
+            GraphNodeState("B", "B", 120f, 80f),
+            GraphNodeState("C", "C", 200f, 150f)
+        )
+        val drawSize = Size(600f, 800f)
+        val testPans = listOf(Offset.Zero, Offset(50f, -80f), Offset(-120f, 200f))
+        val testZooms = listOf(0.5f, 1.0f, 1.75f, 2.5f)
+
+        for (pan in testPans) {
+            for (zoom in testZooms) {
+                val geom = GraphCanvasGeometry.from(
+                    nodes = nodes,
+                    drawSize = drawSize,
+                    panOffset = pan,
+                    zoom = zoom
+                )
+                for (node in nodes) {
+                    val canvasOffset = geom.toCanvasOffset(node.x, node.y)
+                    val worldCoords = geom.toWorldCoords(canvasOffset)
+                    assertEquals("Invertibility X failed at zoom $zoom", node.x, worldCoords.x, 0.05f)
+                    assertEquals("Invertibility Y failed at zoom $zoom", node.y, worldCoords.y, 0.05f)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun geometry_computeCenterPan_placesCenterOfMassAtViewportCenter() {
+        val nodes = listOf(
+            GraphNodeState("A", "A", 40f, 40f),
+            GraphNodeState("B", "B", 160f, 160f)
+        )
+        val drawSize = Size(400f, 400f)
+        val centerPan = GraphCanvasGeometry.computeCenterPan(nodes, drawSize, zoom = 1f)
+
+        val geom = GraphCanvasGeometry.from(nodes, drawSize, panOffset = centerPan, zoom = 1f)
+        val cA = geom.toCanvasOffset(40f, 40f)
+        val cB = geom.toCanvasOffset(160f, 160f)
+        val centerOfMassX = (cA.x + cB.x) / 2f
+        val centerOfMassY = (cA.y + cB.y) / 2f
+
+        assertEquals(200f, centerOfMassX, 1.0f)
+        assertEquals(200f, centerOfMassY, 1.0f)
+    }
+
+    @Test
+    fun geometry_computeFitZoomAndPan_boundsNodesWithinMargin() {
+        val nodes = listOf(
+            GraphNodeState("A", "A", 0f, 0f),
+            GraphNodeState("B", "B", 300f, 400f)
+        )
+        val drawSize = Size(500f, 500f)
+        val (fitZoom, fitPan) = GraphCanvasGeometry.computeFitZoomAndPan(nodes, drawSize, marginPx = 24f)
+
+        assertTrue("Fit zoom should be within bounds", fitZoom in 0.5f..2.5f)
+        val geom = GraphCanvasGeometry.from(nodes, drawSize, panOffset = fitPan, zoom = fitZoom)
+        val cA = geom.toCanvasOffset(0f, 0f)
+        val cB = geom.toCanvasOffset(300f, 400f)
+
+        assertTrue(cA.x >= 0f)
+        assertTrue(cA.y >= 0f)
+        assertTrue(cB.x <= 500f)
+        assertTrue(cB.y <= 500f)
+    }
+
+    @Test
+    fun geometry_isotropicScaling_preventsVerticalStretchingOnFullscreenExpansion() {
+        val nodes = listOf(
+            GraphNodeState("A", "A", 0f, 0f),
+            GraphNodeState("B", "B", 100f, 0f),
+            GraphNodeState("C", "C", 0f, 100f)
+        )
+        // Embedded size (wide and short)
+        val embeddedSize = Size(600f, 300f)
+        val geomEmbedded = GraphCanvasGeometry.from(nodes, embeddedSize, referenceHeight = 300f)
+        val embA = geomEmbedded.toCanvasOffset(0f, 0f)
+        val embB = geomEmbedded.toCanvasOffset(100f, 0f)
+        val embC = geomEmbedded.toCanvasOffset(0f, 100f)
+
+        val embDistX = embB.x - embA.x
+        val embDistY = embC.y - embA.y
+        assertEquals("Embedded aspect ratio must be 1:1 (isotropic)", embDistX, embDistY, 0.01f)
+
+        // Fullscreen size (tall expansion)
+        val fullscreenSize = Size(600f, 1000f)
+        val geomFullscreen = GraphCanvasGeometry.from(nodes, fullscreenSize, referenceHeight = 300f)
+        val fullA = geomFullscreen.toCanvasOffset(0f, 0f)
+        val fullB = geomFullscreen.toCanvasOffset(100f, 0f)
+        val fullC = geomFullscreen.toCanvasOffset(0f, 100f)
+
+        val fullDistX = fullB.x - fullA.x
+        val fullDistY = fullC.y - fullA.y
+        assertEquals("Fullscreen aspect ratio must be 1:1 (isotropic)", fullDistX, fullDistY, 0.01f)
+        assertEquals("Fullscreen must not stretch scale relative to reference", embDistX, fullDistX, 0.01f)
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 7. VisualizerScreenState Node Coordinate Persistence
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun visualizerScreenState_decoratesNodesWithUserCustomCoordinates() {
+        val state = VisualizerScreenState(Algorithm(id = AlgorithmId.BFS))
+        state.steps = listOf(
+            VisualizerStep(
+                stepIndex = 0,
+                nodes = listOf(
+                    GraphNodeState("A", "A", 10f, 10f),
+                    GraphNodeState("B", "B", 20f, 20f)
+                )
+            ),
+            VisualizerStep(
+                stepIndex = 1,
+                nodes = listOf(
+                    GraphNodeState("A", "A", 10f, 10f),
+                    GraphNodeState("B", "B", 20f, 20f)
+                )
+            )
+        )
+
+        // Before override
+        assertEquals(10f, state.currentStep.nodes.first().x, 0.01f)
+
+        // Move node A to (150, 250)
+        state.updateUserCustomCoordinate("A", Offset(150f, 250f))
+
+        // Coordinates persist across steps without regenerating steps
+        assertEquals(150f, state.currentStep.nodes.first { it.id == "A" }.x, 0.01f)
+        assertEquals(250f, state.currentStep.nodes.first { it.id == "A" }.y, 0.01f)
+
+        // Advance step — custom coordinate remains applied!
+        state.stepForward()
+        assertEquals(1, state.currentStepIdx)
+        assertEquals(150f, state.currentStep.nodes.first { it.id == "A" }.x, 0.01f)
+        assertEquals(250f, state.currentStep.nodes.first { it.id == "A" }.y, 0.01f)
+    }
+
+    @Test
+    fun visualizerScreenState_resetGraphOverridesClearsCoordinatesAndCustomGraph() {
+        val state = VisualizerScreenState(Algorithm(id = AlgorithmId.DIJKSTRA))
+        state.customGraph = Pair(listOf(GraphNodeState("A", "A", 0f, 0f)), emptyList())
+        state.updateUserCustomCoordinate("A", Offset(99f, 99f))
+        state.graphStartNodeId = "A"
+        state.graphTargetNodeId = "B"
+
+        state.resetGraphOverrides()
+
+        assertNull(state.customGraph)
+        assertTrue(state.userCustomCoordinates.isEmpty())
+        assertNull(state.graphStartNodeId)
+        assertNull(state.graphTargetNodeId)
+        assertEquals(GraphTool.MOVE, state.activeGraphTool)
+    }
+
+    @Test
+    fun visualizerScreenState_effectiveTraversalNodeIdsExplicitEmpty() {
+        val state = VisualizerScreenState(Algorithm(id = AlgorithmId.BFS))
+        // Null custom graph uses canonical nodes
+        assertTrue(state.effectiveTraversalNodeIds.isNotEmpty())
+
+        // Explicit empty custom graph does NOT fall back to canonical defaults
+        state.customGraph = Pair(emptyList(), emptyList())
+        assertTrue("Empty custom graph must yield empty traversal IDs", state.effectiveTraversalNodeIds.isEmpty())
+        assertEquals("", state.effectiveTraversalStartNodeId)
+    }
+}

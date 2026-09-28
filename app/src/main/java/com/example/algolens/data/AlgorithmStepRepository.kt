@@ -1,6 +1,7 @@
 package com.example.algolens.data
 
 import android.util.Log
+import androidx.compose.ui.geometry.Offset
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.BufferOp
@@ -63,6 +64,7 @@ object AlgorithmStepRepository {
         traversalStartNodeId: String = "A",
         targetNodeId: String? = null,
         customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
+        customCoordinates: Map<String, Offset>? = null,
     ): List<VisualizerStep> {
         val spec = AlgorithmRegistry.specFor(algorithm.id)
         if (spec == null) {
@@ -87,8 +89,17 @@ object AlgorithmStepRepository {
             )
             AlgorithmId.STACK -> generateStackSteps(bufferOps.ifEmpty { defaultStackOps() })
             AlgorithmId.QUEUE -> generateQueueSteps(queueOps.ifEmpty { defaultQueueOps() })
-            AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps(bstValues.ifEmpty { defaultBstValues }, bstSearchKey)
-            AlgorithmId.HEAP -> generateHeapSteps(inputArray.ifEmpty { DEFAULT_HEAP_INPUT }, sortOrder)
+            AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps(
+                values = bstValues.ifEmpty { defaultBstValues },
+                searchKey = bstSearchKey,
+                customGraph = customGraph,
+                customCoordinates = customCoordinates
+            )
+            AlgorithmId.HEAP -> generateHeapSteps(
+                input = effectiveArray,
+                sortOrder = sortOrder,
+                customPositions = customCoordinates
+            )
             AlgorithmId.BFS -> generateBFSSteps(traversalStartNodeId, customGraph, targetNodeId)
             AlgorithmId.DFS -> generateDFSSteps(traversalStartNodeId, customGraph, targetNodeId)
             AlgorithmId.DIJKSTRA -> generateDijkstraSteps(traversalStartNodeId, customGraph, targetNodeId)
@@ -1352,34 +1363,79 @@ object AlgorithmStepRepository {
         return nodes to edges
     }
 
-    private fun generateBSTSteps(
+    fun generateBSTSteps(
         values: List<Int> = defaultBstValues,
         searchKey: Int = defaultBstSearchKey,
+        customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
+        customCoordinates: Map<String, Offset>? = null
     ): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
-        val cleanValues = values.ifEmpty { defaultBstValues }.take(15)
 
-        val (nodes, edges) = if (cleanValues == defaultBstValues) {
-            listOf(
-                GraphNodeState("50", "50", 100f, 15f),
-                GraphNodeState("30", "30", 50f, 50f),
-                GraphNodeState("70", "70", 150f, 50f),
-                GraphNodeState("20", "20", 25f, 90f),
-                GraphNodeState("40", "40", 75f, 90f),
-                GraphNodeState("60", "60", 125f, 90f),
-                GraphNodeState("80", "80", 175f, 90f)
-            ) to listOf(
-                GraphEdgeState("50", "30", isDirected = true),
-                GraphEdgeState("50", "70", isDirected = true),
-                GraphEdgeState("30", "20", isDirected = true),
-                GraphEdgeState("30", "40", isDirected = true),
-                GraphEdgeState("70", "60", isDirected = true),
-                GraphEdgeState("70", "80", isDirected = true)
-            )
+        val (rawNodes, rawEdges) = if (customGraph != null) {
+            if (customGraph.first.isEmpty()) {
+                steps.add(
+                    VisualizerStep(
+                        stepIndex = sIdx++,
+                        description = "Empty BST. Tap Add Node to insert a key.",
+                        comparisonExpr = "EMPTY BST",
+                        phaseLabel = "INITIALIZING",
+                        renderMode = VisualizerRenderMode.GRAPH_TREE,
+                        nodes = emptyList(),
+                        edges = emptyList(),
+                        activeCodeLines = listOf(3, 4)
+                    )
+                )
+                return steps
+            }
+            customGraph
         } else {
-            buildBstFromValues(cleanValues)
+            val cleanValues = values.take(15)
+            if (cleanValues.isEmpty()) {
+                steps.add(
+                    VisualizerStep(
+                        stepIndex = sIdx++,
+                        description = "Empty BST. Tap Add Node to insert a key.",
+                        comparisonExpr = "EMPTY BST",
+                        phaseLabel = "INITIALIZING",
+                        renderMode = VisualizerRenderMode.GRAPH_TREE,
+                        nodes = emptyList(),
+                        edges = emptyList(),
+                        activeCodeLines = listOf(3, 4)
+                    )
+                )
+                return steps
+            }
+            if (cleanValues == defaultBstValues) {
+                listOf(
+                    GraphNodeState("50", "50", 100f, 15f),
+                    GraphNodeState("30", "30", 50f, 50f),
+                    GraphNodeState("70", "70", 150f, 50f),
+                    GraphNodeState("20", "20", 25f, 90f),
+                    GraphNodeState("40", "40", 75f, 90f),
+                    GraphNodeState("60", "60", 125f, 90f),
+                    GraphNodeState("80", "80", 175f, 90f)
+                ) to listOf(
+                    GraphEdgeState("50", "30", isDirected = true),
+                    GraphEdgeState("50", "70", isDirected = true),
+                    GraphEdgeState("30", "20", isDirected = true),
+                    GraphEdgeState("30", "40", isDirected = true),
+                    GraphEdgeState("70", "60", isDirected = true),
+                    GraphEdgeState("70", "80", isDirected = true)
+                )
+            } else {
+                buildBstFromValues(cleanValues)
+            }
         }
+
+        val nodes = if (customCoordinates != null) {
+            rawNodes.map { node ->
+                customCoordinates[node.id]?.let { node.copy(x = it.x, y = it.y) } ?: node
+            }
+        } else {
+            rawNodes
+        }
+        val edges = rawEdges
 
         val byId = nodes.associateBy { it.id }
         val childrenById = edges.groupBy { it.from }.mapValues { (_, es) -> es.map { it.to } }
@@ -1552,14 +1608,35 @@ object AlgorithmStepRepository {
     // ─────────────────────────────────────────────────────────────
     // 11. Heap (Max-Heap / Min-Heap with Dual Tree + Array State)
     // ─────────────────────────────────────────────────────────────
-    private fun generateHeapSteps(input: List<Int>, sortOrder: SortOrder = SortOrder.ASC): List<VisualizerStep> {
+    fun generateHeapSteps(
+        input: List<Int> = DEFAULT_HEAP_INPUT,
+        sortOrder: SortOrder = SortOrder.ASC,
+        customPositions: Map<String, Offset>? = null
+    ): List<VisualizerStep> {
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
         val isDesc = sortOrder == SortOrder.DESC
         val heapKind = if (isDesc) "Min-Heap" else "Max-Heap"
         val op = if (isDesc) "<" else ">"
 
-        val initial = input.ifEmpty { DEFAULT_HEAP_INPUT }.take(15)
+        if (input.isEmpty()) {
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = "Empty Heap. Tap Add Node to push values.",
+                    comparisonExpr = "EMPTY HEAP",
+                    phaseLabel = "INITIALIZING",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    array = emptyList(),
+                    nodes = emptyList(),
+                    edges = emptyList(),
+                    activeCodeLines = listOf(1, 2)
+                )
+            )
+            return steps
+        }
+
+        val initial = input.take(15)
         val arr = initial.toMutableList()
         val n = arr.size
 
@@ -1570,13 +1647,17 @@ object AlgorithmStepRepository {
         ): Pair<List<GraphNodeState>, List<GraphEdgeState>> {
             val maxLevel = if (values.size <= 1) 0 else 31 - Integer.numberOfLeadingZeros(values.size)
             val treeNodes = values.mapIndexed { idx, v ->
+                val slotId = idx.toString()
                 val level = 31 - Integer.numberOfLeadingZeros(idx + 1)
                 val indexInLevel = (idx + 1) - (1 shl level)
                 val nodesInLevel = 1 shl level
-                val x = 15f + ((indexInLevel + 0.5f) / nodesInLevel.toFloat()) * 170f
-                val y = if (maxLevel == 0) 54f else 18f + (level.toFloat() / maxLevel.toFloat()) * 82f
+                val defaultX = 15f + ((indexInLevel + 0.5f) / nodesInLevel.toFloat()) * 170f
+                val defaultY = if (maxLevel == 0) 54f else 18f + (level.toFloat() / maxLevel.toFloat()) * 82f
+                val custom = customPositions?.get(slotId)
+                val x = custom?.x ?: defaultX
+                val y = custom?.y ?: defaultY
                 val st = states[idx] ?: if (idx >= heapBound) ElementState.SORTED else ElementState.IDLE
-                GraphNodeState(idx.toString(), v.toString(), x, y, st)
+                GraphNodeState(slotId, v.toString(), x, y, st)
             }
             val treeEdges = mutableListOf<GraphEdgeState>()
             for (i in 0 until values.size) {
@@ -1585,12 +1666,12 @@ object AlgorithmStepRepository {
                 if (left < values.size) {
                     val hi = (states[i] == ElementState.ACTIVE || states[i] == ElementState.SWAPPING) &&
                         (states[left] == ElementState.COMPARING || states[left] == ElementState.SWAPPING)
-                    treeEdges.add(GraphEdgeState(i.toString(), left.toString(), weight = left, isDirected = true, isHighlighted = hi))
+                    treeEdges.add(GraphEdgeState(i.toString(), left.toString(), weight = null, isDirected = true, isHighlighted = hi))
                 }
                 if (right < values.size) {
                     val hi = (states[i] == ElementState.ACTIVE || states[i] == ElementState.SWAPPING) &&
                         (states[right] == ElementState.COMPARING || states[right] == ElementState.SWAPPING)
-                    treeEdges.add(GraphEdgeState(i.toString(), right.toString(), weight = right, isDirected = true, isHighlighted = hi))
+                    treeEdges.add(GraphEdgeState(i.toString(), right.toString(), weight = null, isDirected = true, isHighlighted = hi))
                 }
             }
             return treeNodes to treeEdges
@@ -1802,9 +1883,23 @@ object AlgorithmStepRepository {
         customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
         targetNodeId: String? = null
     ): List<VisualizerStep> {
+        if (customGraph != null && customGraph.first.isEmpty()) {
+            return listOf(
+                VisualizerStep(
+                    stepIndex = 0,
+                    description = "Empty graph. Tap Add Node to plant a node.",
+                    comparisonExpr = "EMPTY GRAPH",
+                    phaseLabel = "STANDBY",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = emptyList(),
+                    edges = emptyList(),
+                    activeCodeLines = listOf(1)
+                )
+            )
+        }
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
-        val (rawNodes, rawEdges) = customGraph?.takeIf { it.first.isNotEmpty() } ?: canonicalWeightedGraph()
+        val (rawNodes, rawEdges) = customGraph ?: canonicalWeightedGraph()
         val baseNodes = rawNodes.map { it.copy(state = ElementState.IDLE) }
         val baseEdges = rawEdges.map { it.copy(isHighlighted = false) }
         val validIds = baseNodes.map { it.id }.toSet()
@@ -2020,9 +2115,23 @@ object AlgorithmStepRepository {
         customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
         targetNodeId: String? = null
     ): List<VisualizerStep> {
+        if (customGraph != null && customGraph.first.isEmpty()) {
+            return listOf(
+                VisualizerStep(
+                    stepIndex = 0,
+                    description = "Empty graph. Tap Add Node to plant a node.",
+                    comparisonExpr = "EMPTY GRAPH",
+                    phaseLabel = "STANDBY",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = emptyList(),
+                    edges = emptyList(),
+                    activeCodeLines = listOf(1)
+                )
+            )
+        }
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
-        val (rawNodes, rawEdges) = customGraph?.takeIf { it.first.isNotEmpty() } ?: canonicalWeightedGraph()
+        val (rawNodes, rawEdges) = customGraph ?: canonicalWeightedGraph()
         val baseNodes = rawNodes.map { it.copy(state = ElementState.IDLE) }
         val baseEdges = rawEdges.map { it.copy(isHighlighted = false) }
         val validIds = baseNodes.map { it.id }.toSet()
@@ -2211,9 +2320,23 @@ object AlgorithmStepRepository {
         customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
         targetNodeId: String? = null
     ): List<VisualizerStep> {
+        if (customGraph != null && customGraph.first.isEmpty()) {
+            return listOf(
+                VisualizerStep(
+                    stepIndex = 0,
+                    description = "Empty graph. Tap Add Node to plant a node.",
+                    comparisonExpr = "EMPTY GRAPH",
+                    phaseLabel = "STANDBY",
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = emptyList(),
+                    edges = emptyList(),
+                    activeCodeLines = listOf(1)
+                )
+            )
+        }
         val steps = mutableListOf<VisualizerStep>()
         var sIdx = 0
-        val (rawNodes, rawEdges) = customGraph?.takeIf { it.first.isNotEmpty() } ?: canonicalWeightedGraph()
+        val (rawNodes, rawEdges) = customGraph ?: canonicalWeightedGraph()
         val baseNodes = rawNodes.map { it.copy(state = ElementState.IDLE) }
         val baseEdges = rawEdges.map { it.copy(isHighlighted = false) }
         val validIds = baseNodes.map { it.id }.toSet()
@@ -2559,7 +2682,7 @@ object GraphSearch {
         val visited = mutableSetOf(start)
         val queue = ArrayDeque<String>()
         queue.addLast(start)
-        var found = start == target && target != null
+        var found = target != null && start == target
         while (queue.isNotEmpty() && !found) {
             val curr = queue.removeFirst()
             for ((v, _) in adj[curr].orEmpty()) {
@@ -2611,4 +2734,48 @@ object GraphSearch {
     /** Shortest path (fewest hops) between two nodes via BFS, or empty list. */
     fun shortestPath(adj: Map<String, List<Pair<String, Int>>>, start: String, end: String): List<String> =
         bfs(adj, start, end).pathToTarget()
+
+    /** Least-cost shortest path between two nodes using Dijkstra's algorithm, with exact path cost. */
+    fun dijkstraShortestPath(
+        adj: Map<String, List<Pair<String, Int>>>,
+        start: String,
+        end: String
+    ): Pair<List<String>, Int> {
+        if (start == end) return listOf(start) to 0
+        val dist = mutableMapOf<String, Int>().withDefault { Int.MAX_VALUE }
+        val prev = mutableMapOf<String, String>()
+        val pq = java.util.PriorityQueue<Pair<String, Int>>(
+            compareBy<Pair<String, Int>> { it.second }.thenBy { it.first }
+        )
+        dist[start] = 0
+        pq.add(start to 0)
+        val settled = mutableSetOf<String>()
+
+        while (pq.isNotEmpty()) {
+            val (u, d) = pq.poll() ?: break
+            if (d > dist.getValue(u)) continue
+            if (u in settled) continue
+            settled.add(u)
+            if (u == end) break
+
+            for ((v, w) in adj[u].orEmpty()) {
+                val weight = if (w > 0) w else 1
+                val newDist = d + weight
+                if (newDist < dist.getValue(v)) {
+                    dist[v] = newDist
+                    prev[v] = u
+                    pq.add(v to newDist)
+                }
+            }
+        }
+
+        if (dist.getValue(end) == Int.MAX_VALUE) return emptyList<String>() to -1
+        val path = mutableListOf<String>()
+        var cur: String? = end
+        while (cur != null) {
+            path.add(0, cur)
+            cur = prev[cur]
+        }
+        return path to dist.getValue(end)
+    }
 }

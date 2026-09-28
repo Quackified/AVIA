@@ -2,6 +2,7 @@ package com.example.algolens.data
 
 import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.AlgorithmSpec
+import com.example.algolens.model.GraphCapabilityProfile
 import com.example.algolens.model.InputKind
 import com.example.algolens.model.VisualizerFamily
 import com.example.algolens.ui.visualizer.WeightBadgeOverlay
@@ -90,12 +91,14 @@ object AlgorithmRegistry {
             id = AlgorithmId.BINARY_SEARCH_TREE,
             defaultInput = AlgorithmStepRepository.defaultBstValues,
             supportsCustomInput = true,
+            capabilityProfile = GraphCapabilityProfile.bstProfile(),
             graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.BST_TARGET,
         ),
         AlgorithmId.HEAP to AlgorithmSpec(
             id = AlgorithmId.HEAP,
             defaultInput = AlgorithmStepRepository.DEFAULT_HEAP_INPUT,
             supportsCustomInput = true,
+            capabilityProfile = GraphCapabilityProfile.heapProfile(),
             graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.HEAP_ARRAY,
         ),
 
@@ -104,7 +107,7 @@ object AlgorithmRegistry {
             id = AlgorithmId.BFS,
             defaultInput = emptyList(),
             supportsCustomInput = true,
-            builderEnabled = true,
+            capabilityProfile = GraphCapabilityProfile.bfsDfsProfile(),
             graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.BFS_QUEUE,
             overlays = listOf(WeightBadgeOverlay),
         ),
@@ -112,7 +115,7 @@ object AlgorithmRegistry {
             id = AlgorithmId.DFS,
             defaultInput = emptyList(),
             supportsCustomInput = true,
-            builderEnabled = true,
+            capabilityProfile = GraphCapabilityProfile.bfsDfsProfile(),
             graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.DFS_STACK,
             overlays = listOf(WeightBadgeOverlay),
         ),
@@ -120,7 +123,7 @@ object AlgorithmRegistry {
             id = AlgorithmId.DIJKSTRA,
             defaultInput = emptyList(),
             supportsCustomInput = true,
-            builderEnabled = true,
+            capabilityProfile = GraphCapabilityProfile.dijkstraProfile(),
             graphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.DIJKSTRA_PQ,
             overlays = listOf(WeightBadgeOverlay),
         ),

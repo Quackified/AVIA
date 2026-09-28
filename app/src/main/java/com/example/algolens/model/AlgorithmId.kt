@@ -100,8 +100,10 @@ data class AlgorithmSpec(
     val acceptsSearchTarget: Boolean = false,
     /** Whether the algorithm is a stack (true) or queue (false). Derived for [VisualizerFamily.BUFFER]. */
     val isStack: Boolean = false,
-    /** Whether the builder overlay (tap-to-add-node) is exposed. */
-    val builderEnabled: Boolean = false,
+    /** Specific graph/tree capabilities for interactive editor and tools. */
+    val capabilityProfile: GraphCapabilityProfile? = null,
+    /** Whether the builder overlay (interactive tools) is exposed. */
+    val builderEnabled: Boolean = capabilityProfile?.allowedTools?.isNotEmpty() == true,
     /** Typed telemetry strip mode for [VisualizerFamily.GRAPH_2D]. */
     val graphTelemetryMode: GraphTelemetryMode = GraphTelemetryMode.NONE,
     /**

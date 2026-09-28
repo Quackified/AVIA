@@ -16,6 +16,7 @@ import com.example.algolens.model.AuxiliarySlot
 import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.AlgorithmSpec
 import com.example.algolens.model.VisualizerFamily
+import com.example.algolens.ui.theme.AlgoTokens
 
 /**
  * Dispatcher that owns the *visualizer family* → *renderer* mapping and
@@ -205,7 +206,7 @@ private fun GraphTreeCanvas(
 
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         PhaseBanner(
@@ -217,10 +218,15 @@ private fun GraphTreeCanvas(
             step = currentStep,
             algorithmKey = algorithmId.name,
             builderEnabled = spec.builderEnabled,
+            profile = spec.capabilityProfile,
             telemetryMode = spec.graphTelemetryMode,
-            isCustomGraph = state.customGraph != null,
+            isCustomGraph = state.customGraph != null || state.userCustomCoordinates.isNotEmpty(),
+            userCustomCoordinates = state.userCustomCoordinates,
+            onNodeMoved = { id, coords ->
+                state.updateUserCustomCoordinate(id, coords)
+            },
             challengeTargetNodeIds = challengeNodeIds,
-            startNodeId = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId,
+            startNodeId = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId.takeIf { it.isNotEmpty() },
             targetNodeId = state.graphTargetNodeId,
             onEndpointsChanged = { newStart, newTarget ->
                 state.graphStartNodeId = newStart
@@ -231,9 +237,27 @@ private fun GraphTreeCanvas(
             },
             onGraphModified = if (spec.builderEnabled) {
                 { nodes, edges ->
-                    state.customGraph = if (nodes.isEmpty()) null else (nodes to edges)
+                    state.customGraph = (nodes to edges)
                 }
             } else null,
+            onBstInsertKey = { key ->
+                state.insertBstKey(key)
+            },
+            onBstDeleteNode = { nodeId ->
+                state.deleteBstNode(nodeId)
+            },
+            onHeapPushValue = { value ->
+                state.pushHeapValue(value)
+            },
+            onHeapExtractRoot = {
+                state.extractHeapRoot()
+            },
+            onHeapRemoveTail = {
+                state.removeHeapTail()
+            },
+            onResetGraph = {
+                state.resetGraphOverrides()
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -253,7 +277,7 @@ private fun BufferCanvas(
     val isStack = spec.isStack
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         PhaseBanner(

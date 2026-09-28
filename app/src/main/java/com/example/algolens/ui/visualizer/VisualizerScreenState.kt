@@ -10,13 +10,16 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import com.example.algolens.data.AlgorithmRegistry
 import com.example.algolens.data.AlgorithmStepRepository
 import com.example.algolens.data.AppSettings
+import com.example.algolens.data.GraphTreeMutations
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.BufferOp
 import com.example.algolens.model.GraphCustomization
+import com.example.algolens.model.GraphTool
 import com.example.algolens.model.QueueOp
 import com.example.algolens.model.SortOrder
 import kotlinx.coroutines.delay
@@ -136,6 +139,13 @@ class VisualizerScreenState(
     // ── Interactive Graph Builder topology (BFS / DFS / Dijkstra). Null uses canonicalWeightedGraph(). ──
     var customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? by mutableStateOf(null)
 
+    // ── Persistent node coordinate overrides across all steps (independent of playback/topology) ──
+    var userCustomCoordinates: Map<String, Offset> by mutableStateOf(emptyMap())
+
+    // ── Active Graph Tool & Selection state ──
+    var activeGraphTool: GraphTool by mutableStateOf(GraphTool.MOVE)
+    var selectedGraphNodeId: String? by mutableStateOf(null)
+
     // ── Goal-directed graph endpoints (START / TARGET) ──
     var graphStartNodeId: String? by mutableStateOf(null)
     var graphTargetNodeId: String? by mutableStateOf(null)
@@ -157,9 +167,20 @@ class VisualizerScreenState(
      * (the brief window before the first generation completes) this returns a
      * neutral `STANDBY` frame — never a fabricated `PROCESSING` phase, which
      * previously flashed a "work is happening" pill while nothing existed yet.
+     *
+     * Decorates current step nodes with persistent [userCustomCoordinates] by ID,
+     * ensuring node drags persist across steps and playback without step regeneration.
      */
     val currentStep: VisualizerStep
-        get() = if (steps.isEmpty()) VisualizerStep(phaseLabel = "STANDBY") else steps[displayStepIdx.coerceIn(0, steps.lastIndex)]
+        get() {
+            val baseStep = if (steps.isEmpty()) VisualizerStep(phaseLabel = "STANDBY") else steps[displayStepIdx.coerceIn(0, steps.lastIndex)]
+            if (userCustomCoordinates.isEmpty() || baseStep.nodes.isEmpty()) return baseStep
+            return baseStep.copy(
+                nodes = baseStep.nodes.map { node ->
+                    userCustomCoordinates[node.id]?.let { node.copy(x = it.x, y = it.y) } ?: node
+                }
+            )
+        }
 
     /**
      * Playhead position as 0f..1f. The transport reads this through a lambda so
@@ -387,11 +408,16 @@ class VisualizerScreenState(
     /**
      * Available node IDs for BFS/DFS traversal start selection, derived from
      * the live edited graph (`customGraph`) when present or the canonical graph.
+     * Empty custom graph explicitly yields an empty list (does not fall back to defaults).
      */
     val effectiveTraversalNodeIds: List<String>
-        get() = (customGraph?.first?.takeIf { it.isNotEmpty() }
-            ?: AlgorithmStepRepository.canonicalWeightedGraph().first)
-            .map { it.id }
+        get() {
+            val cg = customGraph
+            if (cg != null) {
+                return cg.first.map { it.id }
+            }
+            return AlgorithmStepRepository.canonicalWeightedGraph().first.map { it.id }
+        }
 
     /**
      * Validated traversal start node ID that automatically resets to the first
@@ -401,8 +427,78 @@ class VisualizerScreenState(
         get() {
             val ids = effectiveTraversalNodeIds
             val configured = (graphConfig as? GraphCustomization.ForTraversal)?.startNodeId
-            return if (configured != null && configured in ids) configured else (ids.firstOrNull() ?: "A")
+            return if (configured != null && configured in ids) configured else (ids.firstOrNull() ?: "")
         }
+
+    fun updateUserCustomCoordinate(nodeId: String, coords: Offset) {
+        userCustomCoordinates = userCustomCoordinates + (nodeId to coords)
+    }
+
+    fun insertBstKey(key: Int) {
+        val currentValues = (graphConfig as? GraphCustomization.ForBst)?.values
+            ?: AlgorithmStepRepository.defaultBstValues
+        val searchKey = (graphConfig as? GraphCustomization.ForBst)?.searchKey
+            ?: AlgorithmStepRepository.defaultBstSearchKey
+        val root = GraphTreeMutations.buildBstTree(currentValues)
+        val newRoot = GraphTreeMutations.insertIntoBst(root, key)
+        val updated = GraphTreeMutations.bstToPreOrderValues(newRoot)
+        isPlaying = false
+        graphConfig = GraphCustomization.ForBst(updated, searchKey)
+    }
+
+    fun deleteBstNode(nodeId: String) {
+        val currentValues = (graphConfig as? GraphCustomization.ForBst)?.values
+            ?: AlgorithmStepRepository.defaultBstValues
+        val searchKey = (graphConfig as? GraphCustomization.ForBst)?.searchKey
+            ?: AlgorithmStepRepository.defaultBstSearchKey
+        val root = GraphTreeMutations.buildBstTree(currentValues)
+        val newRoot = GraphTreeMutations.deleteFromBst(root, nodeId)
+        val updated = GraphTreeMutations.bstToPreOrderValues(newRoot)
+        isPlaying = false
+        userCustomCoordinates = userCustomCoordinates - nodeId
+        if (selectedGraphNodeId == nodeId) selectedGraphNodeId = null
+        graphConfig = GraphCustomization.ForBst(updated, searchKey)
+    }
+
+    fun pushHeapValue(value: Int) {
+        val currentValues = (graphConfig as? GraphCustomization.ForHeap)?.values
+            ?: AlgorithmStepRepository.DEFAULT_HEAP_INPUT
+        val updated = GraphTreeMutations.pushHeapValue(currentValues, value)
+        isPlaying = false
+        graphConfig = GraphCustomization.ForHeap(updated)
+    }
+
+    fun extractHeapRoot() {
+        val currentValues = (graphConfig as? GraphCustomization.ForHeap)?.values
+            ?: AlgorithmStepRepository.DEFAULT_HEAP_INPUT
+        val updated = GraphTreeMutations.removeHeapRoot(currentValues)
+        isPlaying = false
+        userCustomCoordinates = userCustomCoordinates - "0"
+        if (selectedGraphNodeId == "0") selectedGraphNodeId = null
+        graphConfig = GraphCustomization.ForHeap(updated)
+    }
+
+    fun removeHeapTail() {
+        val currentValues = (graphConfig as? GraphCustomization.ForHeap)?.values
+            ?: AlgorithmStepRepository.DEFAULT_HEAP_INPUT
+        val lastIdx = (currentValues.size - 1).toString()
+        val updated = GraphTreeMutations.removeHeapTail(currentValues)
+        isPlaying = false
+        userCustomCoordinates = userCustomCoordinates - lastIdx
+        if (selectedGraphNodeId == lastIdx) selectedGraphNodeId = null
+        graphConfig = GraphCustomization.ForHeap(updated)
+    }
+
+    fun resetGraphOverrides() {
+        customGraph = null
+        graphConfig = null
+        userCustomCoordinates = emptyMap()
+        selectedGraphNodeId = null
+        activeGraphTool = GraphTool.MOVE
+        graphStartNodeId = null
+        graphTargetNodeId = null
+        reset()
+    }
 
     /**
      * Typed initial value list for [CustomizeGraphSheet] driven by [com.example.algolens.model.AlgorithmSpec]
@@ -496,7 +592,7 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             ?: AlgorithmStepRepository.defaultBstValues
         val bstSearchKey = (state.graphConfig as? GraphCustomization.ForBst)?.searchKey
             ?: AlgorithmStepRepository.defaultBstSearchKey
-        val traversalStart = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId
+        val traversalStart = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId.takeIf { it.isNotEmpty() }
         val traversalTarget = state.graphTargetNodeId
 
         state.steps = AlgorithmStepRepository.generateStepsForAlgorithm(
@@ -508,9 +604,10 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             queueOps = state.queueOps,
             bstValues = bstValues,
             bstSearchKey = bstSearchKey,
-            traversalStartNodeId = traversalStart,
+            traversalStartNodeId = traversalStart ?: "A",
             targetNodeId = traversalTarget,
             customGraph = state.customGraph,
+            customCoordinates = state.userCustomCoordinates,
         )
         val targetIdx = state.pendingStepAfterRegen
         state.pendingStepAfterRegen = null

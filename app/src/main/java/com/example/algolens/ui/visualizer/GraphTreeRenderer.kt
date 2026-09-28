@@ -61,13 +61,14 @@ fun GraphTreeRenderer(
     dragStartNode: GraphNodeState?,
     currentDragPos: Offset?,
     nodeScales: Map<String, Float>,
+    modifier: Modifier = Modifier,
     challengeTargetNodeIds: Set<String> = emptySet(),
     startNodeId: String? = null,
     targetNodeId: String? = null,
     previewPath: List<String> = emptyList(),
     panOffset: Offset = Offset.Zero,
-    referenceHeight: Float = 0f,
-    modifier: Modifier = Modifier
+    zoom: Float = 1f,
+    referenceHeight: Float = 0f
 ) {
     // Render-phase pulse for the active node's halo (draw-read only).
     val activeHaloPulse = rememberInfiniteTransition(label = "activeNodeHalo")
@@ -88,9 +89,10 @@ fun GraphTreeRenderer(
             nodes = nodes,
             drawSize = size,
             panOffset = panOffset,
+            zoom = zoom,
             referenceHeight = referenceHeight
         )
-        val r = geom.nodeRadius
+        val r = geom.nodeRadius * geom.zoom
 
         // ── 1. Draw Existing Edges ──
         for (edge in edges) {
@@ -375,119 +377,154 @@ fun GraphTreeRenderer(
  * [toCanvasOffset] and [toWorldCoords] so renderer and gesture hit-testing
  * never drift.
  */
-internal data class GraphCanvasGeometry(
-    val minX: Float,
-    val minY: Float,
-    val spanX: Float,
-    val spanY: Float,
-    val padding: Float,
-    val drawWidth: Float,
-    val drawHeight: Float,
+data class GraphCanvasGeometry(
+    val nodeCenterX: Float,
+    val nodeCenterY: Float,
+    val baseScale: Float,
     val nodeRadius: Float = 20f,
-    val panOffset: Offset = Offset.Zero
+    val panOffset: Offset = Offset.Zero,
+    val zoom: Float = 1f,
+    val viewportWidth: Float,
+    val viewportHeight: Float,
+    val minX: Float = 0f,
+    val minY: Float = 0f,
+    val spanX: Float = 100f,
+    val spanY: Float = 100f,
+    val padding: Float = 24f,
+    val drawWidth: Float = viewportWidth,
+    val drawHeight: Float = viewportHeight
 ) {
     fun toCanvasOffset(nx: Float, ny: Float): Offset {
-        val cx = padding + ((nx - minX + 15f) / spanX) * drawWidth + panOffset.x
-        val cy = padding + ((ny - minY + 15f) / spanY) * drawHeight + panOffset.y
-        return Offset(cx, cy)
+        val cx = viewportWidth / 2f
+        val cy = viewportHeight / 2f
+        val sx = cx + (nx - nodeCenterX) * baseScale * zoom + panOffset.x
+        val sy = cy + (ny - nodeCenterY) * baseScale * zoom + panOffset.y
+        return Offset(sx, sy)
     }
 
     fun toWorldCoords(canvasOffset: Offset): Offset {
-        val wx = ((canvasOffset.x - panOffset.x - padding) / drawWidth.coerceAtLeast(1f)) * spanX + minX - 15f
-        val wy = ((canvasOffset.y - panOffset.y - padding) / drawHeight.coerceAtLeast(1f)) * spanY + minY - 15f
+        val cx = viewportWidth / 2f
+        val cy = viewportHeight / 2f
+        val safeScale = (baseScale * zoom).coerceAtLeast(0.0001f)
+        val wx = nodeCenterX + (canvasOffset.x - panOffset.x - cx) / safeScale
+        val wy = nodeCenterY + (canvasOffset.y - panOffset.y - cy) / safeScale
         return Offset(wx, wy)
     }
 
     companion object {
-        private const val MIN_READABLE_RADIUS = 16f
-        private const val MAX_READABLE_RADIUS = 20f
-        private const val MIN_CENTER_SPACING = 38f
+        const val MIN_READABLE_RADIUS = 16f
+        const val MAX_READABLE_RADIUS = 20f
+        const val MIN_CENTER_SPACING = 38f
+        const val MIN_ZOOM = 0.5f
+        const val MAX_ZOOM = 2.5f
 
         fun from(
             nodes: List<GraphNodeState>,
             drawSize: Size,
             panOffset: Offset = Offset.Zero,
+            zoom: Float = 1f,
             referenceHeight: Float = 0f
         ): GraphCanvasGeometry {
-            val maxX = (nodes.maxOfOrNull { it.x } ?: 100f).coerceAtLeast(100f)
-            val maxY = (nodes.maxOfOrNull { it.y } ?: 100f).coerceAtLeast(100f)
-            val minX = (nodes.minOfOrNull { it.x } ?: 0f).coerceAtMost(0f)
-            val minY = (nodes.minOfOrNull { it.y } ?: 0f).coerceAtMost(0f)
-            val spanX = (maxX - minX + 30f).coerceAtLeast(1f)
-            val spanY = (maxY - minY + 30f).coerceAtLeast(1f)
+            val minX = nodes.minOfOrNull { it.x } ?: 0f
+            val maxX = nodes.maxOfOrNull { it.x } ?: 100f
+            val minY = nodes.minOfOrNull { it.y } ?: 0f
+            val maxY = nodes.maxOfOrNull { it.y } ?: 100f
+
+            val nodeCenterX = (minX + maxX) / 2f
+            val nodeCenterY = (minY + maxY) / 2f
+
+            val spanX = (maxX - minX + 50f).coerceAtLeast(10f)
+            val spanY = (maxY - minY + 50f).coerceAtLeast(10f)
             val padding = if (nodes.size > 10) 24f else 32f
 
-            // Stable world height: never shrinks when the dock expands.
-            val stableCanvasHeight = maxOf(drawSize.height, referenceHeight, drawSize.width * 0.72f)
-            val baseDrawWidth = (drawSize.width - (padding * 2)).coerceAtLeast(1f)
-            val baseDrawHeight = (stableCanvasHeight - (padding * 2)).coerceAtLeast(1f)
+            val availW = (drawSize.width - (padding * 2f)).coerceAtLeast(10f)
+            val effectiveHeight = if (referenceHeight > 0f) referenceHeight else drawSize.height
+            val availH = (effectiveHeight - (padding * 2f)).coerceAtLeast(10f)
 
-            val initial = GraphCanvasGeometry(
+            // Isotropic uniform scale: X and Y scale identically to prevent distortion
+            val baseScale = minOf(availW / spanX, availH / spanY).coerceIn(0.2f, 15f)
+
+            // Measure pairwise distance in pixels at baseScale
+            var minDistPx = Float.MAX_VALUE
+            for (i in nodes.indices) {
+                for (j in i + 1 until nodes.size) {
+                    val dx = (nodes[i].x - nodes[j].x) * baseScale
+                    val dy = (nodes[i].y - nodes[j].y) * baseScale
+                    val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+                    if (dist > 0.5f && dist < minDistPx) {
+                        minDistPx = dist
+                    }
+                }
+            }
+
+            val adaptiveRadius = if (minDistPx < Float.MAX_VALUE) {
+                (minDistPx * 0.42f).coerceIn(MIN_READABLE_RADIUS, MAX_READABLE_RADIUS)
+            } else {
+                MAX_READABLE_RADIUS
+            }
+
+            return GraphCanvasGeometry(
+                nodeCenterX = nodeCenterX,
+                nodeCenterY = nodeCenterY,
+                baseScale = baseScale,
+                nodeRadius = adaptiveRadius,
+                panOffset = panOffset,
+                zoom = zoom,
+                viewportWidth = drawSize.width,
+                viewportHeight = drawSize.height,
                 minX = minX,
                 minY = minY,
                 spanX = spanX,
                 spanY = spanY,
                 padding = padding,
-                drawWidth = baseDrawWidth,
-                drawHeight = baseDrawHeight,
-                nodeRadius = MAX_READABLE_RADIUS,
-                panOffset = panOffset
+                drawWidth = availW,
+                drawHeight = availH
             )
-            // Measure pairwise distance in the base world
-            val baseOffsets = nodes.map { initial.copy(panOffset = Offset.Zero).toCanvasOffset(it.x, it.y) }
-            var minDist = Float.MAX_VALUE
-            for (i in baseOffsets.indices) {
-                for (j in i + 1 until baseOffsets.size) {
-                    val dx = baseOffsets[i].x - baseOffsets[j].x
-                    val dy = baseOffsets[i].y - baseOffsets[j].y
-                    val dist = kotlin.math.sqrt(dx * dx + dy * dy)
-                    if (dist > 0.5f && dist < minDist) {
-                        minDist = dist
-                    }
-                }
-            }
+        }
 
-            // If dense/skewed nodes are closer than MIN_CENTER_SPACING, expand the world
-            // dimensions so nodes stay at full readable radius (>= 16f) and can be panned.
-            val worldExpansion = if (minDist < MIN_CENTER_SPACING && minDist < Float.MAX_VALUE) {
-                (MIN_CENTER_SPACING / minDist).coerceIn(1f, 3.0f)
-            } else {
-                1f
-            }
+        fun computeCenterPan(
+            nodes: List<GraphNodeState>,
+            drawSize: Size,
+            zoom: Float = 1f,
+            referenceHeight: Float = 0f
+        ): Offset {
+            if (nodes.isEmpty()) return Offset.Zero
+            val geom = from(nodes, drawSize, panOffset = Offset.Zero, zoom = 1f, referenceHeight = referenceHeight)
+            val avgX = nodes.map { it.x }.average().toFloat()
+            val avgY = nodes.map { it.y }.average().toFloat()
+            val offsetX = -(avgX - geom.nodeCenterX) * geom.baseScale * zoom
+            val offsetY = -(avgY - geom.nodeCenterY) * geom.baseScale * zoom
+            return Offset(offsetX, offsetY)
+        }
 
-            val expandedWidth = baseDrawWidth * worldExpansion
-            val expandedHeight = baseDrawHeight * worldExpansion
-            val effectiveMinDist = if (minDist < Float.MAX_VALUE) minDist * worldExpansion else Float.MAX_VALUE
-            val adaptiveRadius = if (effectiveMinDist < Float.MAX_VALUE) {
-                (effectiveMinDist * 0.42f).coerceIn(MIN_READABLE_RADIUS, MAX_READABLE_RADIUS)
-            } else {
-                MAX_READABLE_RADIUS
-            }
+        fun computeFitZoomAndPan(
+            nodes: List<GraphNodeState>,
+            drawSize: Size,
+            marginPx: Float = 48f,
+            referenceHeight: Float = 0f
+        ): Pair<Float, Offset> {
+            if (nodes.isEmpty()) return 1f to Offset.Zero
+            val geom = from(nodes, drawSize, panOffset = Offset.Zero, zoom = 1f, referenceHeight = referenceHeight)
+            val minX = nodes.minOf { it.x }
+            val maxX = nodes.maxOf { it.x }
+            val minY = nodes.minOf { it.y }
+            val maxY = nodes.maxOf { it.y }
 
-            // Center all graph nodes properly at initialization relative to the viewport center
-            val actualMinX = nodes.minOfOrNull { it.x } ?: 50f
-            val actualMaxX = nodes.maxOfOrNull { it.x } ?: 50f
-            val actualMinY = nodes.minOfOrNull { it.y } ?: 50f
-            val actualMaxY = nodes.maxOfOrNull { it.y } ?: 50f
+            val r = geom.nodeRadius
+            val contentW = ((maxX - minX) * geom.baseScale + 2f * r + 2f * marginPx).coerceAtLeast(1f)
+            val contentH = ((maxY - minY) * geom.baseScale + 2f * r + 2f * marginPx).coerceAtLeast(1f)
 
-            val nodeCenterX = (actualMinX + actualMaxX) / 2f
-            val nodeCenterY = (actualMinY + actualMaxY) / 2f
+            val scaleX = drawSize.width / contentW
+            val scaleY = drawSize.height / contentH
+            val fitZoom = minOf(scaleX, scaleY).coerceIn(MIN_ZOOM, MAX_ZOOM)
 
-            val initialCanvasCenterX = padding + ((nodeCenterX - minX + 15f) / spanX) * expandedWidth
-            val initialCanvasCenterY = padding + ((nodeCenterY - minY + 15f) / spanY) * expandedHeight
-
-            val targetCenterX = drawSize.width / 2f
-            val targetCenterY = drawSize.height / 2f
-
-            val autoCenterOffsetX = targetCenterX - initialCanvasCenterX
-            val autoCenterOffsetY = targetCenterY - initialCanvasCenterY
-
-            return initial.copy(
-                drawWidth = expandedWidth,
-                drawHeight = expandedHeight,
-                nodeRadius = adaptiveRadius,
-                panOffset = Offset(panOffset.x + autoCenterOffsetX, panOffset.y + autoCenterOffsetY)
+            val bboxCenterX = (minX + maxX) / 2f
+            val bboxCenterY = (minY + maxY) / 2f
+            val pan = Offset(
+                x = -(bboxCenterX - geom.nodeCenterX) * geom.baseScale * fitZoom,
+                y = -(bboxCenterY - geom.nodeCenterY) * geom.baseScale * fitZoom
             )
+            return fitZoom to pan
         }
     }
 }

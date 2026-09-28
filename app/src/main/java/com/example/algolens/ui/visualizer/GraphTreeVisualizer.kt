@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,18 +17,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import com.example.algolens.ui.components.AlgoGlyphs
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,10 +32,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.example.algolens.data.GraphSearch
+import com.example.algolens.model.GraphCapabilityProfile
+import com.example.algolens.model.GraphTelemetryMode
+import com.example.algolens.model.GraphTool
+import com.example.algolens.ui.components.AlgoGlyphs
 import com.example.algolens.ui.components.DoubleBezelShell
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentPink
@@ -49,11 +50,9 @@ import com.example.algolens.ui.theme.AccentYellow
 import com.example.algolens.ui.theme.AlgoLensTheme
 import com.example.algolens.ui.theme.AlgoTokens
 import com.example.algolens.ui.theme.AlgoType
-import com.example.algolens.ui.theme.BorderCyan
 import com.example.algolens.ui.theme.BorderSubtle
 import com.example.algolens.ui.theme.CanvasBackground
 import com.example.algolens.ui.theme.CardBackground
-import com.example.algolens.ui.theme.CardBackgroundElevated
 import com.example.algolens.ui.theme.CyanSubtle
 import com.example.algolens.ui.theme.DarkBackground
 import com.example.algolens.ui.theme.GreenSubtle
@@ -68,11 +67,8 @@ import com.example.algolens.ui.theme.TextSecondary
 
 /**
  * Interactive 2D Graph & Tree Canvas Visualizer and Builder.
- * Supports:
- * - Precision CAD / oscilloscope grid-like stage background
- * - Weighted edge pill badges (`figma-make-ref` parity)
- * - Synchronized Heap Array Strip (`2i+1` / `2i+2`) for Heap & Frontier Queue/Stack strip for BFS/DFS
- * - Direct node tap callbacks (`onNodeClick`) for Graph Challenge Mode & inspection
+ * Delegates canvas operations to [GraphCanvasEngine] shared between embedded
+ * and fullscreen edge-to-edge Dialog surfaces.
  */
 @Composable
 fun GraphTreeVisualizer(
@@ -80,67 +76,55 @@ fun GraphTreeVisualizer(
     modifier: Modifier = Modifier,
     algorithmKey: String = "",
     builderEnabled: Boolean = false,
-    telemetryMode: com.example.algolens.model.GraphTelemetryMode = com.example.algolens.model.GraphTelemetryMode.NONE,
+    profile: GraphCapabilityProfile? = null,
+    telemetryMode: GraphTelemetryMode = GraphTelemetryMode.NONE,
     isCustomGraph: Boolean = false,
+    userCustomCoordinates: Map<String, Offset> = emptyMap(),
+    onNodeMoved: ((String, Offset) -> Unit)? = null,
     challengeTargetNodeIds: Set<String> = emptySet(),
     startNodeId: String? = null,
     targetNodeId: String? = null,
     onEndpointsChanged: ((String?, String?) -> Unit)? = null,
     onNodeClick: ((String) -> Unit)? = null,
-    onGraphModified: ((List<GraphNodeState>, List<GraphEdgeState>) -> Unit)? = null
+    onGraphModified: ((List<GraphNodeState>, List<GraphEdgeState>) -> Unit)? = null,
+    onBstInsertKey: ((Int) -> Unit)? = null,
+    onBstDeleteNode: ((String) -> Unit)? = null,
+    onHeapPushValue: ((Int) -> Unit)? = null,
+    onHeapExtractRoot: (() -> Unit)? = null,
+    onHeapRemoveTail: (() -> Unit)? = null,
+    onResetGraph: (() -> Unit)? = null
 ) {
-    var dynamicNodes by remember(algorithmKey) { mutableStateOf(step.nodes) }
-    var dynamicEdges by remember(algorithmKey) { mutableStateOf(step.edges) }
-    var hasLocalEdits by remember(algorithmKey) { mutableStateOf(false) }
+    val resolvedProfile = remember(profile, algorithmKey, builderEnabled) {
+        if (profile != null) return@remember profile
+        when {
+            algorithmKey.contains("DIJKSTRA", ignoreCase = true) ->
+                GraphCapabilityProfile.dijkstraProfile()
+            algorithmKey.contains("BFS", ignoreCase = true) || algorithmKey.contains("DFS", ignoreCase = true) ->
+                GraphCapabilityProfile.bfsDfsProfile()
+            algorithmKey.contains("BST", ignoreCase = true) || algorithmKey.contains("BINARY_SEARCH_TREE", ignoreCase = true) ->
+                GraphCapabilityProfile.bstProfile()
+            algorithmKey.contains("HEAP", ignoreCase = true) ->
+                GraphCapabilityProfile.heapProfile()
+            builderEnabled ->
+                GraphCapabilityProfile.dijkstraProfile()
+            else ->
+                GraphCapabilityProfile.readOnlyProfile()
+        }
+    }
 
-    // Gesture builder + viewport pan state
     var selectedNodeId by remember { mutableStateOf<String?>(null) }
-    var dragStartNode by remember { mutableStateOf<GraphNodeState?>(null) }
-    var currentDragPos by remember { mutableStateOf<Offset?>(null) }
-    var hoveredTargetNodeId by remember { mutableStateOf<String?>(null) }
     var isBuilderActive by remember { mutableStateOf(false) }
     var isFullscreen by remember { mutableStateOf(false) }
     var activeTool by remember { mutableStateOf(GraphTool.MOVE) }
-    var panOffset by remember(algorithmKey) { mutableStateOf(Offset.Zero) }
-    var maxObservedCanvasHeightPx by remember(algorithmKey) { mutableStateOf(0f) }
-
-    val livePreviewPath = remember(dynamicEdges, startNodeId, targetNodeId) {
-        if (startNodeId != null && targetNodeId != null) {
-            val adj = com.example.algolens.data.GraphSearch.buildAdjacency(dynamicEdges)
-            com.example.algolens.data.GraphSearch.shortestPath(adj, startNodeId, targetNodeId)
-        } else {
-            emptyList()
-        }
-    }
-
-    LaunchedEffect(step.nodes, step.edges, isBuilderActive) {
-        if (!isBuilderActive) {
-            dynamicNodes = step.nodes
-            dynamicEdges = step.edges
-        }
-    }
-
-    fun getNextNodeLabel(existing: List<GraphNodeState>): String {
-        val usedLabels = existing.map { it.label }.toSet()
-        for (ch in 'A'..'Z') {
-            if (!usedLabels.contains(ch.toString())) {
-                return ch.toString()
-            }
-        }
-        return "N${existing.size + 1}"
-    }
-
-    // Nodes render at stable scale 1f — active-halo pulse is handled by GraphTreeRenderer.
-    val nodeScalesSnapshot: Map<String, Float> = emptyMap()
 
     val resolvedMode = remember(telemetryMode, algorithmKey) {
-        if (telemetryMode != com.example.algolens.model.GraphTelemetryMode.NONE) {
+        if (telemetryMode != GraphTelemetryMode.NONE) {
             telemetryMode
         } else {
             com.example.algolens.model.AlgorithmId.entries
                 .firstOrNull { it.name.equals(algorithmKey, ignoreCase = true) || it.displayName.equals(algorithmKey, ignoreCase = true) }
                 ?.let { com.example.algolens.data.AlgorithmRegistry.specFor(it)?.graphTelemetryMode }
-                ?: com.example.algolens.model.GraphTelemetryMode.BFS_QUEUE
+                ?: GraphTelemetryMode.BFS_QUEUE
         }
     }
 
@@ -154,171 +138,109 @@ fun GraphTreeVisualizer(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
         ) {
-            // ── Top Interactive Builder Toolbar (Shown only for algorithms with builderEnabled, e.g. BFS/DFS) ──
-            if (builderEnabled) {
-                GraphBuilderToolbar(
-                    isBuilderActive = isBuilderActive,
-                    onToggleBuilder = { isBuilderActive = !isBuilderActive },
-                    dynamicNodeCount = dynamicNodes.size,
-                    dynamicEdgeCount = dynamicEdges.size,
-                    isPanned = panOffset != Offset.Zero,
-                    onResetPan = { panOffset = Offset.Zero },
-                    canReset = isCustomGraph || hasLocalEdits || dynamicNodes != step.nodes || dynamicEdges != step.edges,
-                    onReset = {
-                        selectedNodeId = null
-                        dragStartNode = null
-                        currentDragPos = null
-                        hoveredTargetNodeId = null
-                        panOffset = Offset.Zero
-                        hasLocalEdits = false
-                        onEndpointsChanged?.invoke(null, null)
-                        if (onGraphModified != null) {
-                            onGraphModified(emptyList(), emptyList())
-                        } else {
-                            dynamicNodes = step.nodes
-                            dynamicEdges = step.edges
-                        }
-                    },
-                    onAddNode = {
-                        val nextLabel = getNextNodeLabel(dynamicNodes)
-                        val count = dynamicNodes.size
-                        val offsetStep = (count % 5) * 8f
-                        val newNode = GraphNodeState(
-                            id = nextLabel,
-                            label = nextLabel,
-                            x = 50f + (count % 3 - 1) * 20f + offsetStep,
-                            y = 50f + (count / 3) * 16f,
-                            state = ElementState.ACTIVE
-                        )
-                        val updated = dynamicNodes + newNode
-                        dynamicNodes = updated
-                        hasLocalEdits = true
-                        onGraphModified?.invoke(updated, dynamicEdges)
-                    },
-                    activeTool = activeTool,
-                    onToolSelected = { activeTool = it },
-                    isFullscreen = isFullscreen,
-                    onToggleFullscreen = { isFullscreen = !isFullscreen }
-                )
-            }
-
-            // ── Main Canvas with Gesture Detectors + Renderer ──
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .onSizeChanged { size ->
-                        if (size.height.toFloat() > maxObservedCanvasHeightPx) {
-                            maxObservedCanvasHeightPx = size.height.toFloat()
-                        }
-                    }
-                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                    .background(CanvasBackground)
-                    .border(
-                        width = AlgoTokens.strokeThin,
-                        color = AccentGreen.copy(alpha = 0.16f),
-                        shape = RoundedCornerShape(AlgoTokens.radiusSm)
-                    )
-            ) {
-                GraphBuilderGestures(
-                    dynamicNodes = dynamicNodes,
-                    dynamicEdges = dynamicEdges,
-                    isBuilderActive = isBuilderActive && builderEnabled,
-                    selectedNodeId = selectedNodeId,
-                    dragStartNode = dragStartNode,
-                    hoveredTargetNodeId = hoveredTargetNodeId,
-                    activeTool = activeTool,
-                    startNodeId = startNodeId,
-                    targetNodeId = targetNodeId,
-                    panOffset = panOffset,
-                    referenceHeight = maxObservedCanvasHeightPx,
-                    onPanChanged = { panOffset = it },
-                    onNodesChanged = { dynamicNodes = it; hasLocalEdits = true },
-                    onEdgesChanged = { dynamicEdges = it; hasLocalEdits = true },
-                    onSelectedNodeIdChanged = { selectedNodeId = it },
-                    onDragStartNodeChanged = { dragStartNode = it },
-                    onCurrentDragPosChanged = { currentDragPos = it },
-                    onHoveredTargetNodeIdChanged = { hoveredTargetNodeId = it },
-                    onEndpointsChanged = onEndpointsChanged,
-                    onGraphModified = onGraphModified,
-                    getNextNodeLabel = ::getNextNodeLabel,
-                    onNodeClick = onNodeClick,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                GraphTreeRenderer(
-                    nodes = dynamicNodes,
-                    edges = dynamicEdges,
-                    visitedNodeIds = step.visitedNodeIds,
-                    activeNodeId = step.activeNodeId,
-                    selectedNodeId = selectedNodeId,
-                    hoveredTargetNodeId = hoveredTargetNodeId,
-                    dragStartNode = dragStartNode,
-                    currentDragPos = currentDragPos,
-                    nodeScales = nodeScalesSnapshot,
-                    challengeTargetNodeIds = challengeTargetNodeIds,
-                    startNodeId = startNodeId,
-                    targetNodeId = targetNodeId,
-                    previewPath = livePreviewPath,
-                    panOffset = panOffset,
-                    referenceHeight = maxObservedCanvasHeightPx,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                // Builder instruction banner overlay & floating toolbar
-                if (builderEnabled) {
-                    Column(
+            // ── Top Status Header (only if editing tools are available) ──
+            if (resolvedProfile.allowedTools.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = AlgoTokens.space2),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                            .background(if (isBuilderActive) CyanSubtle else CanvasBackground)
+                            .border(
+                                AlgoTokens.strokeThin,
+                                if (isBuilderActive) PrimaryCyan else BorderSubtle,
+                                RoundedCornerShape(AlgoTokens.radiusXs)
+                            )
+                            .clickable { isBuilderActive = !isBuilderActive }
+                            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
                     ) {
-                        GraphBuilderBanner(
-                            isBuilderActive = isBuilderActive,
-                            activeTool = activeTool,
-                            selectedNodeId = selectedNodeId
-                        )
-                        GraphFloatingToolbar(
-                            activeTool = activeTool,
-                            onToolSelected = { activeTool = it },
-                            onCenterView = { panOffset = Offset.Zero },
-                            onResetGraph = {
-                                selectedNodeId = null
-                                dragStartNode = null
-                                currentDragPos = null
-                                hoveredTargetNodeId = null
-                                panOffset = Offset.Zero
-                                hasLocalEdits = false
-                                onEndpointsChanged?.invoke(null, null)
-                                if (onGraphModified != null) {
-                                    onGraphModified(emptyList(), emptyList())
-                                } else {
-                                    dynamicNodes = step.nodes
-                                    dynamicEdges = step.edges
-                                }
-                            },
-                            onToggleFullscreen = { isFullscreen = !isFullscreen },
-                            isFullscreen = isFullscreen,
-                            canReset = isCustomGraph || hasLocalEdits || dynamicNodes != step.nodes || dynamicEdges != step.edges,
-                            isPanned = panOffset != Offset.Zero
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+                        ) {
+                            Icon(
+                                imageVector = AlgoGlyphs.Tap,
+                                contentDescription = null,
+                                tint = if (isBuilderActive) PrimaryCyan else TextMuted,
+                                modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                            )
+                            Text(
+                                text = if (isBuilderActive) "Builder: Active" else "Interactive Mode",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isBuilderActive) PrimaryCyan else TextMuted,
+                                fontSize = AlgoType.microSize,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                        }
                     }
+
+                    Text(
+                        text = "${step.nodes.size} nodes • ${step.edges.size} edges",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextDark,
+                        fontSize = AlgoType.microSize,
+                        maxLines = 1
+                    )
                 }
             }
 
-            // ── Synchronized Bottom Stage Telemetry (Heap Array Strip OR Graph Frontier Strip) ──
-            if (resolvedMode == com.example.algolens.model.GraphTelemetryMode.HEAP_ARRAY) {
+            // ── Embedded Stage Canvas ──
+            GraphCanvasEngine(
+                nodes = step.nodes,
+                edges = step.edges,
+                profile = resolvedProfile,
+                isBuilderActive = isBuilderActive,
+                activeTool = activeTool,
+                onToolSelected = { activeTool = it },
+                selectedNodeId = selectedNodeId,
+                onSelectedNodeIdChanged = { selectedNodeId = it },
+                userCustomCoordinates = userCustomCoordinates,
+                onNodeMoved = { id, coords -> onNodeMoved?.invoke(id, coords) },
+                visitedNodeIds = step.visitedNodeIds,
+                activeNodeId = step.activeNodeId,
+                challengeTargetNodeIds = challengeTargetNodeIds,
+                startNodeId = startNodeId,
+                targetNodeId = targetNodeId,
+                onEndpointsChanged = onEndpointsChanged,
+                onNodeClicked = onNodeClick,
+                onGraphModified = onGraphModified,
+                onBstInsertKey = onBstInsertKey,
+                onBstDeleteNode = onBstDeleteNode,
+                onHeapPushValue = onHeapPushValue,
+                onHeapExtractRoot = onHeapExtractRoot,
+                onHeapRemoveTail = onHeapRemoveTail,
+                canReset = isCustomGraph || userCustomCoordinates.isNotEmpty(),
+                onResetGraph = {
+                    selectedNodeId = null
+                    onResetGraph?.invoke()
+                },
+                isFullscreen = isFullscreen,
+                onToggleFullscreen = { isFullscreen = !isFullscreen },
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            )
+
+            // ── Synchronized Bottom Stage Telemetry ──
+            if (resolvedMode == GraphTelemetryMode.HEAP_ARRAY) {
                 HeapSynchronizedArrayStrip(
                     step = step,
-                    nodes = dynamicNodes,
+                    nodes = step.nodes,
                     onCellClick = { idx -> onNodeClick?.invoke(idx.toString()) }
                 )
             } else {
                 GraphFrontierTelemetryStrip(
                     step = step,
-                    edges = dynamicEdges,
+                    edges = step.edges,
                     telemetryMode = resolvedMode,
+                    startNodeId = startNodeId,
+                    targetNodeId = targetNodeId,
                     onNodeClick = onNodeClick
                 )
             }
@@ -348,7 +270,7 @@ fun GraphTreeVisualizer(
                         .padding(AlgoTokens.space3),
                     verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                 ) {
-                    // Top minimal bar
+                    // Fullscreen Header
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -367,150 +289,65 @@ fun GraphTreeVisualizer(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${dynamicNodes.size} nodes • ${dynamicEdges.size} edges",
+                                text = "${step.nodes.size} nodes • ${step.edges.size} edges",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextMuted,
                                 fontSize = AlgoType.microSize
                             )
                         }
-
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                                .background(CanvasBackground)
-                                .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusXs))
-                                .clickable { isFullscreen = false }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = AlgoGlyphs.Close,
-                                contentDescription = "Exit Fullscreen",
-                                tint = PrimaryCyan,
-                                modifier = Modifier.size(10.dp)
-                            )
-                            Text(
-                                text = "Exit",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = PrimaryCyan,
-                                fontSize = AlgoType.microSize,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
                     }
 
-                    // Stage in fullscreen
-                    Box(
+                    // Stage in Fullscreen
+                    GraphCanvasEngine(
+                        nodes = step.nodes,
+                        edges = step.edges,
+                        profile = resolvedProfile,
+                        isBuilderActive = isBuilderActive,
+                        activeTool = activeTool,
+                        onToolSelected = { activeTool = it },
+                        selectedNodeId = selectedNodeId,
+                        onSelectedNodeIdChanged = { selectedNodeId = it },
+                        userCustomCoordinates = userCustomCoordinates,
+                        onNodeMoved = { id, coords -> onNodeMoved?.invoke(id, coords) },
+                        visitedNodeIds = step.visitedNodeIds,
+                        activeNodeId = step.activeNodeId,
+                        challengeTargetNodeIds = challengeTargetNodeIds,
+                        startNodeId = startNodeId,
+                        targetNodeId = targetNodeId,
+                        onEndpointsChanged = onEndpointsChanged,
+                        onNodeClicked = onNodeClick,
+                        onGraphModified = onGraphModified,
+                        onBstInsertKey = onBstInsertKey,
+                        onBstDeleteNode = onBstDeleteNode,
+                        onHeapPushValue = onHeapPushValue,
+                        onHeapExtractRoot = onHeapExtractRoot,
+                        onHeapRemoveTail = onHeapRemoveTail,
+                        canReset = isCustomGraph || userCustomCoordinates.isNotEmpty(),
+                        onResetGraph = {
+                            selectedNodeId = null
+                            onResetGraph?.invoke()
+                        },
+                        isFullscreen = true,
+                        onToggleFullscreen = { isFullscreen = false },
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                            .background(CanvasBackground)
-                            .border(
-                                width = AlgoTokens.strokeThin,
-                                color = AccentGreen.copy(alpha = 0.16f),
-                                shape = RoundedCornerShape(AlgoTokens.radiusSm)
-                            )
-                    ) {
-                        GraphBuilderGestures(
-                            dynamicNodes = dynamicNodes,
-                            dynamicEdges = dynamicEdges,
-                            isBuilderActive = isBuilderActive && builderEnabled,
-                            selectedNodeId = selectedNodeId,
-                            dragStartNode = dragStartNode,
-                            hoveredTargetNodeId = hoveredTargetNodeId,
-                            activeTool = activeTool,
-                            startNodeId = startNodeId,
-                            targetNodeId = targetNodeId,
-                            panOffset = panOffset,
-                            referenceHeight = maxObservedCanvasHeightPx,
-                            onPanChanged = { panOffset = it },
-                            onNodesChanged = { dynamicNodes = it; hasLocalEdits = true },
-                            onEdgesChanged = { dynamicEdges = it; hasLocalEdits = true },
-                            onSelectedNodeIdChanged = { selectedNodeId = it },
-                            onDragStartNodeChanged = { dragStartNode = it },
-                            onCurrentDragPosChanged = { currentDragPos = it },
-                            onHoveredTargetNodeIdChanged = { hoveredTargetNodeId = it },
-                            onEndpointsChanged = onEndpointsChanged,
-                            onGraphModified = onGraphModified,
-                            getNextNodeLabel = ::getNextNodeLabel,
-                            onNodeClick = onNodeClick,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                    )
 
-                        GraphTreeRenderer(
-                            nodes = dynamicNodes,
-                            edges = dynamicEdges,
-                            visitedNodeIds = step.visitedNodeIds,
-                            activeNodeId = step.activeNodeId,
-                            selectedNodeId = selectedNodeId,
-                            hoveredTargetNodeId = hoveredTargetNodeId,
-                            dragStartNode = dragStartNode,
-                            currentDragPos = currentDragPos,
-                            nodeScales = nodeScalesSnapshot,
-                            challengeTargetNodeIds = challengeTargetNodeIds,
-                            startNodeId = startNodeId,
-                            targetNodeId = targetNodeId,
-                            previewPath = livePreviewPath,
-                            panOffset = panOffset,
-                            referenceHeight = maxObservedCanvasHeightPx,
-                            modifier = Modifier.fillMaxSize()
-                        )
-
-                        if (builderEnabled) {
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = AlgoTokens.space2),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
-                            ) {
-                                GraphBuilderBanner(
-                                    isBuilderActive = isBuilderActive,
-                                    activeTool = activeTool,
-                                    selectedNodeId = selectedNodeId
-                                )
-                                GraphFloatingToolbar(
-                                    activeTool = activeTool,
-                                    onToolSelected = { activeTool = it },
-                                    onCenterView = { panOffset = Offset.Zero },
-                                    onResetGraph = {
-                                        selectedNodeId = null
-                                        dragStartNode = null
-                                        currentDragPos = null
-                                        hoveredTargetNodeId = null
-                                        panOffset = Offset.Zero
-                                        hasLocalEdits = false
-                                        onEndpointsChanged?.invoke(null, null)
-                                        if (onGraphModified != null) {
-                                            onGraphModified(emptyList(), emptyList())
-                                        } else {
-                                            dynamicNodes = step.nodes
-                                            dynamicEdges = step.edges
-                                        }
-                                    },
-                                    onToggleFullscreen = { isFullscreen = false },
-                                    isFullscreen = true,
-                                    canReset = isCustomGraph || hasLocalEdits || dynamicNodes != step.nodes || dynamicEdges != step.edges,
-                                    isPanned = panOffset != Offset.Zero
-                                )
-                            }
-                        }
-                    }
-
-                    // Bottom telemetry in fullscreen
-                    if (resolvedMode == com.example.algolens.model.GraphTelemetryMode.HEAP_ARRAY) {
+                    // Bottom telemetry in Fullscreen
+                    if (resolvedMode == GraphTelemetryMode.HEAP_ARRAY) {
                         HeapSynchronizedArrayStrip(
                             step = step,
-                            nodes = dynamicNodes,
+                            nodes = step.nodes,
                             onCellClick = { idx -> onNodeClick?.invoke(idx.toString()) }
                         )
                     } else {
                         GraphFrontierTelemetryStrip(
                             step = step,
-                            edges = dynamicEdges,
+                            edges = step.edges,
                             telemetryMode = resolvedMode,
+                            startNodeId = startNodeId,
+                            targetNodeId = targetNodeId,
                             onNodeClick = onNodeClick
                         )
                     }
@@ -522,8 +359,7 @@ fun GraphTreeVisualizer(
 
 /**
  * Synchronized 1D Array Strip rendered directly beneath the 2D Binary Heap Tree.
- * Shows the exact 0-indexed array layout (`parent = (i-1)/2`, `left = 2i+1`, `right = 2i+2`)
- * in lockstep with the tree node states.
+ * Safely handles empty heap without showing misleading [0..0] range.
  */
 @Composable
 private fun HeapSynchronizedArrayStrip(
@@ -534,7 +370,7 @@ private fun HeapSynchronizedArrayStrip(
     val arrayValues = if (step.array.isNotEmpty()) {
         step.array
     } else {
-        nodes.map { it.label.toIntOrNull() ?: 0 }
+        nodes.mapNotNull { it.label.toIntOrNull() }
     }
     val activeIdx = step.activeNodeId?.toIntOrNull()
     val parentIdx = if (activeIdx != null && activeIdx > 0) (activeIdx - 1) / 2 else null
@@ -555,14 +391,21 @@ private fun HeapSynchronizedArrayStrip(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val titleText = if (arrayValues.isNotEmpty()) {
+                "HEAP ARRAY [0..${arrayValues.size - 1}]"
+            } else {
+                "HEAP ARRAY (EMPTY)"
+            }
             Text(
-                text = "HEAP ARRAY [0..${(arrayValues.size - 1).coerceAtLeast(0)}]",
+                text = titleText,
                 style = MaterialTheme.typography.labelSmall,
                 color = PrimaryCyan,
                 fontSize = AlgoType.microSize,
                 fontWeight = FontWeight.Bold
             )
-            val mappingText = if (activeIdx != null) {
+            val mappingText = if (arrayValues.isEmpty()) {
+                "Heap is empty"
+            } else if (activeIdx != null) {
                 val lStr = if (leftChildIdx != null && leftChildIdx < arrayValues.size) "2i+1=$leftChildIdx" else "L=null"
                 val rStr = if (rightChildIdx != null && rightChildIdx < arrayValues.size) "2i+2=$rightChildIdx" else "R=null"
                 "i=$activeIdx • $lStr • $rStr"
@@ -577,59 +420,69 @@ private fun HeapSynchronizedArrayStrip(
             )
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            arrayValues.forEachIndexed { idx, value ->
-                val nodeState = nodes.getOrNull(idx)?.state ?: step.elementStates[idx] ?: ElementState.IDLE
-                val isCurrent = idx == activeIdx || nodeState == ElementState.ACTIVE
-                val isChild = idx == leftChildIdx || idx == rightChildIdx || nodeState == ElementState.COMPARING
-                val isSwapping = nodeState == ElementState.SWAPPING
-                val isSorted = nodeState == ElementState.SORTED || nodeState == ElementState.VISITED
+        if (arrayValues.isEmpty()) {
+            Text(
+                text = "No elements in heap (use Add Node to push value)",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextDark,
+                fontSize = AlgoType.microSize,
+                modifier = Modifier.padding(vertical = AlgoTokens.space1)
+            )
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                arrayValues.forEachIndexed { idx, value ->
+                    val nodeState = nodes.getOrNull(idx)?.state ?: step.elementStates[idx] ?: ElementState.IDLE
+                    val isCurrent = idx == activeIdx || nodeState == ElementState.ACTIVE
+                    val isChild = idx == leftChildIdx || idx == rightChildIdx || nodeState == ElementState.COMPARING
+                    val isSwapping = nodeState == ElementState.SWAPPING
+                    val isSorted = nodeState == ElementState.SORTED || nodeState == ElementState.VISITED
 
-                val (bg, border, fg) = when {
-                    isSwapping -> Triple(AccentRed.copy(alpha = 0.25f), AccentRed, Color.White)
-                    isCurrent -> Triple(AccentGreen.copy(alpha = 0.22f), AccentGreen, AccentGreen)
-                    isChild -> Triple(AccentYellow.copy(alpha = 0.18f), AccentYellow, AccentYellow)
-                    isSorted -> Triple(PurpleSubtle, SecondaryPurple, PurpleGlow)
-                    else -> Triple(DarkBackground, BorderSubtle, TextSecondary)
-                }
+                    val (bg, border, fg) = when {
+                        isSwapping -> Triple(AccentRed.copy(alpha = 0.25f), AccentRed, Color.White)
+                        isCurrent -> Triple(AccentGreen.copy(alpha = 0.22f), AccentGreen, AccentGreen)
+                        isChild -> Triple(AccentYellow.copy(alpha = 0.18f), AccentYellow, AccentYellow)
+                        isSorted -> Triple(PurpleSubtle, SecondaryPurple, PurpleGlow)
+                        else -> Triple(DarkBackground, BorderSubtle, TextSecondary)
+                    }
 
-                val roleBadge = when (idx) {
-                    activeIdx -> "P"
-                    leftChildIdx -> "L"
-                    rightChildIdx -> "R"
-                    parentIdx -> "↑P"
-                    else -> "#$idx"
-                }
+                    val roleBadge = when (idx) {
+                        activeIdx -> "P"
+                        leftChildIdx -> "L"
+                        rightChildIdx -> "R"
+                        parentIdx -> "↑P"
+                        else -> "#$idx"
+                    }
 
-                Column(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                        .background(bg)
-                        .border(AlgoTokens.strokeThin, border, RoundedCornerShape(AlgoTokens.radiusXxs))
-                        .clickable { onCellClick(idx) }
-                        .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = value.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = fg,
-                        fontSize = AlgoType.labelSize,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = roleBadge,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (idx == activeIdx || idx == leftChildIdx || idx == rightChildIdx) fg else TextDark,
-                        fontSize = AlgoType.microSize,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Column(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+                            .background(bg)
+                            .border(AlgoTokens.strokeThin, border, RoundedCornerShape(AlgoTokens.radiusXxs))
+                            .clickable { onCellClick(idx) }
+                            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = value.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = fg,
+                            fontSize = AlgoType.labelSize,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = roleBadge,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (idx == activeIdx || idx == leftChildIdx || idx == rightChildIdx) fg else TextDark,
+                            fontSize = AlgoType.microSize,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -637,23 +490,20 @@ private fun HeapSynchronizedArrayStrip(
 }
 
 /**
- * Live Frontier (Queue / Stack / Search Path), Visited Order, and Path Weight Strip
- * rendered below the Graph/BST Canvas for `figma-make-ref` parity.
+ * Live Frontier (Queue / Stack / Target), Visited Order, and Path Weight Strip.
+ * Path weight is ONLY shown for Dijkstra's confirmed path; never shown for BFS/DFS or trees.
  */
 @Composable
 private fun GraphFrontierTelemetryStrip(
     step: VisualizerStep,
     edges: List<GraphEdgeState>,
-    telemetryMode: com.example.algolens.model.GraphTelemetryMode,
+    telemetryMode: GraphTelemetryMode,
+    startNodeId: String? = null,
+    targetNodeId: String? = null,
     onNodeClick: ((String) -> Unit)?
 ) {
     val frontierLabel = telemetryMode.frontierLabel
     val frontierItems: List<BufferItem> = step.buffer
-
-    val highlightedWeightSum = edges
-        .filter { it.isHighlighted && it.weight != null }
-        .sumOf { it.weight ?: 0 }
-    val hasWeights = edges.any { it.weight != null }
 
     Row(
         modifier = Modifier
@@ -687,14 +537,14 @@ private fun GraphFrontierTelemetryStrip(
                 )
             } else {
                 frontierItems.forEach { item ->
-                    val targetNodeId = item.nodeId ?: item.value
+                    val targetId = item.nodeId ?: item.value
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                             .background(CyanSubtle)
                             .border(AlgoTokens.strokeHairline, PrimaryCyan.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusXxs))
-                            .clickable(enabled = onNodeClick != null) { onNodeClick?.invoke(targetNodeId) }
-                            .padding(horizontal = AlgoTokens.space2, vertical = 1.dp)
+                            .clickable(enabled = onNodeClick != null) { onNodeClick?.invoke(targetId) }
+                            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.strokeThin)
                     ) {
                         Text(
                             text = item.value,
@@ -738,22 +588,39 @@ private fun GraphFrontierTelemetryStrip(
             }
         }
 
-        // 3. Weighted Path Cost Badge (when graph has edge weights)
-        if (hasWeights) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                    .background(GreenSubtle)
-                    .border(AlgoTokens.strokeHairline, AccentGreen.copy(alpha = 0.45f), RoundedCornerShape(AlgoTokens.radiusXxs))
-                    .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
-            ) {
-                Text(
-                    text = "∑w = $highlightedWeightSum",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AccentGreen,
-                    fontSize = AlgoType.microSize,
-                    fontWeight = FontWeight.Bold
-                )
+        // 3. Weighted Path Cost Badge (only shown for Dijkstra)
+        if (telemetryMode == GraphTelemetryMode.DIJKSTRA_PQ) {
+            val confirmedCost = when {
+                step.phaseLabel in listOf("FOUND", "TARGET REACHED", "DONE") -> {
+                    step.variables["dist[${targetNodeId ?: step.activeNodeId}]"]?.toIntOrNull()
+                        ?: if (startNodeId != null && targetNodeId != null) {
+                            val adj = GraphSearch.buildAdjacency(edges)
+                            val (_, cost) = GraphSearch.dijkstraShortestPath(adj, startNodeId, targetNodeId)
+                            cost.takeIf { it >= 0 }
+                        } else null
+                }
+                step.phaseLabel in listOf("SETTLED", "RELAXING") && step.activeNodeId != null -> {
+                    step.variables["dist[${step.activeNodeId}]"]?.toIntOrNull()
+                }
+                else -> null
+            }
+
+            if (confirmedCost != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+                        .background(GreenSubtle)
+                        .border(AlgoTokens.strokeHairline, AccentGreen.copy(alpha = 0.45f), RoundedCornerShape(AlgoTokens.radiusXxs))
+                        .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
+                ) {
+                    Text(
+                        text = "Cost: $confirmedCost",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AccentGreen,
+                        fontSize = AlgoType.microSize,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
