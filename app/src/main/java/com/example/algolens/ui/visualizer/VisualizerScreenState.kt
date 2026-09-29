@@ -17,10 +17,12 @@ import com.example.algolens.data.AppSettings
 import com.example.algolens.data.GraphTreeMutations
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.AlgorithmId
+import com.example.algolens.model.BstMode
 import com.example.algolens.model.BufferOp
 import com.example.algolens.model.GraphCustomization
 import com.example.algolens.model.GraphTool
 import com.example.algolens.model.QueueOp
+import com.example.algolens.model.QueueVariant
 import com.example.algolens.model.SortOrder
 import kotlinx.coroutines.delay
 
@@ -148,6 +150,9 @@ class VisualizerScreenState(
     //    default sequences so Stack and Queue open with rich interactive steps. ──
     var bufferOps: List<BufferOp> by mutableStateOf(AlgorithmStepRepository.defaultStackOps())
     var queueOps: List<QueueOp> by mutableStateOf(AlgorithmStepRepository.defaultQueueOps())
+    var bstMode: BstMode by mutableStateOf(BstMode.SEARCH)
+    var queueVariant: QueueVariant by mutableStateOf(QueueVariant.LINEAR_FIFO)
+    var circularQueueOps: List<QueueOp> by mutableStateOf(AlgorithmStepRepository.defaultCircularQueueOps())
 
     // ── Graph customize state (BST / Heap / BFS / DFS). The sheet
     //    emits a `GraphCustomization` (ForHeap | ForBst | ForTraversal)
@@ -520,6 +525,7 @@ class VisualizerScreenState(
                 when (op) {
                     is QueueOp.Enqueue -> if (queue.size < 8) queue.add(op.value)
                     QueueOp.Dequeue -> if (queue.isNotEmpty()) queue.removeAt(0)
+                    QueueOp.Peek -> Unit
                 }
             }
             return queue
@@ -661,7 +667,7 @@ class VisualizerScreenState(
             AlgorithmStepRepository.defaultStackOps()
         }
         val updated = baseOps + op
-        pendingStepAfterRegen = -1 // sentinel: jump to the last operation step before DONE
+        pendingStepAfterRegen = if (op is BufferOp.Pop) -2 else -1
         bufferOps = updated
     }
 
@@ -673,6 +679,7 @@ class VisualizerScreenState(
         when (op) {
             is QueueOp.Enqueue -> if (!canAppendToBuffer(isStack = false)) return
             QueueOp.Dequeue -> if (!canRemoveFromBuffer(isStack = false)) return
+            QueueOp.Peek -> if (!canRemoveFromBuffer(isStack = false)) return
         }
         val baseOps = if (queueOps.isNotEmpty()) {
             queueOps
@@ -680,8 +687,33 @@ class VisualizerScreenState(
             AlgorithmStepRepository.defaultQueueOps()
         }
         val updated = baseOps + op
-        pendingStepAfterRegen = -1
+        pendingStepAfterRegen = if (op is QueueOp.Dequeue) -2 else -1
         queueOps = updated
+    }
+
+    fun selectBstMode(mode: BstMode) {
+        if (bstMode != mode) {
+            isPlaying = false
+            bstMode = mode
+        }
+    }
+
+    fun selectQueueVariant(variant: QueueVariant) {
+        if (queueVariant != variant) {
+            isPlaying = false
+            queueVariant = variant
+        }
+    }
+
+    fun appendLiveCircularQueueOp(op: QueueOp) {
+        val baseOps = if (circularQueueOps.isNotEmpty()) {
+            circularQueueOps
+        } else {
+            AlgorithmStepRepository.defaultCircularQueueOps()
+        }
+        val updated = baseOps + op
+        pendingStepAfterRegen = if (op is QueueOp.Dequeue) -2 else -1
+        circularQueueOps = updated
     }
 }
 
@@ -706,6 +738,9 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
         state.searchTarget,
         state.bufferOps,
         state.queueOps,
+        state.bstMode,
+        state.queueVariant,
+        state.circularQueueOps,
         state.graphConfig,
         state.customGraph,
         state.graphStartNodeId,
@@ -733,6 +768,9 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             queueOps = state.queueOps,
             bstValues = bstValues,
             bstSearchKey = bstSearchKey,
+            bstMode = state.bstMode,
+            queueVariant = state.queueVariant,
+            circularQueueOps = state.circularQueueOps,
             traversalStartNodeId = traversalStart ?: "A",
             targetNodeId = traversalTarget,
             customGraph = state.customGraph,
@@ -749,10 +787,10 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
             // Other input changes (array values, sort order, graph config)
             // carry no target and intentionally fall through to reset():
             // a full re-run deserves a fresh start at step 0.
-            val resolved = if (targetIdx < 0) {
-                (state.steps.lastIndex - 1).coerceAtLeast(0)
-            } else {
-                targetIdx.coerceIn(0, (state.steps.lastIndex - 1).coerceAtLeast(0))
+            val resolved = when {
+                targetIdx == -2 -> (state.steps.lastIndex - 2).coerceAtLeast(0)
+                targetIdx < 0 -> (state.steps.lastIndex - 1).coerceAtLeast(0)
+                else -> targetIdx.coerceIn(0, (state.steps.lastIndex - 1).coerceAtLeast(0))
             }
             state.scrubTo(resolved)
         } else {
@@ -768,7 +806,12 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
     // Playback tick — single source of "is the animation advancing?".
     LaunchedEffect(state.isPlaying, state.playbackSpeedMs) {
         while (state.isPlaying) {
-            delay(state.playbackSpeedMs)
+            val stepDelay = if (state.currentStep.phaseLabel == "BACKTRACKING") {
+                (state.playbackSpeedMs * 0.35f).toLong().coerceAtLeast(100L)
+            } else {
+                state.playbackSpeedMs
+            }
+            delay(stepDelay)
             if (state.isPlaying) {
                 if (state.currentStepIdx < state.steps.lastIndex) {
                     state.advance()

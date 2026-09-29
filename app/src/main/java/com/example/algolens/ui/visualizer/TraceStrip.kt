@@ -69,8 +69,11 @@ fun TraceStrip(
     modifier: Modifier = Modifier
 ) {
     val language = AppSettings.preferredLanguage
-    val codeData = remember(algorithmName, language) {
-        AlgorithmCodeRegistry.getCode(algorithmName, language)
+    val bstMode = step.variables["bstMode"]?.let { runCatching { com.example.algolens.model.BstMode.valueOf(it) }.getOrNull() } ?: com.example.algolens.model.BstMode.SEARCH
+    val queueVariant = step.variables["queueVariant"]?.let { runCatching { com.example.algolens.model.QueueVariant.valueOf(it) }.getOrNull() } ?: com.example.algolens.model.QueueVariant.LINEAR_FIFO
+
+    val codeData = remember(algorithmName, language, bstMode, queueVariant) {
+        AlgorithmCodeRegistry.getCode(algorithmName, language, bstMode, queueVariant)
     }
 
     val activeLineNumber = remember(step.activeCodeLines, codeData) {

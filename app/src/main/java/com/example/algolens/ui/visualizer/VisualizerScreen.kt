@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.example.algolens.data.AlgorithmRegistry
 import com.example.algolens.data.SampleData
 import com.example.algolens.model.Algorithm
+import com.example.algolens.model.AlgorithmId
 import com.example.algolens.model.VisualizerFamily
 import com.example.algolens.ui.components.AlgoWorkspaceBackground
 import com.example.algolens.ui.theme.AlgoLensTheme
@@ -137,13 +138,40 @@ fun VisualizerScreen(
                     onBack = onBack
                 )
 
-                // StageLegend placed directly below the top info bar (VisualizerHeader) in normal flow
-                // so it remains visible in both peek and expanded dock states and never overlaps the stage.
-                StageLegend(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
-                )
+                // Contextual sub-mode selector / legend slot:
+                // - BST: BstModeSelector ([Search | In-Order | Pre-Order | Post-Order])
+                // - Queue: QueueModeSelector ([Linear FIFO | Circular Ring])
+                // - Linear 1D: StageLegend (pointers, comparisons, active indices)
+                // - Graph / Stack: omitted to give stage visualizer maximum vertical canvas headroom
+                when (spec?.id) {
+                    AlgorithmId.BINARY_SEARCH_TREE -> {
+                        BstModeSelector(
+                            currentMode = state.bstMode,
+                            onSelectMode = { state.selectBstMode(it) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
+                        )
+                    }
+                    AlgorithmId.QUEUE -> {
+                        QueueModeSelector(
+                            currentVariant = state.queueVariant,
+                            onSelectVariant = { state.selectQueueVariant(it) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
+                        )
+                    }
+                    else -> {
+                        if (spec?.id?.family == VisualizerFamily.LINEAR_1D) {
+                            StageLegend(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
+                            )
+                        }
+                    }
+                }
 
                 // ── Workspace Area: [Canvas Visualizer > Deck Instruments] ──
                 Column(

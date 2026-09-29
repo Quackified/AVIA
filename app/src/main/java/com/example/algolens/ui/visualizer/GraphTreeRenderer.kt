@@ -380,6 +380,30 @@ fun GraphTreeRenderer(
                     radius = (r * 1.28f + 1.5f * breathe) * popScale,
                     center = center
                 )
+            } else if (node.state == ElementState.SWAPPING) {
+                val breathe = activeHaloPulse.value
+                drawCircle(
+                    color = AccentRed.copy(alpha = 0.18f + 0.12f * breathe),
+                    radius = (r * 1.55f + 2f * breathe) * popScale,
+                    center = center
+                )
+                drawCircle(
+                    color = AccentRed.copy(alpha = 0.32f + 0.16f * breathe),
+                    radius = (r * 1.25f + 1f * breathe) * popScale,
+                    center = center
+                )
+            } else if (node.state == ElementState.COMPARING) {
+                val breathe = activeHaloPulse.value
+                drawCircle(
+                    color = AccentYellow.copy(alpha = 0.16f + 0.10f * breathe),
+                    radius = (r * 1.45f + 2f * breathe) * popScale,
+                    center = center
+                )
+                drawCircle(
+                    color = AccentYellow.copy(alpha = 0.28f + 0.12f * breathe),
+                    radius = (r * 1.22f + 1f * breathe) * popScale,
+                    center = center
+                )
             } else if (node.state == ElementState.PIVOT) {
                 drawCircle(
                     color = AccentPink.copy(alpha = 0.20f),
@@ -428,7 +452,7 @@ fun GraphTreeRenderer(
             )
 
             // Node border stroke
-            val baseStroke = if (isActive || isHovered || isDragSource) 2.8f else 1.7f
+            val baseStroke = if (isActive || isHovered || isDragSource || node.state == ElementState.SWAPPING) 2.8f else 1.7f
             val strokeW = (if (highContrast) baseStroke + 1.2f else baseStroke) * popScale
             drawCircle(
                 color = strokeColor,
@@ -436,6 +460,22 @@ fun GraphTreeRenderer(
                 center = center,
                 style = Stroke(width = strokeW)
             )
+
+            // Concentric outer pulse line glow rim on active / swapping / comparing nodes
+            if (isActive || node.state == ElementState.SWAPPING || node.state == ElementState.COMPARING) {
+                val rimAccent = when {
+                    node.state == ElementState.SWAPPING -> AccentRed
+                    node.state == ElementState.COMPARING -> AccentYellow
+                    isHovered || isDragSource -> PrimaryCyan
+                    else -> AccentGreen
+                }
+                drawCircleGlow(
+                    center = center,
+                    radius = r * popScale,
+                    accent = rimAccent,
+                    intensity = 0.70f + 0.30f * activeHaloPulse.value
+                )
+            }
 
             // Node label text
             drawContext.canvas.nativeCanvas.apply {

@@ -73,11 +73,14 @@ fun CodeTracePane(
 
     val expanded = isExpandedOverride ?: isExpanded
 
-    val codeData = remember(algorithmId, algorithmName, selectedLanguage) {
+    val bstMode = step.variables["bstMode"]?.let { runCatching { com.example.algolens.model.BstMode.valueOf(it) }.getOrNull() } ?: com.example.algolens.model.BstMode.SEARCH
+    val queueVariant = step.variables["queueVariant"]?.let { runCatching { com.example.algolens.model.QueueVariant.valueOf(it) }.getOrNull() } ?: com.example.algolens.model.QueueVariant.LINEAR_FIFO
+
+    val codeData = remember(algorithmId, algorithmName, selectedLanguage, bstMode, queueVariant) {
         if (algorithmId != null) {
-            AlgorithmCodeRegistry.getCode(algorithmId, selectedLanguage)
+            AlgorithmCodeRegistry.getCode(algorithmId, selectedLanguage, bstMode, queueVariant)
         } else {
-            AlgorithmCodeRegistry.getCode(algorithmName, selectedLanguage)
+            AlgorithmCodeRegistry.getCode(algorithmName, selectedLanguage, bstMode, queueVariant)
         }
     }
 

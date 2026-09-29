@@ -28,4 +28,7 @@ sealed class QueueOp {
 
     /** Remove the front of the queue. No-op if the queue is empty. */
     data object Dequeue : QueueOp()
+
+    /** Peek the front of the queue. No mutation. */
+    data object Peek : QueueOp()
 }

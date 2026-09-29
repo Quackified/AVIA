@@ -390,7 +390,7 @@ class VisualizerScreenStateTest {
         )
         assertEquals("Explicit 9-element array must preserve all 9 nodes", 9, explicitDefaultArraySteps.first().nodes.size)
 
-        // Check Heap sizes 1, 2, and 15 for post-extraction membership and bounded pointers
+        // Check Heap sizes 1, 2, and 15 for complete heap establishment and bounded pointers
         for (size in listOf(1, 2, 15)) {
             val input = (1..size).map { it * 10 }
             val steps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
@@ -398,15 +398,12 @@ class VisualizerScreenStateTest {
                 inputArray = input
             )
             val finalStep = steps.last()
-            val expectedHeapSize = if (size > 1) size - 1 else 1
-            assertEquals("Final heapSize for n=$size", expectedHeapSize.toString(), finalStep.variables["heapSize"])
-            if (size > 1) {
-                assertEquals(
-                    "Extracted root at tail index ${size - 1} must stay SORTED",
-                    com.example.algolens.ui.visualizer.ElementState.SORTED,
-                    finalStep.nodes[size - 1].state
-                )
-            }
+            assertEquals("Final heapSize for n=$size", size.toString(), finalStep.variables["heapSize"])
+            assertEquals(
+                "Root node at index 0 must be FOUND (heap maximum established)",
+                com.example.algolens.ui.visualizer.ElementState.FOUND,
+                finalStep.nodes[0].state
+            )
             for (step in steps) {
                 val bound = step.variables["heapSize"]?.toIntOrNull() ?: size
                 step.bottomPointers.forEach { (label, idx) ->

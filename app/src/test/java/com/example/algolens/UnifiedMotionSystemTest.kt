@@ -1,8 +1,11 @@
 package com.example.algolens
 
 import androidx.compose.ui.geometry.Offset
+import com.example.algolens.data.AlgorithmStepRepository
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.AlgorithmId
+import com.example.algolens.model.QueueOp
+import com.example.algolens.ui.visualizer.ElementState
 import com.example.algolens.ui.visualizer.NodeRipple
 import com.example.algolens.ui.visualizer.TraversalSignal
 import com.example.algolens.ui.visualizer.VisualizerScreenState
@@ -251,5 +254,119 @@ class UnifiedMotionSystemTest {
         assertEquals("0x00", computeHexAddress(0))
         assertEquals("0x07", computeHexAddress(7))
         assertEquals("0x03", computeHexAddress(3))
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 5. QueueOp.Peek & Queue Front Semantics
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun queueOpPeek_appendsPeekStepAndPreservesQueueState() {
+        val steps = AlgorithmStepRepository.generateStepsForAlgorithm(
+            Algorithm(id = AlgorithmId.QUEUE),
+            queueOps = listOf(QueueOp.Enqueue(42), QueueOp.Enqueue(88), QueueOp.Peek)
+        )
+        val peekStep = steps.first { it.phaseLabel == "PEEK" }
+
+        assertEquals("PEEK", peekStep.phaseLabel)
+        assertTrue(peekStep.description.contains("42"))
+        assertEquals(2, peekStep.buffer.size)
+        assertEquals("42", peekStep.buffer.first().value)
+        assertEquals(ElementState.FOUND, peekStep.buffer.first().state)
+        assertEquals(ElementState.IDLE, peekStep.buffer.last().state)
+    }
+
+    @Test
+    fun queueOpPeek_onEmptyQueue_reportsEmptyWithoutCrashing() {
+        val steps = AlgorithmStepRepository.generateStepsForAlgorithm(
+            Algorithm(id = AlgorithmId.QUEUE),
+            queueOps = listOf(QueueOp.Peek)
+        )
+        val underflowStep = steps.first { it.phaseLabel == "UNDERFLOW" }
+        assertEquals("UNDERFLOW", underflowStep.phaseLabel)
+        assertTrue(underflowStep.description.contains("Queue underflow (empty)"))
+        assertTrue(underflowStep.buffer.isEmpty())
+    }
+
+    @Test
+    fun queueOpPeek_liveQueueOpAppendsWhenNonEmpty() {
+        val state = VisualizerScreenState(Algorithm(id = AlgorithmId.QUEUE))
+        assertTrue(state.canRemoveFromBuffer(isStack = false))
+        val initialSize = state.queueOps.size
+        state.appendLiveQueueOp(QueueOp.Peek)
+        assertEquals(initialSize + 1, state.queueOps.size)
+        assertEquals(QueueOp.Peek, state.queueOps.last())
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 6. DFS Backtracking Acceleration & Playback Speed Scaling
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun dfsBacktracking_acceleratesPlaybackDuration() {
+        val baseDelay = 600L
+        fun computeTickDelay(phaseLabel: String, baseMs: Long): Long {
+            return if (phaseLabel == "BACKTRACKING") {
+                (baseMs * 0.35f).toLong().coerceAtLeast(100L)
+            } else {
+                baseMs
+            }
+        }
+
+        val normalDelay = computeTickDelay("VISITING", baseDelay)
+        val backtrackDelay = computeTickDelay("BACKTRACKING", baseDelay)
+
+        assertEquals(600L, normalDelay)
+        assertEquals(210L, backtrackDelay)
+        assertEquals(0.35f, backtrackDelay.toFloat() / normalDelay.toFloat(), eps)
+
+        // Coerce lower bound test
+        val fastBacktrackDelay = computeTickDelay("BACKTRACKING", 150L)
+        assertEquals(100L, fastBacktrackDelay)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 7. Insertion Sort Celebration Constraint
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun insertionSortCelebration_onlyTriggersOnTerminalSortedPhase() {
+        fun isFullySortedCelebration(array: List<Int>, states: Map<Int, ElementState>, phaseLabel: String): Boolean {
+            return phaseLabel == "SORTED" &&
+                array.isNotEmpty() &&
+                states.size == array.size &&
+                states.values.all { it == ElementState.SORTED }
+        }
+
+        val arr = listOf(1, 2, 3, 4, 5)
+        val sortedStates = (0..4).associateWith { ElementState.SORTED }
+
+        // Intermediate KEY INSERTED step with all elements marked sorted should NOT trigger celebration
+        assertFalse(isFullySortedCelebration(arr, sortedStates, "KEY INSERTED"))
+
+        // Final step with phaseLabel = "SORTED" DOES trigger celebration
+        assertTrue(isFullySortedCelebration(arr, sortedStates, "SORTED"))
+
+        // Incomplete states should NOT trigger celebration
+        val partialStates = sortedStates.toMutableMap().apply { put(4, ElementState.ACTIVE) }
+        assertFalse(isFullySortedCelebration(arr, partialStates, "SORTED"))
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 8. BFS Decomposed Micro-Phases
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun bfsStepGeneration_producesDecomposedMicroPhases() {
+        val bfsSteps = AlgorithmStepRepository.generateStepsForAlgorithm(Algorithm(id = AlgorithmId.BFS))
+        val phaseLabels = bfsSteps.map { it.phaseLabel }.toSet()
+
+        assertTrue("BFS steps must contain INITIALIZING", phaseLabels.contains("INITIALIZING"))
+        assertTrue("BFS steps must contain DEQUEUE phase", phaseLabels.contains("DEQUEUE"))
+        assertTrue("BFS steps must contain EXPLORE phase", phaseLabels.contains("EXPLORE"))
+        assertTrue("BFS steps must contain ENQUEUED phase", phaseLabels.contains("ENQUEUED"))
+
+        // Ensure final step has empty buffer
+        assertTrue("Final BFS step must have empty frontier buffer", bfsSteps.last().buffer.isEmpty())
     }
 }

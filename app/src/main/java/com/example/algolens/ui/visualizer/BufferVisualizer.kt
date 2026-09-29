@@ -40,6 +40,8 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -87,6 +89,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import com.example.algolens.model.BufferOp
 import com.example.algolens.model.QueueOp
+import com.example.algolens.model.QueueVariant
 import com.example.algolens.ui.components.DoubleBezelShell
 import com.example.algolens.ui.components.pressPhysics
 
@@ -100,6 +103,7 @@ import com.example.algolens.ui.components.pressPhysics
 fun BufferVisualizer(
     step: VisualizerStep,
     isStack: Boolean = true,
+    queueVariant: QueueVariant = QueueVariant.LINEAR_FIFO,
     tailSize: Int = step.buffer.size,
     canAppend: Boolean = tailSize < step.bufferCapacity,
     canRemove: Boolean = tailSize > 0,
@@ -109,9 +113,43 @@ fun BufferVisualizer(
     isScrubbing: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    if (!isStack && queueVariant == QueueVariant.CIRCULAR_RING) {
+        CircularQueueVisualizer(
+            step = step,
+            onQueueOp = onQueueOp,
+            playbackSpeedMs = playbackSpeedMs,
+            isScrubbing = isScrubbing,
+            modifier = modifier
+        )
+        return
+    }
+
     var nextInputValue by remember(isStack, tailSize) {
         val seed = ((tailSize + 1) * 14 + 18) % 89 + 10
         mutableIntStateOf(seed)
+    }
+
+    var peekPulseTrigger by remember { mutableIntStateOf(0) }
+    val peekPulseAnim = remember { Animatable(0f) }
+
+    LaunchedEffect(peekPulseTrigger) {
+        if (peekPulseTrigger > 0) {
+            peekPulseAnim.snapTo(1f)
+            peekPulseAnim.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(durationMillis = 650, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+            )
+        }
+    }
+
+    LaunchedEffect(step.stepIndex, step.phaseLabel) {
+        if (step.phaseLabel == "PEEK" || step.buffer.any { it.state == ElementState.FOUND }) {
+            peekPulseAnim.snapTo(1f)
+            peekPulseAnim.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(durationMillis = 650, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+            )
+        }
     }
 
     DoubleBezelShell(
@@ -171,9 +209,9 @@ fun BufferVisualizer(
                 contentAlignment = Alignment.Center
             ) {
                 if (isStack) {
-                    StackCanvas(step, playbackSpeedMs, isScrubbing)
+                    StackCanvas(step, playbackSpeedMs, isScrubbing, peekPulseAnim.value)
                 } else {
-                    QueueCanvas(step, playbackSpeedMs, isScrubbing)
+                    QueueCanvas(step, playbackSpeedMs, isScrubbing, peekPulseAnim.value)
                 }
             }
 
@@ -187,6 +225,7 @@ fun BufferVisualizer(
                     onCycleValue = { nextInputValue = ((nextInputValue + 13) % 89) + 10 },
                     canRemove = canRemove,
                     isFull = !canAppend,
+                    peekPulse = peekPulseAnim.value,
                     onPushOrEnqueue = {
                         if (isStack) {
                             onStackOp?.invoke(BufferOp.Push(nextInputValue))
@@ -201,9 +240,14 @@ fun BufferVisualizer(
                             onQueueOp?.invoke(QueueOp.Dequeue)
                         }
                     },
-                    onPeek = if (isStack) {
-                        { onStackOp?.invoke(BufferOp.Peek) }
-                    } else null
+                    onPeek = {
+                        peekPulseTrigger++
+                        if (isStack) {
+                            onStackOp?.invoke(BufferOp.Peek)
+                        } else {
+                            onQueueOp?.invoke(QueueOp.Peek)
+                        }
+                    }
                 )
             }
         }
@@ -219,6 +263,7 @@ private fun BufferStageControls(
     onCycleValue: () -> Unit,
     canRemove: Boolean,
     isFull: Boolean,
+    peekPulse: Float = 0f,
     onPushOrEnqueue: () -> Unit,
     onPopOrDequeue: () -> Unit,
     onPeek: (() -> Unit)?
@@ -314,19 +359,35 @@ private fun BufferStageControls(
                 )
             }
 
-            // PEEK() (Stack only)
+            // PEEK() (Stack & Queue) with green pulse flash
             if (onPeek != null) {
+                val isPulsing = peekPulse > 0.05f
+                val peekBg = if (isPulsing) {
+                    AccentGreen.copy(alpha = 0.22f + 0.35f * peekPulse)
+                } else if (canRemove) {
+                    GreenSubtle
+                } else {
+                    DarkBackground
+                }
+                val peekBorder = if (isPulsing) {
+                    AccentGreen
+                } else if (canRemove) {
+                    AccentGreen.copy(alpha = 0.4f)
+                } else {
+                    BorderSubtle
+                }
+
                 Box(
                     modifier = Modifier
                         .heightIn(min = 28.dp)
                         .clip(pillShape)
-                        .background(if (canRemove) PurpleSubtle else DarkBackground)
+                        .background(peekBg)
                         .border(
-                            AlgoTokens.strokeHairline,
-                            if (canRemove) SecondaryPurple.copy(alpha = 0.4f) else BorderSubtle,
+                            if (isPulsing) 1.5.dp else AlgoTokens.strokeHairline,
+                            peekBorder,
                             pillShape
                         )
-                        .pressPhysics(shape = pillShape, accent = SecondaryPurple, enabled = canRemove)
+                        .pressPhysics(shape = pillShape, accent = AccentGreen, enabled = canRemove)
                         .clickable(enabled = canRemove) { onPeek() }
                         .padding(horizontal = AlgoTokens.space2, vertical = 4.dp),
                     contentAlignment = Alignment.Center
@@ -334,7 +395,7 @@ private fun BufferStageControls(
                     Text(
                         text = "PEEK()",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (canRemove) PurpleGlow else TextDark,
+                        color = if (canRemove || isPulsing) AccentGreen else TextDark,
                         fontSize = AlgoType.microSize,
                         fontWeight = FontWeight.Bold
                     )
@@ -359,7 +420,8 @@ private fun Modifier.stackItemMotion(
     state: ElementState,
     phaseLabel: String,
     isScrubbing: Boolean,
-    playbackSpeedMs: Long
+    playbackSpeedMs: Long,
+    peekPulse: Float = 0f
 ): Modifier = composed {
     val density = LocalDensity.current
     val slotHeightPx = with(density) { 22.dp.toPx() }
@@ -368,7 +430,11 @@ private fun Modifier.stackItemMotion(
     val totalSlotsAbove = (capacity - 1 - slotIdx)
     val dropDistancePx = (totalSlotsAbove * (slotHeightPx + slotGapPx)) + mouthOffsetPx
 
-    val translationY = remember { Animatable(0f) }
+    val isPushing = phaseLabel == "PUSH" && isTop
+    val isPopping = (phaseLabel == "POPPING" && isTop) || (state == ElementState.SWAPPING && isTop)
+    val isPeeking = (phaseLabel == "PEEK" && isTop) || (state == ElementState.FOUND && isTop) || (isTop && peekPulse > 0.01f)
+
+    val translationY = remember { Animatable(if (isPushing) -dropDistancePx else 0f) }
     val alpha = remember { Animatable(1f) }
     val scale = remember { Animatable(1f) }
 
@@ -378,7 +444,7 @@ private fun Modifier.stackItemMotion(
             1000L -> Spring.StiffnessLow
             else -> Spring.StiffnessMedium
         }
-        spring<Float>(dampingRatio = 0.55f, stiffness = stiffness)
+        spring<Float>(dampingRatio = 0.92f, stiffness = stiffness)
     }
 
     val liftSpring = remember(playbackSpeedMs) {
@@ -389,10 +455,6 @@ private fun Modifier.stackItemMotion(
         }
         spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = stiffness)
     }
-
-    val isPushing = (phaseLabel == "PUSH" && isTop) || (state == ElementState.ACTIVE && isTop)
-    val isPopping = state == ElementState.SWAPPING || phaseLabel == "POPPING"
-    val isPeeking = phaseLabel == "PEEK" || state == ElementState.FOUND
 
     LaunchedEffect(isPushing, isPopping, isPeeking, isScrubbing) {
         if (isScrubbing) {
@@ -417,7 +479,7 @@ private fun Modifier.stackItemMotion(
             isPeeking -> {
                 translationY.snapTo(0f)
                 alpha.snapTo(1f)
-                scale.animateTo(1.05f, AlgoTokens.evalSpring)
+                scale.animateTo(1.08f, AlgoTokens.evalSpring)
             }
             else -> {
                 translationY.snapTo(0f)
@@ -427,11 +489,13 @@ private fun Modifier.stackItemMotion(
         }
     }
 
+    val pulseScale = if (isTop && peekPulse > 0.01f) 1f + 0.10f * peekPulse else 1f
+
     this.graphicsLayer {
         this.translationY = translationY.value
         this.alpha = alpha.value
-        this.scaleX = scale.value
-        this.scaleY = scale.value
+        this.scaleX = scale.value * pulseScale
+        this.scaleY = scale.value * pulseScale
     }
 }
 
@@ -447,12 +511,18 @@ private fun Modifier.queueItemMotion(
     state: ElementState,
     phaseLabel: String,
     isScrubbing: Boolean,
-    playbackSpeedMs: Long
+    playbackSpeedMs: Long,
+    peekPulse: Float = 0f
 ): Modifier = composed {
     val density = LocalDensity.current
     val transitDistancePx = with(density) { 80.dp.toPx() }
+    val exitDistancePx = with(density) { 140.dp.toPx() }
 
-    val translationX = remember { Animatable(0f) }
+    val isEnqueuing = phaseLabel == "ENQUEUE" && isRear
+    val isDequeuing = (phaseLabel == "DEQUEUING" && isFront) || (state == ElementState.SWAPPING && isFront)
+    val isPeeking = (phaseLabel == "PEEK" && isFront) || (state == ElementState.FOUND && isFront) || (isFront && peekPulse > 0.01f)
+
+    val translationX = remember { Animatable(if (isEnqueuing) transitDistancePx else 0f) }
     val alpha = remember { Animatable(1f) }
     val scale = remember { Animatable(1f) }
 
@@ -465,10 +535,7 @@ private fun Modifier.queueItemMotion(
         spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = stiffness)
     }
 
-    val isEnqueuing = (phaseLabel == "ENQUEUE" && isRear) || (state == ElementState.ACTIVE && isRear)
-    val isDequeuing = (phaseLabel == "DEQUEUING" && isFront) || (state == ElementState.SWAPPING && isFront)
-
-    LaunchedEffect(isEnqueuing, isDequeuing, isScrubbing) {
+    LaunchedEffect(isEnqueuing, isDequeuing, isPeeking, isScrubbing) {
         if (isScrubbing) {
             translationX.snapTo(0f)
             alpha.snapTo(1f)
@@ -478,15 +545,20 @@ private fun Modifier.queueItemMotion(
 
         when {
             isDequeuing -> {
-                launch { scale.animateTo(0.90f, travelSpring) }
+                launch { scale.animateTo(0.85f, travelSpring) }
                 launch { alpha.animateTo(0f, travelSpring) }
-                translationX.animateTo(-transitDistancePx, travelSpring)
+                translationX.animateTo(-exitDistancePx, travelSpring)
             }
             isEnqueuing -> {
                 translationX.snapTo(transitDistancePx)
                 alpha.snapTo(1f)
                 scale.snapTo(1f)
                 translationX.animateTo(0f, travelSpring)
+            }
+            isPeeking -> {
+                translationX.snapTo(0f)
+                alpha.snapTo(1f)
+                scale.animateTo(1.08f, AlgoTokens.evalSpring)
             }
             else -> {
                 translationX.snapTo(0f)
@@ -496,11 +568,13 @@ private fun Modifier.queueItemMotion(
         }
     }
 
+    val pulseScale = if (isFront && peekPulse > 0.01f) 1f + 0.10f * peekPulse else 1f
+
     this.graphicsLayer {
         this.translationX = translationX.value
         this.alpha = alpha.value
-        this.scaleX = scale.value
-        this.scaleY = scale.value
+        this.scaleX = scale.value * pulseScale
+        this.scaleY = scale.value * pulseScale
     }
 }
 
@@ -516,7 +590,8 @@ private fun Modifier.queueItemMotion(
 private fun StackCanvas(
     step: VisualizerStep,
     playbackSpeedMs: Long = 600L,
-    isScrubbing: Boolean = false
+    isScrubbing: Boolean = false,
+    peekPulse: Float = 0f
 ) {
     val capacity = step.bufferCapacity.coerceIn(1, 8)
     val currentSize = step.buffer.size
@@ -532,7 +607,7 @@ private fun StackCanvas(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier
-                .width(68.dp)
+                .width(86.dp)
                 .padding(bottom = 10.dp)
         ) {
             // Space above matching the chamfered mouth aperture
@@ -558,10 +633,12 @@ private fun StackCanvas(
                         Text(
                             text = "TOP ➔",
                             style = MaterialTheme.typography.labelSmall,
-                            color = PurpleGlow,
+                            color = if (step.phaseLabel == "PEEK" || peekPulse > 0.05f) AccentGreen else PurpleGlow,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 8.5.sp
+                            fontSize = 8.5.sp,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     } else if (currentSize == 0 && slotIdx == 0) {
                         Text(
@@ -570,17 +647,23 @@ private fun StackCanvas(
                             color = TextDark,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 8.5.sp
+                            fontSize = 8.5.sp,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
 
                     Text(
                         text = graduationText,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isTop) PurpleGlow else if (isFilled) PrimaryCyan.copy(alpha = 0.85f) else TextDark.copy(alpha = 0.65f),
+                        color = if (isTop) (if (step.phaseLabel == "PEEK" || peekPulse > 0.05f) AccentGreen else PurpleGlow)
+                                else if (isFilled) PrimaryCyan.copy(alpha = 0.85f)
+                                else TextDark.copy(alpha = 0.65f),
                         fontFamily = FontFamily.Monospace,
                         fontWeight = if (isTop || isFilled) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 8.sp
+                        fontSize = 8.sp,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
@@ -732,12 +815,12 @@ private fun StackCanvas(
                         val hexAddress = "0x0$slotIdx"
 
                         if (item != null) {
-                            val isPeek = (step.phaseLabel == "PEEK" || item.state == ElementState.FOUND) && isTop
+                            val isPeek = (step.phaseLabel == "PEEK" || item.state == ElementState.FOUND || peekPulse > 0.01f) && isTop
                             val (bgCol, textCol, borderCol) = when {
                                 item.state == ElementState.SWAPPING -> Triple(AccentRed, Color.White, AccentRed)
                                 item.state == ElementState.COMPARING -> Triple(AccentYellow, DarkBackground, AccentYellow)
-                                isPeek -> Triple(PurpleSubtle, PurpleGlow, SecondaryPurple)
-                                item.state == ElementState.ACTIVE || item.state == ElementState.FOUND -> Triple(PrimaryCyan, DarkBackground, PrimaryCyan)
+                                isPeek -> Triple(GreenSubtle, AccentGreen, AccentGreen)
+                                item.state == ElementState.ACTIVE -> Triple(PrimaryCyan, DarkBackground, PrimaryCyan)
                                 isTop -> Triple(PurpleSubtle, PurpleGlow, SecondaryPurple)
                                 else -> Triple(CardBackgroundElevated, TextPrimary, BorderMedium)
                             }
@@ -754,8 +837,19 @@ private fun StackCanvas(
                                             state = item.state,
                                             phaseLabel = step.phaseLabel,
                                             isScrubbing = isScrubbing,
-                                            playbackSpeedMs = playbackSpeedMs
+                                            playbackSpeedMs = playbackSpeedMs,
+                                            peekPulse = peekPulse
                                         )
+                                        .drawBehind {
+                                            val corner = CornerRadius(4.dp.toPx())
+                                            if (isPeek) {
+                                                drawCellGlow(accent = AccentGreen, intensity = 0.95f + 0.35f * peekPulse, cornerRadius = corner)
+                                            } else if (isTop) {
+                                                drawCellGlow(accent = SecondaryPurple, intensity = 0.65f, cornerRadius = corner)
+                                            } else if (item.state == ElementState.ACTIVE) {
+                                                drawCellGlow(accent = PrimaryCyan, intensity = 0.70f, cornerRadius = corner)
+                                            }
+                                        }
                                         .clip(RoundedCornerShape(4.dp))
                                         .background(bgCol)
                                         .border(
@@ -775,7 +869,7 @@ private fun StackCanvas(
                                         Text(
                                             text = hexAddress,
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = if (item.state == ElementState.ACTIVE || item.state == ElementState.FOUND) TextDark.copy(alpha = 0.7f) else TextMuted,
+                                            color = if (isPeek) AccentGreen.copy(alpha = 0.8f) else if (item.state == ElementState.ACTIVE) TextDark.copy(alpha = 0.7f) else TextMuted,
                                             fontFamily = FontFamily.Monospace,
                                             fontSize = 7.5.sp,
                                             fontWeight = FontWeight.SemiBold
@@ -783,7 +877,7 @@ private fun StackCanvas(
                                         Text(
                                             text = "#$slotIdx",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = if (item.state == ElementState.ACTIVE || item.state == ElementState.FOUND) TextDark else TextMuted,
+                                            color = if (isPeek) AccentGreen else if (item.state == ElementState.ACTIVE) TextDark else TextMuted,
                                             fontFamily = FontFamily.Monospace,
                                             fontSize = 8.sp,
                                             fontWeight = FontWeight.Bold
@@ -805,13 +899,13 @@ private fun StackCanvas(
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(2.dp))
-                                                .background(SecondaryPurple)
+                                                .background(AccentGreen)
                                                 .padding(horizontal = 4.dp, vertical = 0.5.dp)
                                         ) {
                                             Text(
                                                 text = "PEEK",
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = Color.White,
+                                                color = DarkBackground,
                                                 fontSize = 7.5.sp,
                                                 fontFamily = FontFamily.Monospace,
                                                 fontWeight = FontWeight.Bold
@@ -1004,7 +1098,8 @@ private fun StackHeadroomGauge(
 private fun QueueCanvas(
     step: VisualizerStep,
     playbackSpeedMs: Long = 600L,
-    isScrubbing: Boolean = false
+    isScrubbing: Boolean = false,
+    peekPulse: Float = 0f
 ) {
     val capacity = step.bufferCapacity.coerceAtLeast(1)
     Column(
@@ -1065,10 +1160,13 @@ private fun QueueCanvas(
                         val isFront = index == 0
                         val isRear = index == step.buffer.size - 1
 
-                        val (bgCol, textCol) = when (item.state) {
-                            ElementState.ACTIVE, ElementState.FOUND -> Pair(PrimaryCyan, DarkBackground)
-                            ElementState.SWAPPING -> Pair(AccentRed, Color.White)
-                            ElementState.COMPARING -> Pair(AccentYellow, DarkBackground)
+                        val isPeek = (step.phaseLabel == "PEEK" || item.state == ElementState.FOUND || peekPulse > 0.01f) && isFront
+
+                        val (bgCol, textCol) = when {
+                            item.state == ElementState.ACTIVE -> Pair(PrimaryCyan, DarkBackground)
+                            isPeek -> Pair(GreenSubtle, AccentGreen)
+                            item.state == ElementState.SWAPPING -> Pair(AccentRed, Color.White)
+                            item.state == ElementState.COMPARING -> Pair(AccentYellow, DarkBackground)
                             else -> Pair(if (isFront) GreenSubtle else if (isRear) PurpleSubtle else CardBackgroundElevated, TextPrimary)
                         }
 
@@ -1079,14 +1177,14 @@ private fun QueueCanvas(
                             ) {
                                 // Front / Rear Airlock Gate Indicators
                                 if (isFront) {
-                                    QueueGate(label = "◀ HEAD (DEQ)", color = AccentGreen)
+                                    QueueGate(label = "◀ FRONT (DEQ)", color = if (isPeek) AccentGreen else AccentGreen.copy(alpha = 0.85f))
                                 } else if (isRear) {
                                     QueueGate(label = "TAIL (ENQ) ◀", color = PurpleGlow)
                                 } else {
                                     Spacer(modifier = Modifier.height(12.dp))
                                 }
 
-                                // Queue Item Box with Transit Physics
+                                // Queue Item Box with Transit Physics & Outer Glow
                                 Box(
                                     modifier = Modifier
                                         .size(width = 46.dp, height = 50.dp)
@@ -1096,13 +1194,24 @@ private fun QueueCanvas(
                                             state = item.state,
                                             phaseLabel = step.phaseLabel,
                                             isScrubbing = isScrubbing,
-                                            playbackSpeedMs = playbackSpeedMs
+                                            playbackSpeedMs = playbackSpeedMs,
+                                            peekPulse = peekPulse
                                         )
+                                        .drawBehind {
+                                            val corner = CornerRadius(AlgoTokens.radiusXxs.toPx())
+                                            if (isPeek || isFront) {
+                                                drawCellGlow(accent = AccentGreen, intensity = if (isPeek) 0.95f + 0.35f * peekPulse else 0.55f, cornerRadius = corner)
+                                            } else if (isRear) {
+                                                drawCellGlow(accent = SecondaryPurple, intensity = 0.55f, cornerRadius = corner)
+                                            } else if (item.state == ElementState.ACTIVE) {
+                                                drawCellGlow(accent = PrimaryCyan, intensity = 0.65f, cornerRadius = corner)
+                                            }
+                                        }
                                         .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                                         .background(bgCol)
                                         .border(
-                                            width = if (isFront || isRear) 1.5.dp else 1.dp,
-                                            color = if (isFront) AccentGreen else if (isRear) SecondaryPurple else BorderMedium,
+                                            width = if (isFront || isRear || isPeek) 1.5.dp else 1.dp,
+                                            color = if (isFront || isPeek) AccentGreen else if (isRear) SecondaryPurple else BorderMedium,
                                             shape = RoundedCornerShape(AlgoTokens.radiusXxs)
                                         ),
                                     contentAlignment = Alignment.Center

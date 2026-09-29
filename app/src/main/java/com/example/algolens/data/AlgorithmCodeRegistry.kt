@@ -1,6 +1,8 @@
 package com.example.algolens.data
 
 import com.example.algolens.model.AlgorithmId
+import com.example.algolens.model.BstMode
+import com.example.algolens.model.QueueVariant
 
 /**
  * Supported programming languages for the code trace inspector.
@@ -30,7 +32,12 @@ object AlgorithmCodeRegistry {
         val lineMapping: Map<Int, List<Int>>
     )
 
-    fun getCode(id: AlgorithmId, language: TraceLanguage): MultiLangCode {
+    fun getCode(
+        id: AlgorithmId,
+        language: TraceLanguage,
+        bstMode: BstMode = BstMode.SEARCH,
+        queueVariant: QueueVariant = QueueVariant.LINEAR_FIFO
+    ): MultiLangCode {
         return when (id) {
             AlgorithmId.BUBBLE_SORT -> getBubbleSortCode(language)
             AlgorithmId.QUICK_SORT -> getQuickSortCode(language)
@@ -40,8 +47,21 @@ object AlgorithmCodeRegistry {
             AlgorithmId.BINARY_SEARCH -> getBinarySearchCode(language)
             AlgorithmId.LINEAR_SEARCH -> getLinearSearchCode(language)
             AlgorithmId.STACK -> getStackCode(language)
-            AlgorithmId.QUEUE -> getQueueCode(language)
-            AlgorithmId.BINARY_SEARCH_TREE -> getBstCode(language)
+            AlgorithmId.QUEUE -> {
+                if (queueVariant == QueueVariant.CIRCULAR_RING) {
+                    getCircularQueueCode(language)
+                } else {
+                    getQueueCode(language)
+                }
+            }
+            AlgorithmId.BINARY_SEARCH_TREE -> {
+                when (bstMode) {
+                    BstMode.SEARCH -> getBstCode(language)
+                    BstMode.IN_ORDER -> getBstInOrderCode(language)
+                    BstMode.PRE_ORDER -> getBstPreOrderCode(language)
+                    BstMode.POST_ORDER -> getBstPostOrderCode(language)
+                }
+            }
             AlgorithmId.HEAP -> getHeapCode(language)
             AlgorithmId.BFS -> getBfsCode(language)
             AlgorithmId.DFS -> getDfsCode(language)
@@ -49,7 +69,12 @@ object AlgorithmCodeRegistry {
         }
     }
 
-    fun getCode(algorithmName: String, language: TraceLanguage): MultiLangCode {
+    fun getCode(
+        algorithmName: String,
+        language: TraceLanguage,
+        bstMode: BstMode = BstMode.SEARCH,
+        queueVariant: QueueVariant = QueueVariant.LINEAR_FIFO
+    ): MultiLangCode {
         val normalized = algorithmName.lowercase().trim()
         val id = AlgorithmId.fromDisplayName(normalized) ?: when (normalized) {
             "bst", "binary search tree (bst)" -> AlgorithmId.BINARY_SEARCH_TREE
@@ -59,7 +84,7 @@ object AlgorithmCodeRegistry {
             "max-heap", "min-heap", "binary heap" -> AlgorithmId.HEAP
             else -> AlgorithmId.entries.firstOrNull { it.name.equals(normalized, ignoreCase = true) }
         } ?: throw IllegalArgumentException("Unsupported algorithm for source trace: '$algorithmName'")
-        return getCode(id, language)
+        return getCode(id, language, bstMode, queueVariant)
     }
 
     private fun getBubbleSortCode(language: TraceLanguage): MultiLangCode {
@@ -836,6 +861,252 @@ object AlgorithmCodeRegistry {
                     "}"
                 ),
                 lineMapping = (1..7).associateWith { listOf(it) }
+            )
+        }
+    }
+
+    private fun getCircularQueueCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "class CircularQueue(val cap: Int = 8) {",
+                    "    fun enqueue(v: Int) {",
+                    "        if ((rear + 1) % cap == front) return // full",
+                    "        if (front == -1) front = 0",
+                    "        rear = (rear + 1) % cap; arr[rear] = v",
+                    "    }",
+                    "    fun dequeue(): Int? {",
+                    "        if (front == -1) return null // empty",
+                    "        val v = arr[front]",
+                    "        if (front == rear) { front = -1; rear = -1 }",
+                    "        else front = (front + 1) % cap; return v",
+                    "    }",
+                    "    fun peek(): Int? = if (front != -1) arr[front] else null",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2, 3, 4, 5),
+                    3 to listOf(7, 8, 9),
+                    4 to listOf(10, 11),
+                    5 to listOf(13)
+                )
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "public class CircularQueue {",
+                    "    public void enqueue(int v) {",
+                    "        if ((rear + 1) % cap == front) return;",
+                    "        if (front == -1) front = 0;",
+                    "        rear = (rear + 1) % cap; arr[rear] = v;",
+                    "    }",
+                    "    public Integer dequeue() {",
+                    "        if (front == -1) return null;",
+                    "        int v = arr[front];",
+                    "        if (front == rear) { front = -1; rear = -1; }",
+                    "        else front = (front + 1) % cap; return v;",
+                    "    }",
+                    "    public Integer peek() { return front != -1 ? arr[front] : null; }",
+                    "}"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2, 3, 4, 5),
+                    3 to listOf(7, 8, 9),
+                    4 to listOf(10, 11),
+                    5 to listOf(13)
+                )
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "class CircularQueue:",
+                    "    def enqueue(self, v):",
+                    "        if (self.rear + 1) % self.cap == self.front: return",
+                    "        if self.front == -1: self.front = 0",
+                    "        self.rear = (self.rear + 1) % self.cap; self.arr[self.rear] = v",
+                    "    def dequeue(self):",
+                    "        if self.front == -1: return None",
+                    "        v = self.arr[self.front]",
+                    "        if self.front == self.rear: self.front = -1; self.rear = -1",
+                    "        else: self.front = (self.front + 1) % self.cap; return v",
+                    "    def peek(self): return self.arr[self.front] if self.front != -1 else None"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2, 3, 4, 5),
+                    3 to listOf(6, 7, 8),
+                    4 to listOf(9, 10),
+                    5 to listOf(11)
+                )
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "class CircularQueue {",
+                    "    void enqueue(int v) {",
+                    "        if ((rear + 1) % cap == front) return;",
+                    "        if (front == -1) front = 0;",
+                    "        rear = (rear + 1) % cap; arr[rear] = v;",
+                    "    }",
+                    "    int dequeue() {",
+                    "        if (front == -1) return -1;",
+                    "        int v = arr[front];",
+                    "        if (front == rear) { front = -1; rear = -1; }",
+                    "        else front = (front + 1) % cap; return v;",
+                    "    }",
+                    "    int peek() { return front != -1 ? arr[front] : -1; }",
+                    "};"
+                ),
+                lineMapping = mapOf(
+                    1 to listOf(1),
+                    2 to listOf(2, 3, 4, 5),
+                    3 to listOf(7, 8, 9),
+                    4 to listOf(10, 11),
+                    5 to listOf(13)
+                )
+            )
+        }
+    }
+
+    private fun getBstInOrderCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "fun inOrder(node: TreeNode?) {",
+                    "    if (node == null) return",
+                    "    inOrder(node.left)",
+                    "    visit(node.value)",
+                    "    inOrder(node.right)",
+                    "}"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "void inOrder(TreeNode node) {",
+                    "    if (node == null) return;",
+                    "    inOrder(node.left);",
+                    "    visit(node.value);",
+                    "    inOrder(node.right);",
+                    "}"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "def in_order(node):",
+                    "    if not node: return",
+                    "    in_order(node.left)",
+                    "    visit(node.value)",
+                    "    in_order(node.right)"
+                ),
+                lineMapping = (1..5).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "void inOrder(TreeNode* node) {",
+                    "    if (!node) return;",
+                    "    inOrder(node->left);",
+                    "    visit(node->value);",
+                    "    inOrder(node->right);",
+                    "}"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
+            )
+        }
+    }
+
+    private fun getBstPreOrderCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "fun preOrder(node: TreeNode?) {",
+                    "    if (node == null) return",
+                    "    visit(node.value)",
+                    "    preOrder(node.left)",
+                    "    preOrder(node.right)",
+                    "}"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "void preOrder(TreeNode node) {",
+                    "    if (node == null) return;",
+                    "    visit(node.value);",
+                    "    preOrder(node.left);",
+                    "    preOrder(node.right);",
+                    "}"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "def pre_order(node):",
+                    "    if not node: return",
+                    "    visit(node.value)",
+                    "    pre_order(node.left)",
+                    "    pre_order(node.right)"
+                ),
+                lineMapping = (1..5).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "void preOrder(TreeNode* node) {",
+                    "    if (!node) return;",
+                    "    visit(node->value);",
+                    "    preOrder(node->left);",
+                    "    preOrder(node->right);",
+                    "}"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
+            )
+        }
+    }
+
+    private fun getBstPostOrderCode(language: TraceLanguage): MultiLangCode {
+        return when (language) {
+            TraceLanguage.KOTLIN -> MultiLangCode(
+                lines = listOf(
+                    "fun postOrder(node: TreeNode?) {",
+                    "    if (node == null) return",
+                    "    postOrder(node.left)",
+                    "    postOrder(node.right)",
+                    "    visit(node.value)",
+                    "}"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
+            )
+            TraceLanguage.JAVA -> MultiLangCode(
+                lines = listOf(
+                    "void postOrder(TreeNode node) {",
+                    "    if (node == null) return;",
+                    "    postOrder(node.left);",
+                    "    postOrder(node.right);",
+                    "    visit(node.value);",
+                    "}"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
+            )
+            TraceLanguage.PYTHON -> MultiLangCode(
+                lines = listOf(
+                    "def post_order(node):",
+                    "    if not node: return",
+                    "    post_order(node.left)",
+                    "    post_order(node.right)",
+                    "    visit(node.value)"
+                ),
+                lineMapping = (1..5).associateWith { listOf(it) }
+            )
+            TraceLanguage.CPP -> MultiLangCode(
+                lines = listOf(
+                    "void postOrder(TreeNode* node) {",
+                    "    if (!node) return;",
+                    "    postOrder(node->left);",
+                    "    postOrder(node->right);",
+                    "    visit(node->value);",
+                    "}"
+                ),
+                lineMapping = (1..6).associateWith { listOf(it) }
             )
         }
     }

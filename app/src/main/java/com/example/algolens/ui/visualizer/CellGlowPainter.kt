@@ -54,3 +54,41 @@ internal fun DrawScope.drawCellGlow(
         style = Stroke(width = 1.dp.toPx())
     )
 }
+
+/**
+ * Concentric outer-stroke glow around circular nodes (Graph & Tree visualizers).
+ * Paints outside the node circle with decreasing width / increasing intensity.
+ */
+internal fun DrawScope.drawCircleGlow(
+    center: Offset,
+    radius: Float,
+    accent: Color,
+    intensity: Float = 1f
+) {
+    val soft = 6.dp.toPx()
+    val mid = 3.dp.toPx()
+    val tight = 1.2.dp.toPx()
+
+    // Wide soft outer band
+    drawCircle(
+        color = accent.copy(alpha = 0.14f * intensity),
+        radius = radius + soft,
+        center = center,
+        style = Stroke(width = 4.dp.toPx())
+    )
+    // Mid glow band
+    drawCircle(
+        color = accent.copy(alpha = 0.30f * intensity),
+        radius = radius + mid,
+        center = center,
+        style = Stroke(width = 2.dp.toPx())
+    )
+    // Tight bright rim hugging the border
+    drawCircle(
+        color = accent.copy(alpha = 0.85f * intensity),
+        radius = radius + tight,
+        center = center,
+        style = Stroke(width = 1.dp.toPx())
+    )
+}
+

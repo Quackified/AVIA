@@ -303,11 +303,18 @@ private fun BufferCanvas(
         BufferVisualizer(
             step = currentStep,
             isStack = isStack,
+            queueVariant = state.queueVariant,
             tailSize = state.tailBufferSize(isStack),
             canAppend = state.canAppendToBuffer(isStack, currentStep.bufferCapacity),
             canRemove = state.canRemoveFromBuffer(isStack),
             onStackOp = { op -> state.appendLiveStackOp(op) },
-            onQueueOp = { op -> state.appendLiveQueueOp(op) },
+            onQueueOp = { op ->
+                if (state.queueVariant == com.example.algolens.model.QueueVariant.CIRCULAR_RING) {
+                    state.appendLiveCircularQueueOp(op)
+                } else {
+                    state.appendLiveQueueOp(op)
+                }
+            },
             playbackSpeedMs = state.playbackSpeedMs,
             isScrubbing = state.isScrubbing,
             modifier = Modifier

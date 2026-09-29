@@ -140,19 +140,21 @@ fun CustomizeQueueSheet(
 ) {
     BufferOpEditor(
         title = "Customize Queue",
-        hint = "Build a sequence of ENQ / DEQ events",
-        kinds = listOf("ENQ", "DEQ"),
+        hint = "Build a sequence of ENQ / DEQ / PEEK events",
+        kinds = listOf("ENQ", "DEQ", "PEEK"),
         accent = AccentYellow,
         valueAccent = AccentYellow,
         initialRows = initialOps.map { op ->
             when (op) {
                 is QueueOp.Enqueue -> OpRowData("ENQ", op.value.toString())
                 QueueOp.Dequeue -> OpRowData("DEQ", "")
+                QueueOp.Peek -> OpRowData("PEEK", "")
             }
         }.ifEmpty { listOf(OpRowData("ENQ", "15"), OpRowData("ENQ", "30"), OpRowData("DEQ", "")) },
         presets = listOf(
             "Default Demo" to listOf("ENQ:15", "ENQ:30", "ENQ:45", "DEQ", "ENQ:60"),
             "FIFO Stress" to listOf("ENQ:1", "ENQ:2", "ENQ:3", "DEQ", "DEQ"),
+            "FIFO + Peeks" to listOf("ENQ:10", "PEEK", "ENQ:20", "PEEK", "DEQ"),
             "Empty & Fill" to listOf("DEQ", "ENQ:99", "ENQ:100"),
         ),
         onApply = { rows ->
@@ -160,6 +162,7 @@ fun CustomizeQueueSheet(
                 when (row.kind) {
                     "ENQ" -> row.valueText.trim().toIntOrNull()?.let { QueueOp.Enqueue(it) }
                     "DEQ" -> QueueOp.Dequeue
+                    "PEEK" -> QueueOp.Peek
                     else -> null
                 }
             })

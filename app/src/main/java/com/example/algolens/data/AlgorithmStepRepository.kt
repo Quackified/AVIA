@@ -4,8 +4,10 @@ import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import com.example.algolens.model.Algorithm
 import com.example.algolens.model.AlgorithmId
+import com.example.algolens.model.BstMode
 import com.example.algolens.model.BufferOp
 import com.example.algolens.model.QueueOp
+import com.example.algolens.model.QueueVariant
 import com.example.algolens.model.SortOrder
 import com.example.algolens.ui.visualizer.BufferItem
 import com.example.algolens.ui.visualizer.ElementState
@@ -61,6 +63,9 @@ object AlgorithmStepRepository {
         queueOps: List<QueueOp> = defaultQueueOps(),
         bstValues: List<Int> = defaultBstValues,
         bstSearchKey: Int = defaultBstSearchKey,
+        bstMode: BstMode = BstMode.SEARCH,
+        queueVariant: QueueVariant = QueueVariant.LINEAR_FIFO,
+        circularQueueOps: List<QueueOp> = defaultCircularQueueOps(),
         traversalStartNodeId: String = "A",
         targetNodeId: String? = null,
         customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
@@ -88,10 +93,17 @@ object AlgorithmStepRepository {
                 sortOrder = sortOrder
             )
             AlgorithmId.STACK -> generateStackSteps(bufferOps.ifEmpty { defaultStackOps() })
-            AlgorithmId.QUEUE -> generateQueueSteps(queueOps.ifEmpty { defaultQueueOps() })
+            AlgorithmId.QUEUE -> {
+                if (queueVariant == QueueVariant.CIRCULAR_RING) {
+                    generateCircularQueueSteps(circularQueueOps.ifEmpty { defaultCircularQueueOps() })
+                } else {
+                    generateQueueSteps(queueOps.ifEmpty { defaultQueueOps() })
+                }
+            }
             AlgorithmId.BINARY_SEARCH_TREE -> generateBSTSteps(
                 values = bstValues.ifEmpty { defaultBstValues },
                 searchKey = bstSearchKey,
+                mode = bstMode,
                 customGraph = customGraph,
                 customCoordinates = customCoordinates
             )
@@ -492,7 +504,9 @@ object AlgorithmStepRepository {
                     array = arr.toList(),
                     sortedBoundary = i + 1,
                     floatingElement = null,
-                    elementStates = (0..i).associateWith { ElementState.SORTED },
+                    elementStates = (0..i).associateWith { idx ->
+                        if (i == n - 1 && idx == j + 1) ElementState.ACTIVE else ElementState.SORTED
+                    },
                     bottomPointers = mapOf("i" to i),
                     variables = mapOf("i" to "$i", "insertedAt" to "${j + 1}", "key" to "$key"),
                     activeCodeLines = listOf(8)
@@ -1183,6 +1197,21 @@ object AlgorithmStepRepository {
         QueueOp.Enqueue(60),
     )
 
+    fun defaultCircularQueueOps(): List<QueueOp> = listOf(
+        QueueOp.Enqueue(10),
+        QueueOp.Enqueue(20),
+        QueueOp.Enqueue(30),
+        QueueOp.Dequeue,
+        QueueOp.Dequeue,
+        QueueOp.Enqueue(40),
+        QueueOp.Enqueue(50),
+        QueueOp.Enqueue(60),
+        QueueOp.Enqueue(70),
+        QueueOp.Enqueue(80),
+        QueueOp.Enqueue(90),
+        QueueOp.Peek,
+    )
+
     private fun generateStackSteps(operations: List<BufferOp> = defaultStackOps()): List<VisualizerStep> {
         val ops = operations.ifEmpty { defaultStackOps() }
         val steps = mutableListOf<VisualizerStep>()
@@ -1195,7 +1224,8 @@ object AlgorithmStepRepository {
             codeLine: Int,
             label: String = "PROCESSING",
             expr: String? = null,
-            callFrame: String = "Stack.main()"
+            callFrame: String = "Stack.main()",
+            opCount: Int = 0
         ) {
             val topVal = items.lastOrNull()?.value ?: "∅"
             steps.add(
@@ -1211,16 +1241,18 @@ object AlgorithmStepRepository {
                     variables = mapOf(
                         "size" to items.size.toString(),
                         "top" to topVal,
-                        "topIdx" to (items.size - 1).toString()
+                        "topIdx" to (items.size - 1).toString(),
+                        "opCount" to opCount.toString()
                     ),
                     callStack = listOf("Stack.main()", callFrame).distinct()
                 )
             )
         }
 
-        addStep("Created empty Stack (LIFO capacity ready)", 1, "INITIALIZING", "STACK READY (size=0)")
+        addStep("Created empty Stack (LIFO capacity ready)", 1, "INITIALIZING", "STACK READY (size=0)", opCount = 0)
 
-        ops.forEach { op ->
+        ops.forEachIndexed { opIdx, op ->
+            val countOp = opIdx + 1
             when (op) {
                 is BufferOp.Push -> {
                     if (items.size < 8) {
@@ -1231,11 +1263,12 @@ object AlgorithmStepRepository {
                             codeLine = 2,
                             label = "PUSH",
                             expr = "PUSH(${op.value}) -> top = ${op.value}",
-                            callFrame = "push(${op.value})"
+                            callFrame = "push(${op.value})",
+                            opCount = countOp
                         )
                         items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
                     } else {
-                        addStep("push(${op.value}) -> Stack overflow (capacity 8 reached). No-op.", 2, "OVERFLOW", "PUSH: overflow (size=8)", "push(${op.value})")
+                        addStep("push(${op.value}) -> Stack overflow (capacity 8 reached). No-op.", 2, "OVERFLOW", "PUSH: overflow (size=8)", "push(${op.value})", opCount = countOp)
                     }
                 }
                 BufferOp.Pop -> {
@@ -1247,11 +1280,12 @@ object AlgorithmStepRepository {
                             codeLine = 3,
                             label = "POPPING",
                             expr = "POP: targeting top = ${topItem.value}",
-                            callFrame = "pop()"
+                            callFrame = "pop()",
+                            opCount = countOp
                         )
                         val popped = items.removeAt(items.size - 1)
                         if (items.isNotEmpty()) {
-                            items[items.size - 1] = items[items.size - 1].copy(state = ElementState.ACTIVE)
+                            items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
                         }
                         addStep(
                             desc = "pop() -> Popped ${popped.value} from stack top. " +
@@ -1260,13 +1294,11 @@ object AlgorithmStepRepository {
                             codeLine = 4,
                             label = "POP",
                             expr = "POPPED: ${popped.value} -> new top = ${items.lastOrNull()?.value ?: "∅"}",
-                            callFrame = "pop() -> ${popped.value}"
+                            callFrame = "pop() -> ${popped.value}",
+                            opCount = countOp
                         )
-                        if (items.isNotEmpty()) {
-                            items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
-                        }
                     } else {
-                        addStep("pop() -> Stack underflow (empty). No-op.", 4, "UNDERFLOW", "POP: underflow (size=0)", "pop()")
+                        addStep("pop() -> Stack underflow (empty). No-op.", 4, "UNDERFLOW", "POP: underflow (size=0)", "pop()", opCount = countOp)
                     }
                 }
                 BufferOp.Peek -> {
@@ -1277,17 +1309,18 @@ object AlgorithmStepRepository {
                             codeLine = 6,
                             label = "PEEK",
                             expr = "PEEK() == ${items.last().value}",
-                            callFrame = "peek() -> ${items.last().value}"
+                            callFrame = "peek() -> ${items.last().value}",
+                            opCount = countOp
                         )
                         items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
                     } else {
-                        addStep("peek() -> Stack is empty. Returns null.", 6, "PEEK", "PEEK() == null", "peek()")
+                        addStep("peek() -> Stack is empty. Returns null.", 6, "PEEK", "PEEK() == null", "peek()", opCount = countOp)
                     }
                 }
             }
         }
 
-        addStep("Stack sequence complete (${ops.size} operations).", 1, "DONE", "COMPLETE (${items.size} items)")
+        addStep("Stack sequence complete (${ops.size} operations).", 1, "DONE", "COMPLETE (${items.size} items)", opCount = ops.size)
         return steps
     }
 
@@ -1363,7 +1396,7 @@ object AlgorithmStepRepository {
                         )
                         val removed = items.removeAt(0)
                         if (items.isNotEmpty()) {
-                            items[0] = items[0].copy(state = ElementState.ACTIVE)
+                            items[0] = items[0].copy(state = ElementState.IDLE)
                         }
                         addStep(
                             desc = "dequeue() -> Removed ${removed.value} from front. " +
@@ -1374,17 +1407,207 @@ object AlgorithmStepRepository {
                             expr = "DEQUEUED: ${removed.value} -> new front = ${items.firstOrNull()?.value ?: "∅"}",
                             callFrame = "dequeue() -> ${removed.value}"
                         )
-                        if (items.isNotEmpty()) {
-                            items[0] = items[0].copy(state = ElementState.IDLE)
-                        }
                     } else {
                         addStep("dequeue() -> Queue underflow (empty). No-op.", 4, "UNDERFLOW", "DEQUEUE: underflow (size=0)", "dequeue()")
+                    }
+                }
+                QueueOp.Peek -> {
+                    if (items.isNotEmpty()) {
+                        val frontItem = items.first()
+                        items[0] = frontItem.copy(state = ElementState.FOUND)
+                        addStep(
+                            desc = "peek() -> Inspected front element ${frontItem.value} at front of queue without removing",
+                            codeLine = 5,
+                            label = "PEEK",
+                            expr = "PEEK() == ${frontItem.value}",
+                            callFrame = "peek() -> ${frontItem.value}"
+                        )
+                        items[0] = frontItem.copy(state = ElementState.IDLE)
+                    } else {
+                        addStep("peek() -> Queue underflow (empty). No-op.", 5, "UNDERFLOW", "PEEK: underflow (size=0)", "peek()")
                     }
                 }
             }
         }
 
         addStep("Queue sequence complete (${ops.size} operations).", 1, "DONE", "COMPLETE (${items.size} items)")
+        return steps
+    }
+
+    /**
+     * Radial Ring Buffer step generator for Circular Queue (fixed capacity N).
+     * Models modular arithmetic:
+     *   enqueue: rear = (rear + 1) % capacity
+     *   dequeue: front = (front + 1) % capacity
+     */
+    fun generateCircularQueueSteps(
+        operations: List<QueueOp> = defaultCircularQueueOps(),
+        capacity: Int = 8
+    ): List<VisualizerStep> {
+        val ops = operations.ifEmpty { defaultCircularQueueOps() }
+        val steps = mutableListOf<VisualizerStep>()
+        var sIdx = 0
+        val buffer = Array(capacity) { "—" }
+        var front = -1
+        var rear = -1
+        var count = 0
+
+        fun currentBufferItems(activeIdx: Int? = null, activeState: ElementState = ElementState.ACTIVE): List<BufferItem> {
+            return (0 until capacity).map { i ->
+                val state = when {
+                    i == activeIdx -> activeState
+                    buffer[i] != "—" -> ElementState.IDLE
+                    else -> ElementState.IDLE
+                }
+                BufferItem(id = "cq_$i", value = buffer[i], state = state)
+            }
+        }
+
+        fun addStep(
+            desc: String,
+            codeLine: Int,
+            label: String,
+            expr: String,
+            activeIdx: Int? = null,
+            activeState: ElementState = ElementState.ACTIVE,
+            callFrame: String = "CircularQueue.main()"
+        ) {
+            val formula = if (rear >= 0) "(rear + 1) % $capacity = ${(rear + 1) % capacity}" else "front=0, rear=0"
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = desc,
+                    comparisonExpr = expr,
+                    phaseLabel = label,
+                    renderMode = VisualizerRenderMode.BUFFER,
+                    buffer = currentBufferItems(activeIdx, activeState),
+                    bufferCapacity = capacity,
+                    bufferLabel = "CIRCULAR RING BUFFER (N=$capacity)",
+                    topPointers = mapOf(
+                        "F" to front,
+                        "R" to rear
+                    ),
+                    activeCodeLines = listOf(codeLine),
+                    variables = mapOf(
+                        "front" to if (front >= 0) "[$front]" else "NONE",
+                        "rear" to if (rear >= 0) "[$rear]" else "NONE",
+                        "size" to "$count / $capacity",
+                        "formula" to formula,
+                        "queueVariant" to QueueVariant.CIRCULAR_RING.name
+                    ),
+                    callStack = listOf("CircularQueue", callFrame).distinct()
+                )
+            )
+        }
+
+        addStep(
+            desc = "Initialized 8-slot Circular Ring Buffer (empty, front=-1, rear=-1).",
+            codeLine = 1,
+            label = "INITIALIZING",
+            expr = "INIT: N=$capacity"
+        )
+
+        ops.forEach { op ->
+            when (op) {
+                is QueueOp.Enqueue -> {
+                    if (count < capacity) {
+                        val prevRear = rear
+                        if (front == -1) {
+                            front = 0
+                            rear = 0
+                        } else {
+                            rear = (rear + 1) % capacity
+                        }
+                        buffer[rear] = op.value.toString()
+                        count++
+                        addStep(
+                            desc = "enqueue(${op.value}) ➔ Stored at slot [$rear]. Index calculated as ($prevRear + 1) % $capacity = $rear.",
+                            codeLine = 2,
+                            label = "ENQUEUE",
+                            expr = "ENQUEUE(${op.value}) ➔ slot[$rear]",
+                            activeIdx = rear,
+                            activeState = ElementState.ACTIVE,
+                            callFrame = "enqueue(${op.value})"
+                        )
+                    } else {
+                        addStep(
+                            desc = "enqueue(${op.value}) ➔ Queue Overflow! Capacity $capacity reached. No-op.",
+                            codeLine = 2,
+                            label = "OVERFLOW",
+                            expr = "OVERFLOW (size=$count/$capacity)",
+                            callFrame = "enqueue(${op.value})"
+                        )
+                    }
+                }
+                QueueOp.Dequeue -> {
+                    if (count > 0 && front != -1) {
+                        val prevFront = front
+                        val removedVal = buffer[front]
+                        addStep(
+                            desc = "dequeue() ➔ Removing front element '$removedVal' at slot [$prevFront].",
+                            codeLine = 3,
+                            label = "DEQUEUING",
+                            expr = "DEQUEUE: slot[$prevFront] = $removedVal",
+                            activeIdx = prevFront,
+                            activeState = ElementState.SWAPPING,
+                            callFrame = "dequeue()"
+                        )
+                        buffer[prevFront] = "—"
+                        count--
+                        if (count == 0) {
+                            front = -1
+                            rear = -1
+                        } else {
+                            front = (prevFront + 1) % capacity
+                        }
+                        addStep(
+                            desc = "dequeue() complete ➔ Removed '$removedVal'. Next front advances to [${if (front >= 0) front else "NONE"}] via ($prevFront + 1) % $capacity.",
+                            codeLine = 4,
+                            label = "DEQUEUE",
+                            expr = "DEQUEUED: $removedVal ➔ new front=[$front]",
+                            callFrame = "dequeue() -> $removedVal"
+                        )
+                    } else {
+                        addStep(
+                            desc = "dequeue() ➔ Queue Underflow! Buffer is empty (front=-1, rear=-1). No-op.",
+                            codeLine = 4,
+                            label = "UNDERFLOW",
+                            expr = "UNDERFLOW (size=0)",
+                            callFrame = "dequeue()"
+                        )
+                    }
+                }
+                QueueOp.Peek -> {
+                    if (count > 0 && front != -1) {
+                        val peekVal = buffer[front]
+                        addStep(
+                            desc = "peek() ➔ Inspected front element '$peekVal' at slot [$front] without advancing pointers.",
+                            codeLine = 5,
+                            label = "PEEK",
+                            expr = "PEEK() == $peekVal at [$front]",
+                            activeIdx = front,
+                            activeState = ElementState.FOUND,
+                            callFrame = "peek() -> $peekVal"
+                        )
+                    } else {
+                        addStep(
+                            desc = "peek() ➔ Queue Underflow! Buffer is empty.",
+                            codeLine = 5,
+                            label = "UNDERFLOW",
+                            expr = "PEEK: underflow (size=0)",
+                            callFrame = "peek()"
+                        )
+                    }
+                }
+            }
+        }
+
+        addStep(
+            desc = "Circular Queue sequence complete (${ops.size} operations processed).",
+            codeLine = 1,
+            label = "DONE",
+            expr = "COMPLETE ($count / $capacity occupied)"
+        )
         return steps
     }
 
@@ -1467,6 +1690,7 @@ object AlgorithmStepRepository {
     fun generateBSTSteps(
         values: List<Int> = defaultBstValues,
         searchKey: Int = defaultBstSearchKey,
+        mode: BstMode = BstMode.SEARCH,
         customGraph: Pair<List<GraphNodeState>, List<GraphEdgeState>>? = null,
         customCoordinates: Map<String, Offset>? = null
     ): List<VisualizerStep> {
@@ -1546,7 +1770,7 @@ object AlgorithmStepRepository {
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = "Empty BST. Nothing to search.",
+                    description = "Empty BST. Nothing to traverse.",
                     renderMode = VisualizerRenderMode.GRAPH_TREE,
                     nodes = nodes,
                     edges = edges,
@@ -1554,6 +1778,17 @@ object AlgorithmStepRepository {
                 )
             )
             return steps
+        }
+
+        if (mode != BstMode.SEARCH) {
+            return generateBstTraversalSteps(
+                nodes = nodes,
+                edges = edges,
+                byId = byId,
+                childrenById = childrenById,
+                rootId = rootId,
+                mode = mode
+            )
         }
 
         // Step 0: Show fully pre-built tree — skip incremental construction phase.
@@ -1706,6 +1941,282 @@ object AlgorithmStepRepository {
         return steps
     }
 
+    /**
+     * Recursive tree traversal step generator for Binary Search Tree.
+     * Supports IN_ORDER, PRE_ORDER, and POST_ORDER.
+     */
+    private fun generateBstTraversalSteps(
+        nodes: List<GraphNodeState>,
+        edges: List<GraphEdgeState>,
+        byId: Map<String, GraphNodeState>,
+        childrenById: Map<String, List<String>>,
+        rootId: String,
+        mode: BstMode
+    ): List<VisualizerStep> {
+        val steps = mutableListOf<VisualizerStep>()
+        var sIdx = 0
+        val visitedOrder = mutableListOf<String>()
+        val callStack = mutableListOf<String>()
+
+        fun getLeft(id: String): String? {
+            val children = childrenById[id] ?: return null
+            val node = byId[id] ?: return null
+            return children.firstOrNull {
+                val c = byId[it] ?: return@firstOrNull false
+                c.x < node.x || (c.label.toIntOrNull() ?: 0) < (node.label.toIntOrNull() ?: 0)
+            }
+        }
+
+        fun getRight(id: String): String? {
+            val children = childrenById[id] ?: return null
+            val node = byId[id] ?: return null
+            return children.firstOrNull {
+                val c = byId[it] ?: return@firstOrNull false
+                c.x > node.x || (c.label.toIntOrNull() ?: 0) >= (node.label.toIntOrNull() ?: 0)
+            }
+        }
+
+        fun currentBuffer(): List<BufferItem> = visitedOrder.mapIndexed { idx, id ->
+            val label = byId[id]?.label ?: id
+            BufferItem(
+                id = "t_$idx",
+                value = label,
+                state = if (idx == visitedOrder.lastIndex) ElementState.FOUND else ElementState.VISITED,
+                nodeId = id
+            )
+        }
+
+        fun addStep(
+            desc: String,
+            codeLine: Int,
+            phase: String,
+            expr: String,
+            activeId: String?,
+            visitingId: String? = null
+        ) {
+            val activePath = callStack.mapNotNull { frame ->
+                val label = frame.substringAfter("(").substringBefore(")")
+                byId.values.firstOrNull { it.label == label }?.id
+            }.toSet()
+
+            steps.add(
+                VisualizerStep(
+                    stepIndex = sIdx++,
+                    description = desc,
+                    comparisonExpr = expr,
+                    phaseLabel = phase,
+                    renderMode = VisualizerRenderMode.GRAPH_TREE,
+                    nodes = nodes.map { node ->
+                        when {
+                            node.id == visitingId -> node.copy(state = ElementState.FOUND)
+                            node.id == activeId -> node.copy(state = ElementState.ACTIVE)
+                            node.id in visitedOrder -> node.copy(state = ElementState.VISITED)
+                            node.id in activePath -> node.copy(state = ElementState.COMPARING)
+                            else -> node.copy(state = ElementState.IDLE)
+                        }
+                    },
+                    edges = edges.map { e ->
+                        if (e.from in activePath && (e.to in activePath || e.to == activeId)) {
+                            e.copy(isHighlighted = true)
+                        } else {
+                            e.copy(isHighlighted = false)
+                        }
+                    },
+                    buffer = currentBuffer(),
+                    bufferLabel = "TRAVERSAL OUTPUT (${mode.displayName.uppercase()})",
+                    activeNodeId = activeId,
+                    visitedNodeIds = visitedOrder.toSet(),
+                    activeCodeLines = listOf(codeLine),
+                    variables = mapOf(
+                        "mode" to mode.displayName,
+                        "formula" to mode.formula,
+                        "current" to (activeId?.let { byId[it]?.label } ?: "null"),
+                        "emitted" to visitedOrder.size.toString(),
+                        "bstMode" to mode.name
+                    ),
+                    callStack = callStack.toList()
+                )
+            )
+        }
+
+        // Initializing Step
+        addStep(
+            desc = "Starting ${mode.displayName} Traversal (${mode.formula}) on root node ${byId[rootId]?.label}.",
+            codeLine = 1,
+            phase = "INITIALIZING",
+            expr = mode.formula,
+            activeId = rootId
+        )
+
+        fun traverse(currId: String?) {
+            val methodName = when (mode) {
+                BstMode.IN_ORDER -> "inOrder"
+                BstMode.PRE_ORDER -> "preOrder"
+                BstMode.POST_ORDER -> "postOrder"
+                BstMode.SEARCH -> "search"
+            }
+            if (currId == null) {
+                callStack.add("$methodName(null)")
+                addStep(
+                    desc = "Reached null leaf branch. Returning from recursive call.",
+                    codeLine = 2,
+                    phase = "BACKTRACKING",
+                    expr = "node == null ➔ return",
+                    activeId = null
+                )
+                callStack.removeAt(callStack.lastIndex)
+                return
+            }
+
+            val nodeLabel = byId[currId]?.label ?: currId
+            callStack.add("$methodName($nodeLabel)")
+
+            when (mode) {
+                BstMode.IN_ORDER -> {
+                    val left = getLeft(currId)
+                    val right = getRight(currId)
+
+                    // 1. Traverse Left
+                    addStep(
+                        desc = "inOrder($nodeLabel) ➔ Recurse left child (${left?.let { byId[it]?.label } ?: "null"}).",
+                        codeLine = 3,
+                        phase = "TRAVERSING",
+                        expr = "inOrder(node.left)",
+                        activeId = currId
+                    )
+                    traverse(left)
+
+                    // 2. Visit Node (Emit)
+                    visitedOrder.add(currId)
+                    addStep(
+                        desc = "inOrder($nodeLabel) ➔ Visit node $nodeLabel. Emitted to output tray: [${visitedOrder.map { byId[it]?.label }.joinToString(", ")}].",
+                        codeLine = 4,
+                        phase = "VISIT_NODE",
+                        expr = "VISIT: $nodeLabel",
+                        activeId = currId,
+                        visitingId = currId
+                    )
+
+                    // 3. Traverse Right
+                    addStep(
+                        desc = "inOrder($nodeLabel) ➔ Recurse right child (${right?.let { byId[it]?.label } ?: "null"}).",
+                        codeLine = 5,
+                        phase = "TRAVERSING",
+                        expr = "inOrder(node.right)",
+                        activeId = currId
+                    )
+                    traverse(right)
+                }
+
+                BstMode.PRE_ORDER -> {
+                    val left = getLeft(currId)
+                    val right = getRight(currId)
+
+                    // 1. Visit Node (Emit)
+                    visitedOrder.add(currId)
+                    addStep(
+                        desc = "preOrder($nodeLabel) ➔ Visit root $nodeLabel before children. Emitted to output tray: [${visitedOrder.map { byId[it]?.label }.joinToString(", ")}].",
+                        codeLine = 3,
+                        phase = "VISIT_NODE",
+                        expr = "VISIT: $nodeLabel",
+                        activeId = currId,
+                        visitingId = currId
+                    )
+
+                    // 2. Traverse Left
+                    addStep(
+                        desc = "preOrder($nodeLabel) ➔ Recurse left child (${left?.let { byId[it]?.label } ?: "null"}).",
+                        codeLine = 4,
+                        phase = "TRAVERSING",
+                        expr = "preOrder(node.left)",
+                        activeId = currId
+                    )
+                    traverse(left)
+
+                    // 3. Traverse Right
+                    addStep(
+                        desc = "preOrder($nodeLabel) ➔ Recurse right child (${right?.let { byId[it]?.label } ?: "null"}).",
+                        codeLine = 5,
+                        phase = "TRAVERSING",
+                        expr = "preOrder(node.right)",
+                        activeId = currId
+                    )
+                    traverse(right)
+                }
+
+                BstMode.POST_ORDER -> {
+                    val left = getLeft(currId)
+                    val right = getRight(currId)
+
+                    // 1. Traverse Left
+                    addStep(
+                        desc = "postOrder($nodeLabel) ➔ Recurse left child (${left?.let { byId[it]?.label } ?: "null"}).",
+                        codeLine = 3,
+                        phase = "TRAVERSING",
+                        expr = "postOrder(node.left)",
+                        activeId = currId
+                    )
+                    traverse(left)
+
+                    // 2. Traverse Right
+                    addStep(
+                        desc = "postOrder($nodeLabel) ➔ Recurse right child (${right?.let { byId[it]?.label } ?: "null"}).",
+                        codeLine = 4,
+                        phase = "TRAVERSING",
+                        expr = "postOrder(node.right)",
+                        activeId = currId
+                    )
+                    traverse(right)
+
+                    // 3. Visit Node (Emit)
+                    visitedOrder.add(currId)
+                    addStep(
+                        desc = "postOrder($nodeLabel) ➔ Visit root $nodeLabel after both children. Emitted to output tray: [${visitedOrder.map { byId[it]?.label }.joinToString(", ")}].",
+                        codeLine = 5,
+                        phase = "VISIT_NODE",
+                        expr = "VISIT: $nodeLabel",
+                        activeId = currId,
+                        visitingId = currId
+                    )
+                }
+
+                BstMode.SEARCH -> Unit
+            }
+
+            callStack.removeAt(callStack.lastIndex)
+        }
+
+        traverse(rootId)
+
+        // Final Completed Step
+        steps.add(
+            VisualizerStep(
+                stepIndex = sIdx++,
+                description = "Completed ${mode.displayName} Traversal (${visitedOrder.size} nodes). Final Sequence: [${visitedOrder.map { byId[it]?.label }.joinToString(", ")}].",
+                comparisonExpr = "COMPLETE: [${visitedOrder.map { byId[it]?.label }.joinToString(", ")}]",
+                phaseLabel = "DONE",
+                renderMode = VisualizerRenderMode.GRAPH_TREE,
+                nodes = nodes.map { it.copy(state = ElementState.VISITED) },
+                edges = edges,
+                buffer = currentBuffer(),
+                bufferLabel = "TRAVERSAL OUTPUT (${mode.displayName.uppercase()})",
+                activeNodeId = null,
+                visitedNodeIds = visitedOrder.toSet(),
+                activeCodeLines = listOf(1),
+                variables = mapOf(
+                    "mode" to mode.displayName,
+                    "formula" to mode.formula,
+                    "totalNodes" to visitedOrder.size.toString(),
+                    "sequence" to visitedOrder.map { byId[it]?.label }.joinToString(", "),
+                    "bstMode" to mode.name
+                ),
+                callStack = emptyList()
+            )
+        )
+
+        return steps
+    }
+
     // ─────────────────────────────────────────────────────────────
     // 11. Heap (Max-Heap / Min-Heap with Dual Tree + Array State)
     // ─────────────────────────────────────────────────────────────
@@ -1831,7 +2342,7 @@ object AlgorithmStepRepository {
         }
 
         emitHeapStep(
-            desc = "$heapKind: Initial array $arr (${n} elements). Starting bottom-up buildHeap from last parent index ${(n / 2) - 1}.",
+            desc = "$heapKind: Initial array $arr (${n} elements) mapped to Complete Binary Tree. For any index i, Left child is at 2i+1, Right child at 2i+2. Starting bottom-up buildHeap from last parent index ${(n / 2) - 1}.",
             expr = "BUILD $heapKind (n=$n)",
             phase = "INITIALIZING",
             states = mapOf(0 to ElementState.ACTIVE),
@@ -1859,11 +2370,10 @@ object AlgorithmStepRepository {
                     put(root, ElementState.ACTIVE)
                     put(left, ElementState.COMPARING)
                     if (right < endExclusive) put(right, ElementState.COMPARING)
-                    for (k in endExclusive until n) put(k, ElementState.SORTED)
                 }
                 val rightStr = if (right < endExclusive) ", R[$right]=${arr[right]}" else ""
                 emitHeapStep(
-                    desc = "siftDown(i=$root): Comparing parent P[$root]=${arr[root]} with child L[$left]=${arr[left]}$rightStr",
+                    desc = "siftDown(i=$root): Checking $heapKind condition for parent P[$root]=${arr[root]} with child L[$left]=${arr[left]}$rightStr",
                     expr = "COMPARE: arr[$root] (${arr[root]}) vs arr[$target] (${arr[target]})",
                     phase = "HEAPIFY",
                     states = compareStates,
@@ -1882,10 +2392,9 @@ object AlgorithmStepRepository {
                     val swapStates = buildMap {
                         put(root, ElementState.SWAPPING)
                         put(target, ElementState.SWAPPING)
-                        for (k in endExclusive until n) put(k, ElementState.SORTED)
                     }
                     emitHeapStep(
-                        desc = "Child $childVal $op Parent $parentVal -> Swapped index $root ↔ $target",
+                        desc = "Child arr[$target] ($childVal) $op Parent arr[$root] ($parentVal) violates $heapKind property -> Swapping index $root ↔ $target to elevate $childVal.",
                         expr = "ELEVATE: $childVal at [$root]",
                         phase = "SWAPPING",
                         states = swapStates,
@@ -1906,50 +2415,13 @@ object AlgorithmStepRepository {
         }
 
         emitHeapStep(
-            desc = "$heapKind property established! Root arr[0]=${arr[0]} is the ${if (isDesc) "minimum" else "maximum"} element.",
+            desc = "$heapKind fully established! All parent nodes satisfy the heap property (Parent ${if (isDesc) "≤" else "≥"} Children). Root arr[0]=${arr[0]} is the guaranteed ${if (isDesc) "minimum" else "maximum"} element.",
             expr = "HEAP READY: root = ${arr[0]}",
             phase = "HEAPIFIED",
-            states = mapOf(0 to ElementState.FOUND),
+            states = (0 until n).associateWith { idx -> if (idx == 0) ElementState.FOUND else ElementState.IDLE },
             activeIdx = 0,
             codeLines = listOf(2),
-            callFrame = "buildHeap() -> ready"
-        )
-
-        // Demonstrate extracting the root element and re-heapifying
-        val finalBound = if (n > 1) n - 1 else n
-        if (n > 1) {
-            val extracted = arr[0]
-            val lastVal = arr[n - 1]
-            arr[0] = lastVal
-            arr[n - 1] = extracted
-            emitHeapStep(
-                desc = "extractRoot(): Swapped root $extracted with last leaf $lastVal (index ${n - 1}) and locked $extracted.",
-                expr = "EXTRACT: $extracted -> slot [${n - 1}]",
-                phase = "EXTRACTING",
-                states = mapOf(0 to ElementState.ACTIVE, (n - 1) to ElementState.SORTED),
-                activeIdx = 0,
-                codeLines = listOf(8),
-                heapBound = finalBound,
-                callFrame = "extractRoot() -> $extracted"
-            )
-            siftDown(0, finalBound)
-        }
-
-        emitHeapStep(
-            desc = "$heapKind operations complete! Current root is ${arr[0]}.",
-            expr = "COMPLETE: root = ${arr[0]}",
-            phase = "SORTED",
-            states = (0 until n).associateWith { idx ->
-                when {
-                    idx == 0 -> ElementState.FOUND
-                    idx >= finalBound -> ElementState.SORTED
-                    else -> ElementState.VISITED
-                }
-            },
-            activeIdx = 0,
-            codeLines = listOf(8),
-            heapBound = finalBound,
-            callFrame = "Heap.done()"
+            callFrame = "buildHeap() -> complete"
         )
 
         return steps
@@ -2074,38 +2546,14 @@ object AlgorithmStepRepository {
             val curr = queue.removeFirst()
             val currDist = distMap[curr] ?: 0
             val neighbors = adj[curr].orEmpty()
-            val newlyDiscovered = mutableListOf<String>()
 
-            for ((nextId, weight) in neighbors) {
-                if (nextId !in visited) {
-                    visited.add(nextId)
-                    distMap[nextId] = currDist + weight
-                    parentMap[nextId] = curr
-                    treeEdges.add(curr to nextId)
-                    queue.addLast(nextId)
-                    newlyDiscovered.add("$nextId(w=$weight)")
-                    if (nextId == target) {
-                        foundTarget = true
-                        break
-                    }
-                }
-            }
-
-            val desc = when {
-                foundTarget ->
-                    "BFS: Dequeued $curr (dist=$currDist). TARGET $target discovered — shortest-hop route locked. Queue = [${queue.joinToString(", ")}]"
-                newlyDiscovered.isNotEmpty() ->
-                    "BFS: Dequeued $curr (dist=$currDist). Discovered ${newlyDiscovered.joinToString(", ")}. Queue = [${queue.joinToString(", ")}]"
-                else ->
-                    "BFS: Dequeued $curr (dist=$currDist). All neighbors already visited. Queue = [${queue.joinToString(", ")}]"
-            }
-
+            // 1. DEQUEUE phase: curr is removed from frontier and set as active inspection focal
             steps.add(
                 VisualizerStep(
                     stepIndex = sIdx++,
-                    description = desc,
-                    comparisonExpr = "QUEUE: [${queue.joinToString(", ")}]",
-                    phaseLabel = if (newlyDiscovered.isNotEmpty()) "ENQUEUED" else "VISITING",
+                    description = "BFS: Dequeued $curr (dist=$currDist) from the frontier. Inspecting adjacent edges.",
+                    comparisonExpr = "DEQUEUE: $curr | QUEUE: [${queue.joinToString(", ")}]",
+                    phaseLabel = "DEQUEUE",
                     renderMode = VisualizerRenderMode.GRAPH_TREE,
                     nodes = baseNodes.map { node ->
                         when {
@@ -2122,7 +2570,7 @@ object AlgorithmStepRepository {
                     bufferLabel = "BFS FRONTIER QUEUE",
                     activeNodeId = curr,
                     visitedNodeIds = visited.toSet(),
-                    activeCodeLines = listOf(3, 4, 5, 6, 7),
+                    activeCodeLines = listOf(3, 4),
                     variables = mapOf(
                         "curr" to curr,
                         "dist[$curr]" to currDist.toString(),
@@ -2132,6 +2580,97 @@ object AlgorithmStepRepository {
                     callStack = listOf("bfs(start=$start)", "expand(curr=$curr)")
                 )
             )
+
+            for ((nextId, weight) in neighbors) {
+                if (nextId !in visited) {
+                    visited.add(nextId)
+                    distMap[nextId] = currDist + weight
+                    parentMap[nextId] = curr
+                    treeEdges.add(curr to nextId)
+
+                    // 2. EXPLORE phase: traverse edge from curr to nextId (photon wave travels across the edge)
+                    steps.add(
+                        VisualizerStep(
+                            stepIndex = sIdx++,
+                            description = "BFS: Traversed edge $curr → $nextId (weight $weight). Discovered unvisited neighbor $nextId.",
+                            comparisonExpr = "EXPLORE: $curr → $nextId",
+                            phaseLabel = "EXPLORE",
+                            renderMode = VisualizerRenderMode.GRAPH_TREE,
+                            nodes = baseNodes.map { node ->
+                                when {
+                                    node.id == nextId -> node.copy(state = ElementState.ACTIVE)
+                                    node.id == curr -> node.copy(state = ElementState.VISITED)
+                                    node.id in queue -> node.copy(state = ElementState.COMPARING)
+                                    node.id in visited -> node.copy(state = ElementState.VISITED)
+                                    else -> node
+                                }
+                            },
+                            edges = baseEdges.map { e ->
+                                if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                            },
+                            buffer = queueBufferItems(),
+                            bufferLabel = "BFS FRONTIER QUEUE",
+                            activeNodeId = nextId,
+                            visitedNodeIds = visited.toSet(),
+                            activeCodeLines = listOf(5, 6),
+                            variables = mapOf(
+                                "curr" to curr,
+                                "next" to nextId,
+                                "dist[$nextId]" to (distMap[nextId] ?: 0).toString(),
+                                "queue" to "[${queue.joinToString(",")}]",
+                                "visited" to visited.joinToString("→")
+                            ),
+                            callStack = listOf("bfs(start=$start)", "explore(from=$curr, to=$nextId)")
+                        )
+                    )
+
+                    // 3. ENQUEUE phase: push nextId into the frontier queue
+                    queue.addLast(nextId)
+                    val isTarget = (nextId == target)
+                    if (isTarget) foundTarget = true
+
+                    val enqDesc = if (isTarget) {
+                        "BFS: Enqueued TARGET $nextId (dist=${distMap[nextId]}). Goal reached — shortest hop path locked!"
+                    } else {
+                        "BFS: Enqueued $nextId (dist=${distMap[nextId]}) into frontier queue. Queue = [${queue.joinToString(", ")}]"
+                    }
+
+                    steps.add(
+                        VisualizerStep(
+                            stepIndex = sIdx++,
+                            description = enqDesc,
+                            comparisonExpr = "ENQUEUE: $nextId | QUEUE: [${queue.joinToString(", ")}]",
+                            phaseLabel = if (isTarget) "FOUND" else "ENQUEUED",
+                            renderMode = VisualizerRenderMode.GRAPH_TREE,
+                            nodes = baseNodes.map { node ->
+                                when {
+                                    node.id == nextId && isTarget -> node.copy(state = ElementState.FOUND)
+                                    node.id in queue -> node.copy(state = ElementState.COMPARING)
+                                    node.id in visited -> node.copy(state = ElementState.VISITED)
+                                    else -> node
+                                }
+                            },
+                            edges = baseEdges.map { e ->
+                                if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
+                            },
+                            buffer = queueBufferItems(highlightId = nextId),
+                            bufferLabel = "BFS FRONTIER QUEUE",
+                            activeNodeId = curr,
+                            visitedNodeIds = visited.toSet(),
+                            activeCodeLines = listOf(6, 7),
+                            variables = mapOf(
+                                "enqueued" to nextId,
+                                "dist[$nextId]" to (distMap[nextId] ?: 0).toString(),
+                                "queue" to "[${queue.joinToString(",")}]",
+                                "visited" to visited.joinToString("→")
+                            ),
+                            callStack = listOf("bfs(start=$start)", "enqueue(node=$nextId)")
+                        )
+                    )
+
+                    if (foundTarget) break
+                }
+            }
         }
 
         // Path reconstruction via parentMap when the search was goal-directed.

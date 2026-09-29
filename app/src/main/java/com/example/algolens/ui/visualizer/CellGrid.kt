@@ -158,8 +158,9 @@ fun CellGrid(
     val celebrationPulse = remember { Animatable(0f) }
     val celebrationPulseState = remember { derivedStateOf { celebrationPulse.value } }
 
-    val isFullySorted = remember(step.elementStates, step.array.size) {
-        step.array.isNotEmpty() &&
+    val isFullySorted = remember(step.elementStates, step.array.size, step.phaseLabel) {
+        step.phaseLabel == "SORTED" &&
+            step.array.isNotEmpty() &&
             step.elementStates.size == step.array.size &&
             step.elementStates.values.all { it == ElementState.SORTED }
     }
