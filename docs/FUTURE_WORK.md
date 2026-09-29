@@ -62,11 +62,8 @@ Extending the weighted graph / 2D grid visualizer to support directed heuristic 
 
 ## 3. Challenge Mode & Cognitive Interactivity
 
-### 3.1 Dijkstra Prediction Question Generator
-Integrate Dijkstra into `PredictionQuestionBuilder`:
-- **Next Min-PQ Extraction**: Ask user *"Which vertex will the Priority Queue extract next with minimum tentative distance?"*
-  - Multiple choice options derived from current PQ frontier (`BufferItem`s).
-- **Edge Relaxation Outcome**: When examining edge $(u, v)$ with weight $w$, ask:
-  *"Does traversing to $v$ via $u$ update $dist[v]$? ($dist[u] + w < dist[v]$)"*
-  - Options: *"Yes, relaxes to X"* vs *"No, keep current distance Y"*.
-- Direct Canvas Hit: Allow user to tap the predicted node directly on the 2D canvas (leveraging `submitNodePrediction`).
+### 3.1 Dijkstra Prediction Question Generator (Completed)
+- **Status**: Completed in `com.avia.ui.visualizer.ChallengeModeManager`, `com.avia.ui.practice.PredictStepArena`, and `com.avia.data.practice.PracticeQuestionRepository`.
+- **Next Min-PQ Extraction**: Implemented via `PredictionKind.SELECT_VISIT_NODE` with Priority Queue frontier candidate nodes and Node ID tap scoring.
+- **Edge Relaxation Outcome**: Implemented via `PredictionKind.SWAP_DECISION` (`[ RELAX ]` vs `[ KEEP ]`) evaluating tentative vs candidate distances.
+- **Practice Quizzes**: Curated Easy/Medium/Hard quiz questions with visual graph snapshots added to `PracticeQuestionRepository`.

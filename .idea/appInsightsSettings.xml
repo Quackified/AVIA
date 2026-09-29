@@ -9,10 +9,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.avia" />
+                  <option name="mobileSdkAppId" value="1:43971700258:android:9b25ebe43b28242541cc7b" />
+                  <option name="projectId" value="avia-c0a0b" />
+                  <option name="projectNumber" value="43971700258" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

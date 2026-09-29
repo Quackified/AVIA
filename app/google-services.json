@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "43971700258",
+    "project_id": "avia-c0a0b",
+    "storage_bucket": "avia-c0a0b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:43971700258:android:9b25ebe43b28242541cc7b",
+        "android_client_info": {
+          "package_name": "com.avia"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "43971700258-b39do2elk88eg2u5ki5oqi91mthkjpoh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.avia",
+            "certificate_hash": "a66df6d5ac665057ac6f0bba2311cd63659f5a4d"
+          }
+        },
+        {
+          "client_id": "43971700258-s4po38q77oou59jbcifb6nci6onsot07.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhZxip7DAg0axfoEwq_BN7I2uWXNPzkPQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "43971700258-s4po38q77oou59jbcifb6nci6onsot07.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

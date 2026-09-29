@@ -48,4 +48,8 @@
     <string name="question_label">QUESTION</string>
     <string name="btn_submit_answer">Submit Answer</string>
     <string name="next_question">Next Question →</string>
+
+    <!-- Google Sign-In & Auth -->
+    <string name="default_web_client_id" translatable="false"></string>
+    <string name="google_web_client_id" translatable="false"></string>
 </resources>

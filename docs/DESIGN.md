@@ -1,6 +1,6 @@
 ---
 name: AVIA
-description: AVIA (Algorithm Visualizer & Interactive Assistant) — an offline-first, dark tech-noir IDE and precision instrument workspace for visualising 13 canonical CS algorithms in lockstep with four-language source code, interactive practice, and an offline AI tutor. Repo/module/package names remain `AlgoLens`; the user-facing product name is AVIA.
+description: AVIA (Algorithm Visualizer & Interactive Assistant) — an offline-first, dark tech-noir IDE and precision instrument workspace for visualising 14 canonical CS algorithms (including Dijkstra's Shortest Path) in lockstep with four-language source code, interactive step predictions, Practice Quizzes, and an offline AI tutor. Root package is `com.avia`.
 colors:
   # ── Surfaces (5-step M2 elevation ladder + specialized wells) ──
   workspace-surface: "#0B0F19"        # surfaceBase / DarkBackground — every screen's base layer
