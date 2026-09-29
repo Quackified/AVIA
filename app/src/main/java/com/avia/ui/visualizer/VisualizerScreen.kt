@@ -1,4 +1,4 @@
-﻿package com.avia.ui.visualizer
+package com.avia.ui.visualizer
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -87,20 +88,30 @@ fun VisualizerScreen(
         syncPulse.animateTo(0f, tween(280, easing = FastOutSlowInEasing))
     }
 
-    // ── Tactile Haptics ──
-    // Keys on `displayStepIdx` so the tick fires per step *during* a scrub as
-    // well as during playback / single-stepping. The swap-heavy steps still get
-    // the heavier cue, so the drag reads as "scrubbing through comparisons" and
-    // then "landing on a swap".
+    // ── Tactile Haptics & Algorithm Step Audio ──
+    // Keys on `displayStepIdx` so the tick and sound fire per step during scrub,
+    // playback, and single-stepping.
     LaunchedEffect(state.displayStepIdx) {
-        if (AppSettings.hapticsEnabled && state.displayStepIdx > 0) {
+        if (state.displayStepIdx > 0) {
             val step = state.currentStep
-            val isSwapping = step.swappedIndices != null || step.phaseLabel.contains("SWAP", ignoreCase = true)
-            if (isSwapping) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            } else {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            val prevStep = state.steps.getOrNull(state.displayStepIdx - 1)
+            if (AppSettings.hapticsEnabled) {
+                val isSwapping = step.swappedIndices != null || step.phaseLabel.contains("SWAP", ignoreCase = true)
+                if (isSwapping) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                } else {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
             }
+            if (AppSettings.soundEnabled) {
+                com.avia.ui.audio.AlgorithmAudioEngine.playStep(step, prevStep)
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            com.avia.ui.audio.AlgorithmAudioEngine.stop()
         }
     }
 

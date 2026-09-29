@@ -1,4 +1,4 @@
-﻿package com.avia.ui.chat
+package com.avia.ui.chat
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -185,14 +186,11 @@ fun ChatScreen(
             .fillMaxSize()
             .background(CanvasBackground)
     ) {
-        // BottomNavBar sits directly below ChatScreen in AppShell and already applies
-        // navigationBarsPadding(). Excluding navigationBars from IME insets prevents a
-        // duplicate blank band above the bottom bar while lifting cleanly when the keyboard opens.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))
+                .imePadding()
         ) {
             // ── 1. Compact Conversation Toolbar ──
             ChatHeader(
@@ -424,7 +422,10 @@ fun ChatScreen(
         if (showRenameDialog) {
             AlertDialog(
                 onDismissRequest = { showRenameDialog = false },
-                title = { Text("Rename Conversation") },
+                containerColor = CardBackground,
+                titleContentColor = TextPrimary,
+                textContentColor = TextPrimary,
+                title = { Text("Rename Conversation", color = TextPrimary, fontWeight = FontWeight.Bold) },
                 text = {
                     BasicTextField(
                         value = renameBuffer,
@@ -435,7 +436,7 @@ fun ChatScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                            .background(CardBackground)
+                            .background(CardBackgroundElevated)
                             .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                             .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3)
                     )
@@ -449,7 +450,7 @@ fun ChatScreen(
                             showRenameDialog = false
                         }
                     ) {
-                        Text("Save", color = PrimaryCyan)
+                        Text("Save", color = PrimaryCyan, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
@@ -464,13 +465,16 @@ fun ChatScreen(
         if (showFeedbackDialog) {
             AlertDialog(
                 onDismissRequest = { showFeedbackDialog = false },
+                containerColor = CardBackground,
+                titleContentColor = TextPrimary,
+                textContentColor = TextPrimary,
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                     ) {
                         Icon(AlgoGlyphs.Spark, contentDescription = null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
-                        Text("Conversation Feedback")
+                        Text("Conversation Feedback", color = TextPrimary, fontWeight = FontWeight.Bold)
                     }
                 },
                 text = {
@@ -489,7 +493,7 @@ fun ChatScreen(
                                 .fillMaxWidth()
                                 .height(80.dp)
                                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                                .background(CardBackground)
+                                .background(CardBackgroundElevated)
                                 .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                                 .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3)
                         )
@@ -503,7 +507,7 @@ fun ChatScreen(
                             toastNotice = "Feedback submitted. Thank you!"
                         }
                     ) {
-                        Text("Submit", color = PrimaryCyan)
+                        Text("Submit", color = PrimaryCyan, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
@@ -518,7 +522,10 @@ fun ChatScreen(
         if (showDeleteConfirm) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
-                title = { Text("Delete Conversation?") },
+                containerColor = CardBackground,
+                titleContentColor = TextPrimary,
+                textContentColor = TextPrimary,
+                title = { Text("Delete Conversation?", color = TextPrimary, fontWeight = FontWeight.Bold) },
                 text = {
                     Text(
                         text = "Are you sure you want to delete '${manager.activeConversation.title}'? This action cannot be undone.",
@@ -550,6 +557,9 @@ fun ChatScreen(
             val targetMsg = userActionTarget!!
             AlertDialog(
                 onDismissRequest = { userActionTarget = null },
+                containerColor = CardBackground,
+                titleContentColor = TextPrimary,
+                textContentColor = TextPrimary,
                 title = {
                     Text(
                         text = "Message Options",

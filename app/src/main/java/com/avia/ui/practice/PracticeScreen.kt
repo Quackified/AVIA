@@ -34,11 +34,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.avia.data.practice.PracticeQuestionRepository
 import com.avia.model.practice.PracticeDifficulty
 import com.avia.ui.components.AlgoGlyphs
+import com.avia.ui.components.AudioHaptics
 import com.avia.ui.components.DoubleBezelShell
 import com.avia.ui.components.InstrumentMeter
 import com.avia.ui.components.pressPhysics
@@ -102,6 +105,8 @@ fun PracticeScreen(
     }
 
     val q = manager.currentQuestion
+    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
 
     Column(
         modifier = modifier
@@ -109,7 +114,7 @@ fun PracticeScreen(
             .background(CanvasBackground)
             .statusBarsPadding()
     ) {
-        // ── 1. Root Destination Header & Category Filter ──
+        // ── 1. Root Destination Header ──
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -216,39 +221,6 @@ fun PracticeScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
                             fontWeight = FontWeight.Bold,
-                            fontSize = AlgoType.microSize,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-
-            // Category Filter Pills
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-            ) {
-                PracticeQuestionRepository.categories.forEach { cat ->
-                    val isSelected = manager.selectedCategory.equals(cat, ignoreCase = true)
-                    val chipBg = if (isSelected) CyanSubtle else CardBackground
-                    val chipBorder = if (isSelected) PrimaryCyan else BorderSubtle
-                    val chipText = if (isSelected) PrimaryCyan else TextSecondary
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                            .background(chipBg)
-                            .border(AlgoTokens.bezelInset, chipBorder, RoundedCornerShape(AlgoTokens.radiusXs))
-                            .clickable { manager.selectCategory(cat) }
-                            .padding(horizontal = AlgoTokens.space3, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = cat,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = chipText,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             fontSize = AlgoType.microSize,
                             maxLines = 1
                         )
@@ -465,7 +437,7 @@ fun PracticeScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                         .background(CardBackgroundElevated)
-                        .border(AlgoTokens.strokeThin, BorderSubtle.copy(alpha = 0.65f), RoundedCornerShape(AlgoTokens.radiusMd))
+                        .border(1.dp, BorderCyan.copy(alpha = 0.22f), RoundedCornerShape(AlgoTokens.radiusMd))
                         .padding(AlgoTokens.space5)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
@@ -569,6 +541,7 @@ fun PracticeScreen(
                                     enabled = !isSubmitted
                                 )
                                 .clickable(enabled = !isSubmitted) {
+                                    AudioHaptics.performSelect(view, haptic)
                                     manager.selectOption(opt.id)
                                 }
                                 .padding(horizontal = 14.dp, vertical = 11.dp),
@@ -658,8 +631,12 @@ fun PracticeScreen(
                             .height(44.dp)
                             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(if (canSubmit) PrimaryCyan else CardBackgroundElevated)
-                            .border(AlgoTokens.strokeThin, if (canSubmit) PrimaryCyan else BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                            .clickable(enabled = canSubmit) { manager.submitAnswer() },
+                            .border(AlgoTokens.strokeThin, if (canSubmit) PrimaryCyan else BorderSubtle.copy(alpha = 0.35f), RoundedCornerShape(AlgoTokens.radiusSm))
+                            .clickable(enabled = canSubmit) {
+                                val isCorrect = q.options.find { it.id == manager.selectedOptionId }?.isCorrect == true
+                                if (isCorrect) AudioHaptics.performCorrect(view, haptic) else AudioHaptics.performIncorrect(view, haptic)
+                                manager.submitAnswer()
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -736,7 +713,10 @@ fun PracticeScreen(
                                     .height(44.dp)
                                     .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                     .background(if (correct) AccentGreen else PrimaryCyan)
-                                    .clickable { manager.nextQuestion() },
+                                    .clickable {
+                                        AudioHaptics.performClick(view, haptic)
+                                        manager.nextQuestion()
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(

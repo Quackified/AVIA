@@ -498,16 +498,16 @@
     "semantic_hash": "f5bc27c3c282cb3509f2497ad4be60a5"
   },
   "app/src/main/java/com/avia/ui/practice/ExploreCatalogScreen.kt": {
-    "mtime": 1790679773.531157,
-    "seen": 1790685601.890681,
-    "ast_hash": "a5f57bac491a7d3657783604d95cafc9",
-    "semantic_hash": "a5f57bac491a7d3657783604d95cafc9"
+    "mtime": 1790688549.2213428,
+    "seen": 1790690620.1188633,
+    "ast_hash": "04cdedb9ac8b7838dcc07d02b8665e65",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/avia/ui/practice/PracticeScreen.kt": {
-    "mtime": 1790679358.3424344,
-    "seen": 1790685601.8906837,
-    "ast_hash": "f66a92ed2185505787c4d9428d270e66",
-    "semantic_hash": "f66a92ed2185505787c4d9428d270e66"
+    "mtime": 1790688603.1275797,
+    "seen": 1790690620.118867,
+    "ast_hash": "02a40d594d2cb06475f2b46ac8a1178e",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/avia/ui/practice/PracticeSessionState.kt": {
     "mtime": 1790678977.8239467,
@@ -522,10 +522,10 @@
     "semantic_hash": "6c21a44c47c83f6a56feb74cfa1cd459"
   },
   "app/src/main/java/com/avia/ui/practice/PredictStepArena.kt": {
-    "mtime": 1790679730.314481,
-    "seen": 1790685601.890695,
-    "ast_hash": "c0b4ceebf1aa8c02d16264a4484301dd",
-    "semantic_hash": "c0b4ceebf1aa8c02d16264a4484301dd"
+    "mtime": 1790688571.3069112,
+    "seen": 1790690620.1188745,
+    "ast_hash": "5918d904ed9697b6b43c39e860c8920f",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/avia/ui/profile/AccountTemplateCard.kt": {
     "mtime": 1790683227.292852,

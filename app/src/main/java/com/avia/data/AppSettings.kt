@@ -34,6 +34,8 @@ object AppSettings {
     private const val KEY_SHOW_COMPLEXITY = "show_complexity_badges"
     private const val KEY_CELL_SCALE = "default_cell_scale"
     private const val KEY_HAPTICS = "haptics_enabled"
+    private const val KEY_SOUNDS = "sounds_enabled"
+    private const val KEY_SOUND_VOLUME = "sounds_volume"
     private const val KEY_BOOKMARKS = "bookmarked_algorithm_ids"
 
     private var prefs: SharedPreferences? = null
@@ -52,6 +54,23 @@ object AppSettings {
         set(value) {
             _hapticsEnabled = value
             prefs?.edit()?.putBoolean(KEY_HAPTICS, value)?.apply()
+        }
+
+    private var _soundEnabled by mutableStateOf(true)
+    var soundEnabled: Boolean
+        get() = _soundEnabled
+        set(value) {
+            _soundEnabled = value
+            prefs?.edit()?.putBoolean(KEY_SOUNDS, value)?.apply()
+        }
+
+    private var _soundVolume by mutableFloatStateOf(1.0f)
+    var soundVolume: Float
+        get() = _soundVolume
+        set(value) {
+            val clamped = value.coerceIn(0f, 1f)
+            _soundVolume = clamped
+            prefs?.edit()?.putFloat(KEY_SOUND_VOLUME, clamped)?.apply()
         }
 
     private var _preferredLanguage by mutableStateOf(TraceLanguage.KOTLIN)
@@ -220,6 +239,8 @@ object AppSettings {
         _preferredLanguage = TraceLanguage.entries.find { it.name == langName } ?: TraceLanguage.KOTLIN
         _defaultCellScale = sharedPrefs.getFloat(KEY_CELL_SCALE, 0.7f)
         _hapticsEnabled = sharedPrefs.getBoolean(KEY_HAPTICS, true)
+        _soundEnabled = sharedPrefs.getBoolean(KEY_SOUNDS, true)
+        _soundVolume = sharedPrefs.getFloat(KEY_SOUND_VOLUME, 1.0f)
         _speedSliderValue = sharedPrefs.getFloat(KEY_SPEED_SLIDER, 15f)
         _defaultPlaybackSpeedMs = sharedPrefs.getLong(KEY_SPEED_MS, 1_000L)
         _highContrastNodeOutlines = sharedPrefs.getBoolean(KEY_HIGH_CONTRAST, false)
@@ -241,6 +262,8 @@ object AppSettings {
         _preferredLanguage = TraceLanguage.KOTLIN
         _defaultCellScale = 0.7f
         _hapticsEnabled = true
+        _soundEnabled = true
+        _soundVolume = 1.0f
         _speedSliderValue = 15f
         _defaultPlaybackSpeedMs = 1_000L
         _highContrastNodeOutlines = false

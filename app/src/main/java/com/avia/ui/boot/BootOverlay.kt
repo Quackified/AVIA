@@ -1,5 +1,6 @@
-﻿package com.avia.ui.boot
+package com.avia.ui.boot
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -53,14 +54,17 @@ fun BootOverlay(
     modifier: Modifier = Modifier,
 ) {
     // Hairline sweep: one continuous 0→1 pass across the hold window.
-    val progress by animateFloatAsState(
-        targetValue = if (controller.ready) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = controller.holdDurationMs.toInt(),
-            easing = LinearEasing,
-        ),
-        label = "BootProgress",
-    )
+    val progressAnim = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        progressAnim.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = controller.holdDurationMs.toInt(),
+                easing = LinearEasing,
+            ),
+        )
+    }
+    val progress = if (controller.ready) 1f else progressAnim.value
 
     // Exit fade handled by the shared panel spring so the handoff into the
     // workspace matches every other panel transition in the app.

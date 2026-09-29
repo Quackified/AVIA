@@ -1,4 +1,4 @@
-﻿package com.avia.ui.settings
+package com.avia.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,78 +11,62 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-
 import androidx.compose.material3.Icon
-import com.avia.data.AppSettings
-import com.avia.ui.components.InstrumentMeter
-import com.avia.ui.theme.AlgoTokens
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.avia.data.AppSettings
+import com.avia.ui.audio.AlgorithmAudioEngine
+import com.avia.ui.components.AlgoGlyphs
 import com.avia.ui.components.CustomSwitch
+import com.avia.ui.components.DoubleBezelShell
 import com.avia.ui.components.SectionLabel
-import com.avia.ui.theme.AccentRed
+import com.avia.ui.components.pressPhysics
+import com.avia.ui.theme.AlgoTokens
+import com.avia.ui.theme.AlgoType
 import com.avia.ui.theme.BorderSubtle
 import com.avia.ui.theme.CanvasBackground
 import com.avia.ui.theme.CardBackground
 import com.avia.ui.theme.CardBackgroundElevated
 import com.avia.ui.theme.CyanSubtle
-import com.avia.ui.theme.DarkBackground
 import com.avia.ui.theme.PrimaryCyan
-import com.avia.ui.theme.RedSubtle
-import com.avia.ui.theme.TextDark
 import com.avia.ui.theme.TextMuted
-import com.avia.ui.theme.TextNavy
 import com.avia.ui.theme.TextPrimary
 import com.avia.ui.theme.TextSecondary
-import com.avia.ui.theme.CardBackgroundHover
-import com.avia.ui.theme.AlgoType
-import com.avia.ui.components.AlgoGlyphs
 
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.sizeIn
-import com.avia.ui.components.pressPhysics
-
+/**
+ * General Settings Screen.
+ *
+ * Dedicated to non-categorized / general workspace configurations:
+ * - Real-time algorithm step audio synthesis toggle
+ * - Replay onboarding walkthrough
+ * - Application version & runtime environment info
+ *
+ * Specific category options reside in their respective Profile sub-settings:
+ * - Study Preferences: Trace language, playback speed, cell scaling, deck auto-open, complexity pills
+ * - Accessibility: High-contrast outlines, tactile haptic feedback
+ * - Data & Storage: Bookmark management, clear temporary buffers, reset all saved data
+ */
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
     onReplayOnboarding: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val speedSlider = AppSettings.speedSliderValue
-    val highContrast = AppSettings.highContrastNodeOutlines
-    val autoOpenDeck = AppSettings.autoOpenDeckOnPlay
-    val showComplexity = AppSettings.showComplexityBadges
-    var dataClearedBanner by remember { mutableStateOf(false) }
-
-    val speedLabel = when {
-        speedSlider < 34f -> "Slow"
-        speedSlider < 67f -> "Normal"
-        else -> "Fast"
-    }
-    val speedMs = "${AppSettings.defaultPlaybackSpeedMs}ms"
-    val backShape = RoundedCornerShape(AlgoTokens.radiusSm)
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -112,7 +96,7 @@ fun SettingsScreen(
                 )
 
                 Text(
-                    text = "Settings",
+                    text = "General Settings",
                     style = MaterialTheme.typography.titleMedium,
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold
@@ -136,358 +120,83 @@ fun SettingsScreen(
             }
         }
 
-        // ── 1. Default Trace Language ──
+        // ── 1. Audio Feedback ──
         SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Code, text = "Default Trace Language")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                com.avia.data.TraceLanguage.entries.forEach { lang ->
-                    val isSel = AppSettings.preferredLanguage == lang
-                    val chipShape = RoundedCornerShape(8.dp)
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                            .pressPhysics(shape = chipShape, accent = PrimaryCyan)
-                            .clip(chipShape)
-                            .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
-                            .border(
-                                1.dp,
-                                if (isSel) PrimaryCyan else BorderSubtle,
-                                chipShape
-                            )
-                            .clickable { AppSettings.preferredLanguage = lang }
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = lang.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSel) DarkBackground else TextMuted,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = AlgoType.labelSize
-                        )
-                    }
-                }
-            }
-            Text(
-                text = "Code stack in the visualizer renders in ${AppSettings.preferredLanguage.label} syntax.",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextDark,
-                fontSize = AlgoType.microSize,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-
-        // ── 2. Default Playback Speed ──
-        SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Speed, text = "Default Playback Speed")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = speedLabel,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "$speedMs / step",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextMuted,
-                    fontSize = AlgoType.microSize
-                )
-            }
-
-            Slider(
-                value = speedSlider,
-                onValueChange = { AppSettings.speedSliderValue = it },
-                valueRange = 0f..100f,
-                colors = SliderDefaults.colors(
-                    thumbColor = PrimaryCyan,
-                    activeTrackColor = PrimaryCyan,
-                    inactiveTrackColor = CardBackgroundElevated
-                )
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                listOf("Slow (1000ms)", "Normal (600ms)", "Fast (300ms)").forEach {
-                    Text(text = it, style = MaterialTheme.typography.labelSmall, color = TextNavy, fontSize = AlgoType.microSize)
-                }
-            }
-        }
-
-        // ── 3. Offline Engine ──
-        SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Offline, text = "Offline Engine")
+            SectionLabel(icon = AlgoGlyphs.Spark, text = "Audio Feedback")
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
                     Text(
-                        text = "Embedded Architecture",
+                        text = "Algorithm Sound Effects",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "100% offline runtime · Zero network requests",
+                        text = "Synthesize real-time audio tones on element comparisons, swaps, and completion sweeps",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
                         fontSize = AlgoType.microSize
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                        .background(CyanSubtle)
-                        .border(AlgoTokens.strokeThin, PrimaryCyan.copy(alpha = 0.3f), RoundedCornerShape(AlgoTokens.radiusSm))
-                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
-                ) {
-                    Text(
-                        text = "OFFLINE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PrimaryCyan,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = AlgoType.microSize,
-                        letterSpacing = AlgoType.trackSection
-                    )
-                }
+                CustomSwitch(
+                    checked = AppSettings.soundEnabled,
+                    onCheckedChange = { AppSettings.soundEnabled = it }
+                )
             }
 
-            // Engine status meter
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CardBackgroundElevated)
-                    .border(1.dp, BorderSubtle, RoundedCornerShape(10.dp))
-                    .padding(10.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            if (AppSettings.soundEnabled) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = AlgoTokens.space2),
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Embedded catalogue",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextMuted,
-                            fontSize = AlgoType.microSize
+                            text = "Sound Volume",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
                         )
                         Text(
-                            text = "100%",
+                            text = "${(AppSettings.soundVolume * 100).toInt()}%",
                             style = MaterialTheme.typography.labelSmall,
                             color = PrimaryCyan,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = AlgoType.microSize
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
-                    InstrumentMeter(
-                        progress = { 1.0f },
-                        accent = PrimaryCyan,
-                        modifier = Modifier.fillMaxWidth(),
-                        height = 6.dp
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "14 of 14 algorithms verified",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextDark,
-                            fontSize = AlgoType.microSize
+                    Slider(
+                        value = AppSettings.soundVolume,
+                        onValueChange = { AppSettings.soundVolume = it },
+                        onValueChangeFinished = { AlgorithmAudioEngine.playCompare(60, 100) },
+                        valueRange = 0f..1f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = PrimaryCyan,
+                            activeTrackColor = PrimaryCyan,
+                            inactiveTrackColor = CardBackgroundElevated
                         )
-                        Text(
-                            text = "56 code traces",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextDark,
-                            fontSize = AlgoType.microSize
-                        )
-                    }
-                }
-            }
-        }
-
-        // ── 4. Display & Deck Behaviour ──
-        SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Sliders, text = "Workspace Display & Deck")
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
-                    Text(
-                        text = "High-Contrast Node Outlines",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Increase border stroke weight and label contrast on nodes and cells",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        fontSize = AlgoType.microSize
                     )
                 }
-                CustomSwitch(
-                    checked = highContrast,
-                    onCheckedChange = { AppSettings.highContrastNodeOutlines = it }
-                )
             }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
-                    Text(
-                        text = "Auto-Open Deck on Play",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Automatically expand the Focus Deck trace terminal when playback starts",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        fontSize = AlgoType.microSize
-                    )
-                }
-                CustomSwitch(
-                    checked = autoOpenDeck,
-                    onCheckedChange = { AppSettings.autoOpenDeckOnPlay = it }
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
-                    Text(
-                        text = "Inline Complexity Readouts",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Display TIME and SPACE Big-O pills in the Visualizer header",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        fontSize = AlgoType.microSize
-                    )
-                }
-                CustomSwitch(
-                    checked = showComplexity,
-                    onCheckedChange = { AppSettings.showComplexityBadges = it }
-                )
-            }
-        }
-
-        // ── 5. Visualizer Preferences ──
-        SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Tune, text = "Visualizer Preferences")
 
             Text(
-                text = "Cell Scaling (S / M / L)",
-                style = MaterialTheme.typography.labelMedium,
-                color = TextPrimary,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "Controls the visual canvas cell scaling across all visualizers (defaults to Small 0.7x).",
+                text = "Offline PCM audio synthesis running on device hardware. Zero audio asset downloads or network traffic.",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextMuted,
+                color = TextSecondary,
                 fontSize = AlgoType.microSize
             )
-
-            Spacer(modifier = Modifier.height(AlgoTokens.space2))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-            ) {
-                listOf(
-                    "S (0.7x)" to 0.7f,
-                    "M (1.0x)" to 1.0f,
-                    "L (1.25x)" to 1.25f
-                ).forEach { (label, scale) ->
-                    val isSel = AppSettings.defaultCellScale == scale
-                    val scaleShape = RoundedCornerShape(AlgoTokens.radiusSm)
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                            .pressPhysics(shape = scaleShape, accent = PrimaryCyan)
-                            .clip(scaleShape)
-                            .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
-                            .border(
-                                AlgoTokens.strokeThin,
-                                if (isSel) PrimaryCyan else BorderSubtle,
-                                scaleShape
-                            )
-                            .clickable { AppSettings.defaultCellScale = scale }
-                            .padding(vertical = AlgoTokens.space2),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSel) DarkBackground else TextMuted,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = AlgoType.microSize
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(AlgoTokens.space3))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
-                    Text(
-                        text = "Tactile Haptic Feedback",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Vibrations on cell swaps, step ticks, and completion wave",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextMuted,
-                        fontSize = AlgoType.microSize
-                    )
-                }
-                CustomSwitch(
-                    checked = AppSettings.hapticsEnabled,
-                    onCheckedChange = { AppSettings.hapticsEnabled = it }
-                )
-            }
         }
 
-        // ── 6. Guidance & Workspace Tour ──
+        // ── 2. Guidance & Workspace Tour ──
         if (onReplayOnboarding != null) {
             SettingsCard {
                 SectionLabel(icon = AlgoGlyphs.Spark, text = "Workspace Tour")
@@ -538,51 +247,47 @@ fun SettingsScreen(
             }
         }
 
-        // ── 7. Data Management (Danger Zone) ──
+        // ── 3. Application Info ──
         SettingsCard {
-            SectionLabel(icon = AlgoGlyphs.Storage, text = "Data Management")
-            val clearShape = RoundedCornerShape(9.dp)
+            SectionLabel(icon = AlgoGlyphs.Info, text = "Application Info")
 
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
-                    .pressPhysics(shape = clearShape, accent = AccentRed)
-                    .clip(clearShape)
-                    .background(RedSubtle)
-                    .border(1.dp, AccentRed.copy(alpha = 0.25f), clearShape)
-                    .clickable {
-                        AppSettings.clearAllSavedData()
-                        dataClearedBanner = true
-                    }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(CardBackgroundElevated)
+                    .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                    .padding(AlgoTokens.space3),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Trash,
-                        contentDescription = null,
-                        tint = AccentRed,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = if (dataClearedBanner) "Saved Data Reset to Defaults" else "Clear Saved Data",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = AccentRed,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Version", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = AlgoType.microSize)
+                    Text("AlgoLens v2.4.1", style = MaterialTheme.typography.labelSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = AlgoType.microSize)
                 }
-
-                Text(
-                    text = "${AppSettings.bookmarkedAlgorithmIds.size} Bookmarks · Prefs",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextMuted,
-                    fontSize = AlgoType.microSize
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Build", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = AlgoType.microSize)
+                    Text("Build 204", style = MaterialTheme.typography.labelSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = AlgoType.microSize)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Architecture", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = AlgoType.microSize)
+                    Text("100% Offline Runtime", style = MaterialTheme.typography.labelSmall, color = PrimaryCyan, fontWeight = FontWeight.Bold, fontSize = AlgoType.microSize)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("License", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = AlgoType.microSize)
+                    Text("MIT Open Source", style = MaterialTheme.typography.labelSmall, color = TextPrimary, fontSize = AlgoType.microSize)
+                }
             }
         }
 
@@ -594,9 +299,9 @@ fun SettingsScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "AVIA v2.4.1 · Build 204 · MIT License",
+                text = "AlgoLens · Visual Algorithm Engineering",
                 style = MaterialTheme.typography.bodySmall,
-                color = TextNavy,
+                color = TextSecondary,
                 fontSize = AlgoType.microSize
             )
         }
@@ -610,7 +315,7 @@ private fun SettingsCard(
     modifier: Modifier = Modifier,
     content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
 ) {
-    com.avia.ui.components.DoubleBezelShell(
+    DoubleBezelShell(
         modifier = modifier.fillMaxWidth(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(AlgoTokens.space5)
     ) {

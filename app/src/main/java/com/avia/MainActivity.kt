@@ -1,5 +1,6 @@
 package com.avia
 
+import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,6 +32,10 @@ class MainActivity : ComponentActivity() {
         // MUST run before super.onCreate() per the core-splashscreen contract.
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        // Route hardware volume keys directly to STREAM_MUSIC so media volume
+        // controls algorithm audio synthesis
+        volumeControlStream = AudioManager.STREAM_MUSIC
 
         // Initialize persistent user preferences and workspace settings
         com.avia.data.UserPreferences.init(applicationContext)

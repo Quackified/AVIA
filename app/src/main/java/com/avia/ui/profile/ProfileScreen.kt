@@ -37,7 +37,10 @@ import com.avia.data.SampleData
 import com.avia.data.auth.AuthAccountState
 import com.avia.data.auth.AuthRepository
 import com.avia.data.auth.UnavailableFirebaseAuthRepository
+import com.avia.data.TraceLanguage
 import com.avia.model.Algorithm
+import com.avia.ui.components.CustomSwitch
+import com.avia.ui.components.pressPhysics
 import com.avia.ui.components.AlgoCard
 import com.avia.ui.components.AlgoGlyphs
 import com.avia.ui.components.DoubleBezelShell
@@ -63,6 +66,7 @@ fun ProfileScreen(
     var showAboutDialog by rememberSaveable { mutableStateOf(false) }
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
     var showAccessibilityDialog by rememberSaveable { mutableStateOf(false) }
+    var showStudyPreferencesDialog by rememberSaveable { mutableStateOf(false) }
     var noticeMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     val algorithms = remember { SampleData.algorithms }
@@ -103,109 +107,7 @@ fun ProfileScreen(
             .statusBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // ── 0. Top Bar (Matching AVIA Operator Header: cyan dot + OPERATOR PROFILE + Settings) ──
-        if (showingSaved) {
-            Row(
-                modifier = Modifier
-                    .widthIn(max = AlgoTokens.profileContentMaxWidth)
-                    .fillMaxWidth()
-                    .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                        .background(CardBackgroundElevated)
-                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                        .clickable { showingSaved = false },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.Back,
-                        contentDescription = "Back",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(PrimaryCyan)
-                    )
-                    Text(
-                        text = "SAVED ALGORITHMS",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextMuted,
-                        fontSize = AlgoType.microSize,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = AlgoType.trackSection
-                    )
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .widthIn(max = AlgoTokens.profileContentMaxWidth)
-                    .fillMaxWidth()
-                    .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(PrimaryCyan)
-                    )
-                    Text(
-                        text = "OPERATOR PROFILE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextMuted,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = AlgoType.trackSection
-                    )
-                    // Accessible anchor for test suites
-                    Text(
-                        text = "My Profile",
-                        modifier = Modifier.size(1.dp).clipToBounds(),
-                        color = Color.Transparent,
-                        fontSize = 1.sp
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                        .background(CardBackgroundElevated)
-                        .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                        .clickable(onClick = onSettingsClick),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = AlgoGlyphs.SettingsGear,
-                        contentDescription = "Settings",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        }
-
-        // ── Main Scrollable Body ──
+        // ── Main Scrollable Body (Header scrolls with content, non-sticky) ──
         Column(
             modifier = Modifier
                 .widthIn(max = AlgoTokens.profileContentMaxWidth)
@@ -216,6 +118,52 @@ fun ProfileScreen(
             verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
         ) {
             if (showingSaved) {
+                // ── Top Bar for Saved Algorithms ──
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = AlgoTokens.space2),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .background(CardBackgroundElevated)
+                            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
+                            .clickable { showingSaved = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = AlgoGlyphs.Back,
+                            contentDescription = "Back",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(PrimaryCyan)
+                        )
+                        Text(
+                            text = "SAVED ALGORITHMS",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextMuted,
+                            fontSize = AlgoType.microSize,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = AlgoType.trackSection
+                        )
+                    }
+                }
+
                 // ── Saved Algorithms View (Styled exactly after reference design) ──
                 if (saved.isEmpty()) {
                     DoubleBezelShell(
@@ -291,7 +239,7 @@ fun ProfileScreen(
                             Text(
                                 text = "BOOKMARKED",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextDark,
+                                color = TextSecondary,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = AlgoType.trackHeader
                             )
@@ -312,6 +260,37 @@ fun ProfileScreen(
                     }
                 }
             } else {
+                // ── Profile Header (Part of scroll, non-sticky, settings button removed) ──
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = AlgoTokens.space2),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(PrimaryCyan)
+                    )
+                    Spacer(Modifier.width(AlgoTokens.space2))
+                    Text(
+                        text = "OPERATOR PROFILE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = AlgoType.trackSection
+                    )
+                    // Accessible anchor for test suites
+                    Text(
+                        text = "My Profile",
+                        modifier = Modifier.size(1.dp).clipToBounds(),
+                        color = Color.Transparent,
+                        fontSize = 1.sp
+                    )
+                }
+
                 // ── Feedback Banner (if any) ──
                 AnimatedVisibility(visible = noticeMessage != null) {
                     noticeMessage?.let { msg ->
@@ -480,7 +459,7 @@ fun ProfileScreen(
                     ProfileOptionItem(
                         icon = AlgoGlyphs.Tune,
                         title = "Study preferences",
-                        onClick = onSettingsClick
+                        onClick = { showStudyPreferencesDialog = true }
                     )
 
                     HorizontalDivider(
@@ -490,6 +469,11 @@ fun ProfileScreen(
                     )
 
                     // Group 2: App Preferences & System
+                    ProfileOptionItem(
+                        icon = AlgoGlyphs.Sliders,
+                        title = "Accessibility",
+                        onClick = { showAccessibilityDialog = true }
+                    )
                     ProfileOptionItem(
                         icon = AlgoGlyphs.Storage,
                         title = "Data & storage",
@@ -502,9 +486,9 @@ fun ProfileScreen(
                         onClick = { showLanguageDialog = true }
                     )
                     ProfileOptionItem(
-                        icon = AlgoGlyphs.Sliders,
-                        title = "Accessibility",
-                        onClick = { showAccessibilityDialog = true }
+                        icon = AlgoGlyphs.SettingsGear,
+                        title = "General settings",
+                        onClick = onSettingsClick
                     )
 
                     HorizontalDivider(
@@ -533,29 +517,218 @@ fun ProfileScreen(
         }
     }
 
-    // ── Placeholder Dialogs (No colored borders, clean AVIA dark surfaces) ──
-    if (showLanguageDialog) {
+    // ── Sub-Settings Dialogs ──
+    if (showStudyPreferencesDialog) {
+        val speedSlider = AppSettings.speedSliderValue
+        val speedMs = AppSettings.defaultPlaybackSpeedMs
+        val speedLabel = when {
+            speedSlider < 34f -> "Slow"
+            speedSlider < 67f -> "Normal"
+            else -> "Fast"
+        }
+
         AlertDialog(
-            onDismissRequest = { showLanguageDialog = false },
+            onDismissRequest = { showStudyPreferencesDialog = false },
+            containerColor = CardBackground,
+            titleContentColor = TextPrimary,
+            textContentColor = TextPrimary,
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(AlgoGlyphs.Globe, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
-                    Text("Language")
+                    Icon(AlgoGlyphs.Tune, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Text("Study Preferences", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
-                Text(
-                    text = "English (US) is the default workspace language. Additional language and code trace localizations are planned for future updates.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                ) {
+                    // 1. Trace Language
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "DEFAULT TRACE LANGUAGE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = CyanBright,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = AlgoType.trackHeader
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            TraceLanguage.entries.forEach { lang ->
+                                val isSel = AppSettings.preferredLanguage == lang
+                                val chipShape = RoundedCornerShape(8.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                                        .pressPhysics(shape = chipShape, accent = PrimaryCyan)
+                                        .clip(chipShape)
+                                        .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
+                                        .border(1.dp, if (isSel) PrimaryCyan else BorderMedium, chipShape)
+                                        .clickable { AppSettings.preferredLanguage = lang }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = lang.label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isSel) DarkBackground else TextPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = AlgoType.microSize
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Playback Speed
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "PLAYBACK SPEED",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CyanBright,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = AlgoType.trackHeader
+                            )
+                            Text(
+                                text = "$speedLabel (${speedMs}ms)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PrimaryCyan,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Slider(
+                            value = speedSlider,
+                            onValueChange = { AppSettings.speedSliderValue = it },
+                            valueRange = 0f..100f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = PrimaryCyan,
+                                activeTrackColor = PrimaryCyan,
+                                inactiveTrackColor = CardBackgroundElevated
+                            )
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            listOf("Slow (1000ms)", "Normal (600ms)", "Fast (300ms)").forEach {
+                                Text(text = it, style = MaterialTheme.typography.labelSmall, color = TextSecondary, fontSize = AlgoType.microSize)
+                            }
+                        }
+                    }
+
+                    // 3. Cell Scaling
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "VISUALIZER CELL SCALING",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = CyanBright,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = AlgoType.trackHeader
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(
+                                "S (0.7x)" to 0.7f,
+                                "M (1.0x)" to 1.0f,
+                                "L (1.25x)" to 1.25f
+                            ).forEach { (label, scale) ->
+                                val isSel = AppSettings.defaultCellScale == scale
+                                val chipShape = RoundedCornerShape(8.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = AlgoTokens.Spacing.minTouchTarget)
+                                        .pressPhysics(shape = chipShape, accent = PrimaryCyan)
+                                        .clip(chipShape)
+                                        .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
+                                        .border(1.dp, if (isSel) PrimaryCyan else BorderMedium, chipShape)
+                                        .clickable { AppSettings.defaultCellScale = scale }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isSel) DarkBackground else TextPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = AlgoType.microSize
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. Auto-Open Deck
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
+                            Text(
+                                text = "Auto-Open Deck on Play",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = TextPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Automatically expand trace terminal when playback starts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary,
+                                fontSize = AlgoType.microSize
+                            )
+                        }
+                        CustomSwitch(
+                            checked = AppSettings.autoOpenDeckOnPlay,
+                            onCheckedChange = { AppSettings.autoOpenDeckOnPlay = it }
+                        )
+                    }
+
+                    // 5. Inline Complexity Badges
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
+                            Text(
+                                text = "Inline Complexity Readouts",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = TextPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Display TIME and SPACE Big-O pills in header",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary,
+                                fontSize = AlgoType.microSize
+                            )
+                        }
+                        CustomSwitch(
+                            checked = AppSettings.showComplexityBadges,
+                            onCheckedChange = { AppSettings.showComplexityBadges = it }
+                        )
+                    }
+                }
             },
             confirmButton = {
-                TextButton(onClick = { showLanguageDialog = false }) {
-                    Text("OK", color = PrimaryCyan)
+                TextButton(onClick = { showStudyPreferencesDialog = false }) {
+                    Text("Done", color = PrimaryCyan, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -564,25 +737,115 @@ fun ProfileScreen(
     if (showAccessibilityDialog) {
         AlertDialog(
             onDismissRequest = { showAccessibilityDialog = false },
+            containerColor = CardBackground,
+            titleContentColor = TextPrimary,
+            textContentColor = TextPrimary,
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(AlgoGlyphs.Sliders, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
-                    Text("Accessibility")
+                    Text("Accessibility", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
-                Text(
-                    text = "Accessibility options including font scaling, haptic feedback, and high-contrast algorithm states can be configured in Study Preferences.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
+                            Text(
+                                text = "High-Contrast Outlines",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = TextPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Increase border stroke weight and label contrast on nodes and cells",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary,
+                                fontSize = AlgoType.microSize
+                            )
+                        }
+                        CustomSwitch(
+                            checked = AppSettings.highContrastNodeOutlines,
+                            onCheckedChange = { AppSettings.highContrastNodeOutlines = it }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = AlgoTokens.space3)) {
+                            Text(
+                                text = "Tactile Haptic Feedback",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = TextPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Vibrations on cell swaps, step ticks, and completion wave",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary,
+                                fontSize = AlgoType.microSize
+                            )
+                        }
+                        CustomSwitch(
+                            checked = AppSettings.hapticsEnabled,
+                            onCheckedChange = { AppSettings.hapticsEnabled = it }
+                        )
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = { showAccessibilityDialog = false }) {
-                    Text("Got it", color = PrimaryCyan)
+                    Text("Done", color = PrimaryCyan, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    if (showLanguageDialog) {
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            containerColor = CardBackground,
+            titleContentColor = TextPrimary,
+            textContentColor = TextPrimary,
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(AlgoGlyphs.Globe, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Text("Language", color = TextPrimary, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
+                    Text(
+                        text = "English (US) is the active interface language.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Algorithm code traces can be configured in Study Preferences (Kotlin, Java, Python, C++).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLanguageDialog = false }) {
+                    Text("OK", color = PrimaryCyan, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -593,7 +856,10 @@ fun ProfileScreen(
         if (signedIn != null) {
             AlertDialog(
                 onDismissRequest = { showAuthDialog = false },
-                title = { Text("Log out?") },
+                containerColor = CardBackground,
+                titleContentColor = TextPrimary,
+                textContentColor = TextPrimary,
+                title = { Text("Log out?", color = TextPrimary, fontWeight = FontWeight.Bold) },
                 text = {
                     Text(
                         text = "Are you sure you want to log out? Your guest profile, bookmarks, and chat history will remain safe on this device.",
@@ -606,25 +872,28 @@ fun ProfileScreen(
                         showAuthDialog = false
                         authRepository.signOut()
                     }) {
-                        Text("Log out", color = AccentRed)
+                        Text("Log out", color = AccentRed, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showAuthDialog = false }) {
-                        Text("Cancel")
+                        Text("Cancel", color = TextSecondary)
                     }
                 }
             )
         } else {
             AlertDialog(
                 onDismissRequest = { showAuthDialog = false },
+                containerColor = CardBackground,
+                titleContentColor = TextPrimary,
+                textContentColor = TextPrimary,
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(AlgoGlyphs.Offline, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
-                        Text("Account & Cloud Sync")
+                        Text("Account & Cloud Sync", color = TextPrimary, fontWeight = FontWeight.Bold)
                     }
                 },
                 text = {
@@ -636,7 +905,7 @@ fun ProfileScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showAuthDialog = false }) {
-                        Text("Got it", color = PrimaryCyan)
+                        Text("Got it", color = PrimaryCyan, fontWeight = FontWeight.Bold)
                     }
                 }
             )
@@ -646,13 +915,16 @@ fun ProfileScreen(
     if (showDataStorageDialog) {
         AlertDialog(
             onDismissRequest = { showDataStorageDialog = false },
+            containerColor = CardBackground,
+            titleContentColor = TextPrimary,
+            textContentColor = TextPrimary,
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(AlgoGlyphs.Storage, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
-                    Text("Data & Storage")
+                    Text("Data & Storage", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
@@ -672,22 +944,22 @@ fun ProfileScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Offline Catalogue", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("Offline Catalogue", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                                 Text("14 Algorithms", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Code Traces", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("Code Traces", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                                 Text("56 Multi-language", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Saved Bookmarks", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                                Text("${saved.size} items", style = MaterialTheme.typography.bodySmall, color = PrimaryCyan)
+                                Text("Saved Bookmarks", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                                Text("${saved.size} items", style = MaterialTheme.typography.bodySmall, color = PrimaryCyan, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -704,18 +976,12 @@ fun ProfileScreen(
                                 .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                                 .clickable {
                                     showDataStorageDialog = false
-                                    noticeMessage = "Cache cleared (0.8 MB freed)."
+                                    showingSaved = true
                                 }
                                 .padding(vertical = AlgoTokens.space3),
                             contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(AlgoGlyphs.Trash, null, tint = TextPrimary, modifier = Modifier.size(14.dp))
-                                Text("Clear Cache", style = MaterialTheme.typography.labelSmall, color = TextPrimary)
-                            }
+                            Text("View Bookmarks", style = MaterialTheme.typography.labelSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold)
                         }
 
                         Box(
@@ -726,25 +992,43 @@ fun ProfileScreen(
                                 .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                                 .clickable {
                                     showDataStorageDialog = false
-                                    noticeMessage = "Activity history cleared."
+                                    noticeMessage = "Temporary buffers cleared."
                                 }
                                 .padding(vertical = AlgoTokens.space3),
                             contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(AlgoGlyphs.History, null, tint = AccentRed, modifier = Modifier.size(14.dp))
-                                Text("Clear History", style = MaterialTheme.typography.labelSmall, color = AccentRed)
+                            Text("Clear Cache", style = MaterialTheme.typography.labelSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    // Reset all saved data & preferences (Danger Action)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                            .background(RedSubtle)
+                            .border(1.dp, AccentRed.copy(alpha = 0.3f), RoundedCornerShape(AlgoTokens.radiusSm))
+                            .clickable {
+                                AppSettings.clearAllSavedData()
+                                showDataStorageDialog = false
+                                noticeMessage = "All saved bookmarks and preferences reset to defaults."
                             }
+                            .padding(vertical = AlgoTokens.space3, horizontal = AlgoTokens.space3),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(AlgoGlyphs.Trash, null, tint = AccentRed, modifier = Modifier.size(14.dp))
+                            Text("Reset All Saved Data to Defaults", style = MaterialTheme.typography.labelSmall, color = AccentRed, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showDataStorageDialog = false }) {
-                    Text("Done", color = PrimaryCyan)
+                    Text("Done", color = PrimaryCyan, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -753,13 +1037,16 @@ fun ProfileScreen(
     if (showActivityStatsDialog) {
         AlertDialog(
             onDismissRequest = { showActivityStatsDialog = false },
+            containerColor = CardBackground,
+            titleContentColor = TextPrimary,
+            textContentColor = TextPrimary,
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(AlgoGlyphs.TrendingUp, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
-                    Text("Activity & Stats")
+                    Text("Activity & Stats", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
@@ -778,28 +1065,28 @@ fun ProfileScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Bookmarked Algorithms", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("Bookmarked Algorithms", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                                 Text("${saved.size}", style = MaterialTheme.typography.bodySmall, color = PrimaryCyan, fontWeight = FontWeight.Bold)
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Catalog Coverage", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("Catalog Coverage", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                                 Text("14/14 Offline Ready", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Multi-Language Traces", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("Multi-Language Traces", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                                 Text("52 Code Solutions", style = MaterialTheme.typography.bodySmall, color = TextPrimary)
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Telemetry Engine", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text("Telemetry Engine", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                                 Text("Active · Nominal", style = MaterialTheme.typography.bodySmall, color = AccentGreen)
                             }
                         }
@@ -808,7 +1095,7 @@ fun ProfileScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showActivityStatsDialog = false }) {
-                    Text("Got it", color = PrimaryCyan)
+                    Text("Got it", color = PrimaryCyan, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -817,13 +1104,16 @@ fun ProfileScreen(
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
+            containerColor = CardBackground,
+            titleContentColor = TextPrimary,
+            textContentColor = TextPrimary,
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(AlgoGlyphs.Avia, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
-                    Text("About AVIA")
+                    Text("About AVIA", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
@@ -843,7 +1133,7 @@ fun ProfileScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showAboutDialog = false }) {
-                    Text("Close", color = PrimaryCyan)
+                    Text("Close", color = PrimaryCyan, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -852,13 +1142,16 @@ fun ProfileScreen(
     if (noticeMessage != null) {
         AlertDialog(
             onDismissRequest = { noticeMessage = null },
+            containerColor = CardBackground,
+            titleContentColor = TextPrimary,
+            textContentColor = TextPrimary,
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(AlgoGlyphs.Info, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
-                    Text("Account & Sync Notice")
+                    Text("Account & Sync Notice", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
@@ -870,7 +1163,7 @@ fun ProfileScreen(
             },
             confirmButton = {
                 TextButton(onClick = { noticeMessage = null }) {
-                    Text("OK", color = PrimaryCyan)
+                    Text("OK", color = PrimaryCyan, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -924,7 +1217,7 @@ private fun ProfileOptionItem(
             imageVector = AlgoGlyphs.ChevronRight,
             contentDescription = null,
             modifier = Modifier.size(14.dp),
-            tint = if (isDestructive) AccentRed.copy(alpha = 0.6f) else TextDark
+            tint = if (isDestructive) AccentRed.copy(alpha = 0.6f) else TextSecondary
         )
     }
 }

@@ -1,4 +1,4 @@
-﻿package com.avia.ui.onboarding
+package com.avia.ui.onboarding
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -113,12 +113,10 @@ fun OnboardingScreen(
                 )
             }
 
-            val skipShape = RoundedCornerShape(AlgoTokens.radiusXs)
             Box(
                 modifier = Modifier
                     .height(AlgoTokens.Spacing.minTouchTarget)
-                    .pressPhysics(shape = skipShape, accent = PrimaryCyan)
-                    .clip(skipShape)
+                    .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                     .clickable { onComplete() }
                     .padding(horizontal = AlgoTokens.space4),
                 contentAlignment = Alignment.Center
@@ -207,7 +205,7 @@ fun OnboardingScreen(
                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                 ) {
                     Text(
-                        text = if (isFinalPage) "INITIALIZE WORKSPACE" else "NEXT",
+                        text = if (isFinalPage) "GET STARTED" else "NEXT",
                         style = MaterialTheme.typography.labelMedium,
                         color = if (isFinalPage) DarkBackground else PrimaryCyan,
                         fontWeight = FontWeight.Bold,

@@ -1,10 +1,11 @@
-﻿package com.avia.ui.practice
+package com.avia.ui.practice
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -397,28 +405,87 @@ private fun BufferSnapshotView(
 private fun GraphSnapshotView(
     snapshot: PracticeSnapshot.GraphSnapshot
 ) {
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .height(AlgoTokens.minTouchTarget * 3)
+            .height(180.dp)
             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
             .background(CardBackground)
             .border(AlgoTokens.bezelInset, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
     ) {
+        val density = LocalDensity.current
+        val widthPx = constraints.maxWidth.toFloat()
+        val heightPx = constraints.maxHeight.toFloat()
+
+        val nodeSizeDp = 36.dp
+        val nodeSizePx = with(density) { nodeSizeDp.toPx() }
+        val padXPx = with(density) { 32.dp.toPx() }
+        val padYPx = with(density) { 24.dp.toPx() }
+
+        val usableWidth = (widthPx - 2 * padXPx).coerceAtLeast(1f)
+        val usableHeight = (heightPx - 2 * padYPx).coerceAtLeast(1f)
+
+        fun getNodeCenter(node: com.avia.model.practice.PracticeGraphNode): Offset {
+            return Offset(
+                x = padXPx + node.xRatio * usableWidth,
+                y = padYPx + node.yRatio * usableHeight
+            )
+        }
+
         // Draw Edges First
         Canvas(modifier = Modifier.fillMaxSize()) {
             snapshot.edges.forEach { edge ->
                 val fromNode = snapshot.nodes.find { it.id == edge.from }
                 val toNode = snapshot.nodes.find { it.id == edge.to }
                 if (fromNode != null && toNode != null) {
-                    val startOffset = Offset(fromNode.xRatio * size.width, fromNode.yRatio * size.height)
-                    val endOffset = Offset(toNode.xRatio * size.width, toNode.yRatio * size.height)
+                    val startOffset = getNodeCenter(fromNode)
+                    val endOffset = getNodeCenter(toNode)
                     drawLine(
                         color = if (edge.isHighlighted) PrimaryCyan else BorderSubtle,
                         start = startOffset,
                         end = endOffset,
                         strokeWidth = if (edge.isHighlighted) 2.5f else 1.5f
                     )
+                }
+            }
+        }
+
+        // Edge weights overlay
+        snapshot.edges.forEach { edge ->
+            if (edge.weight != null) {
+                val fromNode = snapshot.nodes.find { it.id == edge.from }
+                val toNode = snapshot.nodes.find { it.id == edge.to }
+                if (fromNode != null && toNode != null) {
+                    val startOffset = getNodeCenter(fromNode)
+                    val endOffset = getNodeCenter(toNode)
+                    val midX = (startOffset.x + endOffset.x) / 2f
+                    val midY = (startOffset.y + endOffset.y) / 2f
+                    Box(
+                        modifier = Modifier
+                            .offset {
+                                IntOffset(
+                                    x = (midX - with(density) { 12.dp.toPx() }).roundToInt(),
+                                    y = (midY - with(density) { 9.dp.toPx() }).roundToInt()
+                                )
+                            }
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                            .background(CardBackground)
+                            .border(
+                                1.dp,
+                                if (edge.isHighlighted) PrimaryCyan else BorderSubtle,
+                                RoundedCornerShape(AlgoTokens.radiusXs)
+                            )
+                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${edge.weight}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (edge.isHighlighted) PrimaryCyan else TextSecondary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp
+                        )
+                    }
                 }
             }
         }
@@ -430,53 +497,47 @@ private fun GraphSnapshotView(
                 node.state == ElementState.SORTED -> GreenSubtle
                 node.state == ElementState.ACTIVE || isTarget -> CyanSubtle
                 node.state == ElementState.TARGET -> PinkSubtle
+                node.state == ElementState.VISITED -> PurpleSubtle
                 else -> CardBackground
             }
             val nodeBorder = when {
                 node.state == ElementState.SORTED -> AccentGreen
                 node.state == ElementState.ACTIVE || isTarget -> PrimaryCyan
                 node.state == ElementState.TARGET -> AccentPink
+                node.state == ElementState.VISITED -> SecondaryPurple
                 else -> BorderSubtle
             }
             val textColor = when {
                 node.state == ElementState.SORTED -> AccentGreen
                 node.state == ElementState.ACTIVE || isTarget -> PrimaryCyan
                 node.state == ElementState.TARGET -> AccentPink
+                node.state == ElementState.VISITED -> SecondaryPurple
                 else -> TextPrimary
             }
 
+            val center = getNodeCenter(node)
+
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        start = AlgoTokens.space4,
-                        top = AlgoTokens.space2,
-                        end = AlgoTokens.space4,
-                        bottom = AlgoTokens.space2
-                    )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .align(
-                            androidx.compose.ui.BiasAlignment(
-                                (node.xRatio * 2f) - 1f,
-                                (node.yRatio * 2f) - 1f
-                            )
+                    .offset {
+                        IntOffset(
+                            x = (center.x - nodeSizePx / 2f).roundToInt(),
+                            y = (center.y - nodeSizePx / 2f).roundToInt()
                         )
-                        .clip(CircleShape)
-                        .background(nodeBg)
-                        .border(AlgoTokens.bezelInset * 1.5f, nodeBorder, CircleShape)
-                        .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = node.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = textColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = AlgoType.labelSize
-                    )
-                }
+                    }
+                    .size(nodeSizeDp)
+                    .clip(CircleShape)
+                    .background(nodeBg)
+                    .border(AlgoTokens.bezelInset * 1.5f, nodeBorder, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = node.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = textColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = AlgoType.labelSize
+                )
             }
         }
     }

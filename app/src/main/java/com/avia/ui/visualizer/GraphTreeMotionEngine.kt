@@ -1,4 +1,4 @@
-﻿package com.avia.ui.visualizer
+package com.avia.ui.visualizer
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
@@ -129,14 +129,15 @@ fun rememberGraphMotionState(
     val parsedGoalPath = remember(currentStep) {
         val varPath = currentStep.variables["path"]
         if (!varPath.isNullOrBlank()) {
-            varPath.split("→", "->", " ")
+            varPath.split("→", "->", ",")
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
         } else {
             val expr = currentStep.comparisonExpr ?: ""
             if (expr.startsWith("PATH:") || expr.startsWith("SHORTEST PATH:")) {
-                expr.substringAfter(":")
-                    .split("→", "->", " ")
+                val raw = expr.substringAfter(":")
+                val pathString = if (raw.contains("(")) raw.substringBefore("(") else raw
+                pathString.split("→", "->", ",")
                     .map { it.trim() }
                     .filter { it.isNotEmpty() }
             } else {
@@ -220,12 +221,21 @@ fun rememberGraphMotionState(
             // ── 2. Traversal Signal Wavefront Propagation ──
             val prevActive = previousStep?.activeNodeId
             val currActive = currentStep.activeNodeId
+            val edgeU = currentStep.variables["u"]
+            val edgeV = currentStep.variables["v"]
+            val isRelaxingOrTraversing = edgeU != null && edgeV != null && (
+                currentStep.phaseLabel == "RELAXING" ||
+                currentStep.phaseLabel == "UPDATING" ||
+                currentStep.phaseLabel == "TRAVERSING"
+            )
+            val signalFrom = if (isRelaxingOrTraversing) edgeU else prevActive
+            val signalTo = if (isRelaxingOrTraversing) edgeV else currActive
 
-            if (prevActive != null && currActive != null && prevActive != currActive) {
-                // Check if an edge links prevActive and currActive
+            if (signalFrom != null && signalTo != null && signalFrom != signalTo) {
+                // Check if an edge links signalFrom and signalTo
                 val hasEdge = currentStep.edges.any {
-                    (it.from == prevActive && it.to == currActive) ||
-                    (!it.isDirected && it.from == currActive && it.to == prevActive)
+                    (it.from == signalFrom && it.to == signalTo) ||
+                    (!it.isDirected && it.from == signalTo && it.to == signalFrom)
                 }
 
                 if (hasEdge) {
@@ -233,9 +243,9 @@ fun rememberGraphMotionState(
                     val signalDuration = (380 * durationMultiplier).toInt().coerceIn(120, 800)
 
                     launch {
-                        activeSignals = listOf(TraversalSignal(prevActive, currActive, 0f))
+                        activeSignals = listOf(TraversalSignal(signalFrom, signalTo, 0f))
                         signalAnim.animateTo(1f, tween(signalDuration)) {
-                            activeSignals = listOf(TraversalSignal(prevActive, currActive, value))
+                            activeSignals = listOf(TraversalSignal(signalFrom, signalTo, value))
                         }
                         activeSignals = emptyList()
                     }
@@ -279,7 +289,12 @@ fun rememberGraphMotionState(
             }
 
             // ── 4. Shortest Path Sequential Neon Trace ──
-            val isSearchComplete = (currentStep.phaseLabel == "FOUND" || currentStep.phaseLabel == "OPTIMAL") && parsedGoalPath.size >= 2
+            val isSearchComplete = (
+                currentStep.phaseLabel == "FOUND" ||
+                currentStep.phaseLabel == "OPTIMAL" ||
+                currentStep.phaseLabel == "DONE" ||
+                currentStep.phaseLabel == "SORTED"
+            ) && parsedGoalPath.size >= 2
 
             if (isSearchComplete) {
                 completedPath = parsedGoalPath

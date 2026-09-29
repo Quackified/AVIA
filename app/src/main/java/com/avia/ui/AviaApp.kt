@@ -10,7 +10,9 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import com.avia.data.UserPreferences
 import com.avia.model.Algorithm
 import com.avia.ui.boot.BootController
@@ -296,11 +299,14 @@ private fun AppShell(
                     }
                 }
 
-                // Bottom Navigation Bar
-                BottomNavBar(
-                    activeTab = activeTab,
-                    onTabSelected = onTabSelected,
-                )
+                // Bottom Navigation Bar - hidden when keyboard is open to avoid pushing the bottom bar or leaving dead space
+                val isImeOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+                if (!isImeOpen) {
+                    BottomNavBar(
+                        activeTab = activeTab,
+                        onTabSelected = onTabSelected,
+                    )
+                }
             }
         }
     }

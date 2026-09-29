@@ -1,4 +1,4 @@
-﻿package com.avia.ui.visualizer
+package com.avia.ui.visualizer
 
 import android.view.ViewGroup
 import androidx.compose.foundation.background
@@ -680,15 +680,16 @@ private fun GraphFrontierTelemetryStrip(
         // 3. Weighted Path Cost Badge (only shown for Dijkstra)
         if (telemetryMode == GraphTelemetryMode.DIJKSTRA_PQ) {
             val confirmedCost = when {
-                step.phaseLabel in listOf("FOUND", "TARGET REACHED", "DONE") -> {
-                    step.variables["dist[${targetNodeId ?: step.activeNodeId}]"]?.toIntOrNull()
+                step.phaseLabel in listOf("FOUND", "TARGET REACHED", "DONE", "SORTED") -> {
+                    step.variables["cost"]?.toIntOrNull()
+                        ?: step.variables["dist[${targetNodeId ?: step.activeNodeId}]"]?.toIntOrNull()
                         ?: if (startNodeId != null && targetNodeId != null) {
                             val adj = GraphSearch.buildAdjacency(edges)
                             val (_, cost) = GraphSearch.dijkstraShortestPath(adj, startNodeId, targetNodeId)
                             cost.takeIf { it >= 0 }
                         } else null
                 }
-                step.phaseLabel in listOf("SETTLED", "RELAXING") && step.activeNodeId != null -> {
+                step.phaseLabel in listOf("SETTLED", "RELAXING", "UPDATING") && step.activeNodeId != null -> {
                     step.variables["dist[${step.activeNodeId}]"]?.toIntOrNull()
                 }
                 else -> null

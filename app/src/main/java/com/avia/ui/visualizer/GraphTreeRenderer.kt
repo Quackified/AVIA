@@ -1,4 +1,4 @@
-﻿package com.avia.ui.visualizer
+package com.avia.ui.visualizer
 
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -508,6 +508,18 @@ fun GraphTreeRenderer(
                         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     }
                     drawText("TARGET", center.x, center.y - (r * 1.45f * popScale), badgePaint)
+                }
+
+                // Live Distance badge below node (e.g. "d=0", "d=4", "d=∞")
+                if (node.value != node.label && node.value.isNotBlank()) {
+                    val distPaint = Paint().apply {
+                        isAntiAlias = true
+                        color = (if (isActive || node.id in visitedNodeIds) AccentGreen else TextSecondary).toArgb()
+                        textSize = (r * 0.52f).coerceIn(8.5f, 12f) * popScale
+                        textAlign = Paint.Align.CENTER
+                        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
+                    }
+                    drawText(node.value, center.x, center.y + (r * 1.55f * popScale), distPaint)
                 }
             }
         }

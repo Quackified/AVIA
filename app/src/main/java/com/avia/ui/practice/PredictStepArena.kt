@@ -36,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -46,6 +48,7 @@ import com.avia.data.AlgorithmRegistry
 import com.avia.data.SampleData
 import com.avia.model.AlgorithmId
 import com.avia.ui.components.AlgoGlyphs
+import com.avia.ui.components.AudioHaptics
 import com.avia.ui.components.pressPhysics
 import com.avia.ui.theme.AccentGreen
 import com.avia.ui.theme.AccentOrange
@@ -199,7 +202,11 @@ fun PredictStepArena(
         delay(480L)
 
         // Advance
+        val prevStep = state.currentStep
         state.stepForward()
+        if (com.avia.data.AppSettings.soundEnabled) {
+            com.avia.ui.audio.AlgorithmAudioEngine.playStep(state.currentStep, prevStep)
+        }
 
         // Check if newly landed step is a checkpoint
         if (state.currentStepIdx in scheduledCheckpoints && state.currentStepIdx !in answeredCheckpoints) {
@@ -211,6 +218,9 @@ fun PredictStepArena(
             }
         }
     }
+
+    val view = LocalView.current
+    val haptic = LocalHapticFeedback.current
 
     val challengeTargets = remember(currentQuestion) {
         currentQuestion?.eligibleIndices ?: emptySet()
@@ -237,8 +247,10 @@ fun PredictStepArena(
             score += pts
             streak++
             correctAnswers++
+            AudioHaptics.performCorrect(view, haptic)
         } else {
             streak = 0
+            AudioHaptics.performIncorrect(view, haptic)
         }
         feedback = ChallengeFeedback(
             isCorrect = isCorrect,
@@ -248,6 +260,7 @@ fun PredictStepArena(
     }
 
     fun continueSimulation() {
+        AudioHaptics.performClick(view, haptic)
         feedback = null
         userSelectedIndices = emptySet()
         if (state.currentStepIdx < state.steps.lastIndex) {
@@ -626,7 +639,10 @@ fun PredictStepArena(
                                             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                             .background(GreenSubtle)
                                             .border(1.5.dp, AccentGreen, RoundedCornerShape(AlgoTokens.radiusSm))
-                                            .clickable { submitAnswer(userSaidYes = true) }
+                                            .clickable {
+                                                AudioHaptics.performSelect(view, haptic)
+                                                submitAnswer(userSaidYes = true)
+                                            }
                                             .padding(horizontal = 12.dp, vertical = 10.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -666,7 +682,10 @@ fun PredictStepArena(
                                             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                             .background(RedSubtle)
                                             .border(1.5.dp, AccentRed, RoundedCornerShape(AlgoTokens.radiusSm))
-                                            .clickable { submitAnswer(userSaidYes = false) }
+                                            .clickable {
+                                                AudioHaptics.performSelect(view, haptic)
+                                                submitAnswer(userSaidYes = false)
+                                            }
                                             .padding(horizontal = 12.dp, vertical = 10.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -732,6 +751,7 @@ fun PredictStepArena(
                                                         shape = RoundedCornerShape(AlgoTokens.radiusXs)
                                                     )
                                                     .clickable {
+                                                        AudioHaptics.performSelect(view, haptic)
                                                         userSelectedIndices = if (isSelected) {
                                                             userSelectedIndices - idx
                                                         } else {
@@ -772,6 +792,7 @@ fun PredictStepArena(
                                                 RoundedCornerShape(AlgoTokens.radiusSm)
                                             )
                                             .clickable(enabled = canSubmit) {
+                                                AudioHaptics.performClick(view, haptic)
                                                 submitAnswer(indices = userSelectedIndices)
                                             },
                                         contentAlignment = Alignment.Center
@@ -808,7 +829,10 @@ fun PredictStepArena(
                                                     .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                                                     .background(PurpleSubtle)
                                                     .border(1.dp, SecondaryPurple, RoundedCornerShape(AlgoTokens.radiusXs))
-                                                    .clickable { submitAnswer(nodeId = node.id) }
+                                                    .clickable {
+                                                        AudioHaptics.performSelect(view, haptic)
+                                                        submitAnswer(nodeId = node.id)
+                                                    }
                                                     .padding(horizontal = AlgoTokens.space4, vertical = 7.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
@@ -856,6 +880,7 @@ fun PredictStepArena(
                                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                 .background(PrimaryCyan)
                                 .clickable {
+                                    AudioHaptics.performClick(view, haptic)
                                     state.currentStepIdx = 0
                                     answeredCheckpoints = emptySet()
                                     feedback = null

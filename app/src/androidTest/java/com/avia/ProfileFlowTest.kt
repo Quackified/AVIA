@@ -1,4 +1,4 @@
-﻿package com.avia
+package com.avia
 
 import android.graphics.Bitmap
 import android.view.WindowManager
@@ -98,8 +98,12 @@ class ProfileFlowTest {
         }
         capture("profile-phone")
         compose.onNodeWithContentDescription("Edit profile").performClick()
-        compose.onNodeWithText("Study preferences").performScrollTo().performClick()
+        compose.onNodeWithText("General settings").performScrollTo().performClick()
         compose.runOnIdle { assertTrue(edit && settings) }
+        compose.onNodeWithText("Study preferences").performScrollTo().performClick()
+        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("Accessibility").performScrollTo().performClick()
+        compose.onNodeWithText("Done").performClick()
         compose.onNodeWithText("Activity & stats").performScrollTo().performClick()
         compose.onNodeWithText("Got it").performClick()
         compose.onNodeWithText("Data & storage").performScrollTo().performClick()

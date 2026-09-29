@@ -1,4 +1,4 @@
-﻿package com.avia.data
+package com.avia.data
 
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
@@ -3046,6 +3046,29 @@ object AlgorithmStepRepository {
         fun isTreeEdge(e: GraphEdgeState): Boolean =
             (e.from to e.to) in treeEdges || (e.to to e.from) in treeEdges
 
+        fun currentDistancesMap(): Map<String, String> = buildMap {
+            dist.forEach { (nodeId, distance) ->
+                put("dist[$nodeId]", if (distance == Int.MAX_VALUE) "∞" else distance.toString())
+            }
+        }
+
+        fun mapNodesWithDistances(
+            activeId: String? = null,
+            comparingId: String? = null,
+            foundId: String? = null
+        ): List<GraphNodeState> = baseNodes.map { node ->
+            val currentD = dist[node.id]
+            val distLabel = if (currentD == null || currentD == Int.MAX_VALUE) "∞" else currentD.toString()
+            val state = when {
+                node.id == foundId -> ElementState.FOUND
+                node.id == activeId -> ElementState.ACTIVE
+                node.id == comparingId -> ElementState.COMPARING
+                node.id in settled -> ElementState.VISITED
+                else -> ElementState.IDLE
+            }
+            node.copy(state = state, value = "d=$distLabel")
+        }
+
         // 1. Initial Step: INITIALIZING
         steps.add(
             VisualizerStep(
@@ -3054,10 +3077,7 @@ object AlgorithmStepRepository {
                 comparisonExpr = "INITIALIZE: dist[$start] = 0",
                 phaseLabel = "INITIALIZING",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
-                nodes = baseNodes.map { node ->
-                    if (node.id == start) node.copy(state = ElementState.ACTIVE)
-                    else node
-                },
+                nodes = mapNodesWithDistances(activeId = start),
                 edges = baseEdges,
                 buffer = pqBufferItems(start),
                 bufferLabel = "PRIORITY QUEUE",
@@ -3068,6 +3088,7 @@ object AlgorithmStepRepository {
                     put("source", start)
                     put("dist[$start]", "0")
                     if (target != null) put("target", target)
+                    putAll(currentDistancesMap())
                 },
                 callStack = listOf("dijkstra(start=$start)")
             )
@@ -3108,13 +3129,10 @@ object AlgorithmStepRepository {
                     comparisonExpr = "EXTRACT-MIN: $u (dist = $d)",
                     phaseLabel = if (isGoal) "FOUND" else "SETTLED",
                     renderMode = VisualizerRenderMode.GRAPH_TREE,
-                    nodes = baseNodes.map { node ->
-                        when {
-                            node.id == u -> if (isGoal) ElementState.FOUND else ElementState.ACTIVE
-                            node.id in settled -> ElementState.VISITED
-                            else -> ElementState.IDLE
-                        }.let { state -> node.copy(state = state) }
-                    },
+                    nodes = mapNodesWithDistances(
+                        activeId = if (isGoal) null else u,
+                        foundId = if (isGoal) u else null
+                    ),
                     edges = baseEdges.map { e ->
                         if (isTreeEdge(e)) e.copy(isHighlighted = true) else e
                     },
@@ -3128,6 +3146,7 @@ object AlgorithmStepRepository {
                         put("dist[$u]", d.toString())
                         put("settledCount", settled.size.toString())
                         put("pqSize", pq.size.toString())
+                        putAll(currentDistancesMap())
                     },
                     callStack = listOf("settled: $u (cost=$d)")
                 )
@@ -3154,14 +3173,7 @@ object AlgorithmStepRepository {
                         comparisonExpr = "RELAX: $d + $weight ${if (candidateDist < currentDistV) "<" else "≥"} ${if (currentDistV == Int.MAX_VALUE) "∞" else currentDistV}",
                         phaseLabel = "RELAXING",
                         renderMode = VisualizerRenderMode.GRAPH_TREE,
-                        nodes = baseNodes.map { node ->
-                            when {
-                                node.id == u -> node.copy(state = ElementState.ACTIVE)
-                                node.id == v -> node.copy(state = ElementState.COMPARING)
-                                node.id in settled -> node.copy(state = ElementState.VISITED)
-                                else -> node
-                            }
-                        },
+                        nodes = mapNodesWithDistances(activeId = u, comparingId = v),
                         edges = baseEdges.map { e ->
                             val isCurrentEdge = (e.from == u && e.to == v) || (e.to == u && e.from == v)
                             if (isCurrentEdge || isTreeEdge(e)) e.copy(isHighlighted = true) else e
@@ -3177,6 +3189,7 @@ object AlgorithmStepRepository {
                             put("edgeWeight", weight.toString())
                             put("newDist", candidateDist.toString())
                             put("oldDist", if (currentDistV == Int.MAX_VALUE) "∞" else currentDistV.toString())
+                            putAll(currentDistancesMap())
                         },
                         callStack = listOf("relax(edge=$u->$v, w=$weight)")
                     )
@@ -3195,14 +3208,7 @@ object AlgorithmStepRepository {
                             comparisonExpr = "UPDATE: dist[$v] = $candidateDist",
                             phaseLabel = "UPDATING",
                             renderMode = VisualizerRenderMode.GRAPH_TREE,
-                            nodes = baseNodes.map { node ->
-                                when {
-                                    node.id == v -> node.copy(state = ElementState.ACTIVE)
-                                    node.id == u -> node.copy(state = ElementState.ACTIVE)
-                                    node.id in settled -> node.copy(state = ElementState.VISITED)
-                                    else -> node
-                                }
-                            },
+                            nodes = mapNodesWithDistances(activeId = v),
                             edges = baseEdges.map { e ->
                                 val isCurrentEdge = (e.from == u && e.to == v) || (e.to == u && e.from == v)
                                 if (isCurrentEdge || isTreeEdge(e)) e.copy(isHighlighted = true) else e
@@ -3213,9 +3219,12 @@ object AlgorithmStepRepository {
                             visitedNodeIds = settled.toSet(),
                             activeCodeLines = listOf(10, 11),
                             variables = buildMap {
+                                put("u", u)
+                                put("v", v)
                                 put("relaxedNode", v)
                                 put("dist[$v]", candidateDist.toString())
                                 put("parent[$v]", u)
+                                putAll(currentDistancesMap())
                             },
                             callStack = listOf("dist[$v] := $candidateDist")
                         )
@@ -3247,7 +3256,7 @@ object AlgorithmStepRepository {
                     target != null -> "TARGET UNREACHABLE: Target node $target is not reachable from source $start. Settled ${settled.size} nodes: ${settled.joinToString(" → ")}."
                     else -> "Dijkstra Complete! Settled all reachable nodes from $start: ${settled.joinToString(" → ")}."
                 },
-                comparisonExpr = if (foundTarget) "SHORTEST PATH: cost = $finalCost" else "COMPLETE: ${settled.size} settled",
+                comparisonExpr = if (foundTarget) "SHORTEST PATH: ${goalPath.joinToString(" → ")} (cost = $finalCost)" else "COMPLETE: ${settled.size} settled",
                 phaseLabel = if (foundTarget) "FOUND" else if (target != null) "NOT_FOUND" else "SORTED",
                 renderMode = VisualizerRenderMode.GRAPH_TREE,
                 nodes = baseNodes.map { node ->
@@ -3257,7 +3266,9 @@ object AlgorithmStepRepository {
                         node.id in settled -> ElementState.VISITED
                         else -> node.state
                     }
-                    node.copy(state = state)
+                    val currentD = dist[node.id]
+                    val distLabel = if (currentD == null || currentD == Int.MAX_VALUE) "∞" else currentD.toString()
+                    node.copy(state = state, value = "d=$distLabel")
                 },
                 edges = baseEdges.map { e ->
                     if (goalEdgePairs.isNotEmpty()) {
@@ -3274,9 +3285,10 @@ object AlgorithmStepRepository {
                     put("settledCount", settled.size.toString())
                     if (target != null) put("target", target)
                     if (foundTarget) {
-                        put("path", goalPath.joinToString("→"))
+                        put("path", goalPath.joinToString(" → "))
                         put("cost", finalCost.toString())
                     }
+                    putAll(currentDistancesMap())
                 },
                 callStack = listOf("dijkstra(start=$start) -> complete")
             )

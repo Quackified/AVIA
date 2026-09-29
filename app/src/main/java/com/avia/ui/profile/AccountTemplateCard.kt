@@ -482,10 +482,13 @@ fun EditProfileSheet(authRepository: AuthRepository, onDismiss: () -> Unit, modi
     if (draft.showDiscardConfirm) {
         AlertDialog(
             onDismissRequest = { draft.showDiscardConfirm = false },
-            title = { Text("Discard changes?") },
-            text = { Text("Your profile has unsaved changes.") },
-            confirmButton = { TextButton(onClick = onDismiss) { Text("Discard", color = AccentRed) } },
-            dismissButton = { TextButton(onClick = { draft.showDiscardConfirm = false }) { Text("Keep editing") } }
+            containerColor = CardBackground,
+            titleContentColor = TextPrimary,
+            textContentColor = TextPrimary,
+            title = { Text("Discard changes?", color = TextPrimary, fontWeight = FontWeight.Bold) },
+            text = { Text("Your profile has unsaved changes.", color = TextSecondary) },
+            confirmButton = { TextButton(onClick = onDismiss) { Text("Discard", color = AccentRed, fontWeight = FontWeight.Bold) } },
+            dismissButton = { TextButton(onClick = { draft.showDiscardConfirm = false }) { Text("Keep editing", color = TextSecondary) } }
         )
     }
 }

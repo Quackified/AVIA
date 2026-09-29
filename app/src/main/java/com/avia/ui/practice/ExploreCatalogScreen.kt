@@ -45,8 +45,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import com.avia.data.practice.PracticeQuestionRepository
 import com.avia.ui.components.AlgoGlyphs
+import com.avia.ui.components.AudioHaptics
 import com.avia.ui.components.pressPhysics
 import com.avia.ui.theme.AccentGreen
 import com.avia.ui.theme.AccentYellow
@@ -202,201 +205,297 @@ fun ExploreCatalogScreen(
                 // VIEW 1: UNIFIED EXPLORE HUB (2 BIG VERTICAL CARDS)
                 // ═════════════════════════════════════════════════════════════
                 ExploreView.HUB -> {
+                    val view = LocalView.current
+                    val haptic = LocalHapticFeedback.current
+
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
                             .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
-                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
+                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                     ) {
                         // ── Top Header ──
-                        Column {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(PrimaryCyan)
-                                )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(PrimaryCyan)
+                                    )
+                                    Text(
+                                        text = "EXPLORE & PRACTICE",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = PrimaryCyan,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = AlgoType.trackSection
+                                    )
+                                }
                                 Text(
-                                    text = "PRACTICE",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = TextMuted,
-                                    fontSize = 11.sp,
+                                    text = "Choose a practice mode",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = TextPrimary,
                                     fontWeight = FontWeight.Bold,
-                                    letterSpacing = AlgoType.trackSection
+                                    fontSize = 17.sp,
+                                    modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
-                            Text(
-                                text = "Choose a practice mode",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary,
-                                fontSize = AlgoType.bodySize,
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                    .background(CyanSubtle)
+                                    .border(AlgoTokens.strokeThin, BorderCyan.copy(alpha = 0.4f), RoundedCornerShape(AlgoTokens.radiusSm))
+                                    .padding(horizontal = AlgoTokens.space3, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "2 MODES",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = PrimaryCyan,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = AlgoType.microSize
+                                )
+                            }
                         }
 
-                        // ── CARD 1: PREDICT THE STEP ──
-                        Box(
+                        // ── Two Big Vertical Mode Buttons That Fill Screen Space ──
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
-                                .background(CardBackgroundElevated)
-                                .border(
-                                    width = 1.dp,
-                                    color = BorderCyan.copy(alpha = 0.45f),
-                                    shape = RoundedCornerShape(AlgoTokens.radiusMd)
-                                )
-                                .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusMd), accent = PrimaryCyan)
-                                .clickable { currentView = ExploreView.PREDICT_ARENA }
-                                .padding(AlgoTokens.space5)
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(CyanSubtle)
-                                            .border(1.dp, BorderCyan, CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = AlgoGlyphs.Bolt,
-                                            contentDescription = null,
-                                            tint = PrimaryCyan,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                    }
-
-                                    Text(
-                                        text = "Predict the Step",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = TextPrimary,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
+                            // ── CARD 1: PREDICT THE STEP ──
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+                                    .background(CardBackgroundElevated)
+                                    .border(
+                                        width = 1.dp,
+                                        color = BorderCyan.copy(alpha = 0.45f),
+                                        shape = RoundedCornerShape(AlgoTokens.radiusMd)
                                     )
-                                }
-
-                                Text(
-                                    text = "Watch the algorithm run. It pauses at decision points and asks what happens next.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary,
-                                    fontSize = 12.sp,
-                                    lineHeight = 17.sp
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(42.dp)
-                                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                                        .background(PrimaryCyan)
-                                        .clickable { currentView = ExploreView.PREDICT_ARENA },
-                                    contentAlignment = Alignment.Center
+                                    .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusMd), accent = PrimaryCyan)
+                                    .clickable {
+                                        AudioHaptics.performClick(view, haptic)
+                                        currentView = ExploreView.PREDICT_ARENA
+                                    }
+                                    .padding(AlgoTokens.space6)
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(46.dp)
+                                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                                .background(CyanSubtle)
+                                                .border(1.dp, BorderCyan.copy(alpha = 0.6f), RoundedCornerShape(AlgoTokens.radiusSm)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = AlgoGlyphs.Bolt,
+                                                contentDescription = null,
+                                                tint = PrimaryCyan,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                                .background(CyanSubtle)
+                                                .padding(horizontal = AlgoTokens.space3, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "INTERACTIVE",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = PrimaryCyan,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = AlgoType.microSize,
+                                                letterSpacing = AlgoType.trackSection
+                                            )
+                                        }
+                                    }
+
+                                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
+                                        Text(
+                                            text = "Predict the Step",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            color = TextPrimary,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 20.sp
+                                        )
+                                        Text(
+                                            text = "The algorithm runs on the visualizer and pauses at key decision points. Predict what operation executes next.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = TextSecondary,
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "Start →",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = DarkBackground,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
+                                            text = "13 Algorithms · Step-by-step",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextMuted,
+                                            fontSize = AlgoType.microSize
                                         )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "Start Simulation",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = PrimaryCyan,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp
+                                            )
+                                            Icon(
+                                                imageVector = AlgoGlyphs.ChevronRight,
+                                                contentDescription = null,
+                                                tint = PrimaryCyan,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        // ── CARD 2: PRACTICE QUIZ ──
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
-                                .background(CardBackgroundElevated)
-                                .border(
-                                    width = 1.dp,
-                                    color = AccentGreen.copy(alpha = 0.4f),
-                                    shape = RoundedCornerShape(AlgoTokens.radiusMd)
-                                )
-                                .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusMd), accent = AccentGreen)
-                                .clickable { currentView = ExploreView.QUIZ_CATALOG }
-                                .padding(AlgoTokens.space5)
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .clip(CircleShape)
-                                            .background(GreenSubtle)
-                                            .border(1.dp, AccentGreen.copy(alpha = 0.5f), CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = AlgoGlyphs.Target,
-                                            contentDescription = null,
-                                            tint = AccentGreen,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                    }
-
-                                    Text(
-                                        text = "Practice Quiz",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = TextPrimary,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
+                            // ── CARD 2: PRACTICE QUIZ ──
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+                                    .background(CardBackgroundElevated)
+                                    .border(
+                                        width = 1.dp,
+                                        color = AccentGreen.copy(alpha = 0.40f),
+                                        shape = RoundedCornerShape(AlgoTokens.radiusMd)
                                     )
-                                }
-
-                                Text(
-                                    text = "Multiple-choice questions on sorting, searching, data structures, and graphs.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary,
-                                    fontSize = 12.sp,
-                                    lineHeight = 17.sp
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(42.dp)
-                                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                                        .background(CardBackgroundHover)
-                                        .border(1.dp, AccentGreen.copy(alpha = 0.8f), RoundedCornerShape(AlgoTokens.radiusSm))
-                                        .clickable { currentView = ExploreView.QUIZ_CATALOG },
-                                    contentAlignment = Alignment.Center
+                                    .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusMd), accent = AccentGreen)
+                                    .clickable {
+                                        AudioHaptics.performClick(view, haptic)
+                                        currentView = ExploreView.QUIZ_CATALOG
+                                    }
+                                    .padding(AlgoTokens.space6)
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(46.dp)
+                                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                                                .background(GreenSubtle)
+                                                .border(1.dp, AccentGreen.copy(alpha = 0.6f), RoundedCornerShape(AlgoTokens.radiusSm)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = AlgoGlyphs.Target,
+                                                contentDescription = null,
+                                                tint = AccentGreen,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                                .background(GreenSubtle)
+                                                .padding(horizontal = AlgoTokens.space3, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "QUIZZES",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = AccentGreen,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = AlgoType.microSize,
+                                                letterSpacing = AlgoType.trackSection
+                                            )
+                                        }
+                                    }
+
+                                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
+                                        Text(
+                                            text = "Practice Quiz",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            color = TextPrimary,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 20.sp
+                                        )
+                                        Text(
+                                            text = "Curated multiple-choice questions on sorting invariants, binary search intervals, buffer operations, and graphs.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = TextSecondary,
+                                            fontSize = 13.sp,
+                                            lineHeight = 18.sp
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "Start →",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = AccentGreen,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
+                                            text = "${PracticeQuestionRepository.totalCount} Questions · 5 Tracks",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextMuted,
+                                            fontSize = AlgoType.microSize
                                         )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "Browse Tracks",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = AccentGreen,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp
+                                            )
+                                            Icon(
+                                                imageVector = AlgoGlyphs.ChevronRight,
+                                                contentDescription = null,
+                                                tint = AccentGreen,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(AlgoTokens.space6))
                     }
                 }
 
