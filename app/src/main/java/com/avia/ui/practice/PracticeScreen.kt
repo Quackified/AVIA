@@ -1,4 +1,4 @@
-﻿package com.avia.ui.practice
+package com.avia.ui.practice
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -67,6 +68,14 @@ import com.avia.ui.theme.TextPrimary
 import com.avia.ui.theme.TextSecondary
 import com.avia.ui.theme.YellowSubtle
 
+private data class OptionStyle(
+    val bg: Color,
+    val border: Color,
+    val text: Color,
+    val badgeBg: Color,
+    val badgeText: Color
+)
+
 /**
  * Explore / Practice Mode Screen in AlgoLens.
  *
@@ -76,6 +85,8 @@ import com.avia.ui.theme.YellowSubtle
  *  - Adaptive multi-family visual snapshots via [PracticeVisualCanvas].
  *  - Interactive multiple-choice selection with educational feedback.
  *  - In-session scoring, consecutive streak tracking, and completion summary.
+ *  - Upgraded option design with colored borders, option index badges ([A], [B], [C], [D]),
+ *    and consistent AVIA dark-tech typography.
  */
 @Composable
 fun PracticeScreen(
@@ -102,8 +113,8 @@ fun PracticeScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space3),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -129,22 +140,41 @@ fun PracticeScreen(
                     }
 
                     Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(PrimaryCyan)
+                            )
+                            Text(
+                                text = "PRACTICE QUIZ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextMuted,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = AlgoType.trackSection
+                            )
+                        }
                         Text(
-                            text = "Explore: Practice",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = PrimaryCyan,
+                            text = "${manager.selectedCategory} Track",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = TextPrimary,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.5).sp,
+                            fontSize = 15.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Interactive challenge mode · ${manager.questions.size} questions available",
+                            text = "Question ${manager.currentIndex + 1} of ${manager.totalQuestions} · ${manager.questions.size} available",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextMuted,
+                            fontSize = 11.sp,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 2.dp)
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -161,7 +191,7 @@ fun PracticeScreen(
                                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                 .background(OrangeSubtle)
                                 .border(AlgoTokens.strokeThin, AccentOrange.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusSm))
-                                .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
+                                .padding(horizontal = AlgoTokens.space3, vertical = 5.dp)
                         ) {
                             Text(
                                 text = "${manager.streak}x STREAK",
@@ -178,8 +208,8 @@ fun PracticeScreen(
                         modifier = Modifier
                             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(CyanSubtle)
-                            .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
-                            .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
+                            .border(AlgoTokens.strokeThin, BorderCyan.copy(alpha = 0.4f), RoundedCornerShape(AlgoTokens.radiusSm))
+                            .padding(horizontal = AlgoTokens.space3, vertical = 5.dp)
                     ) {
                         Text(
                             text = "${manager.score} PTS",
@@ -198,7 +228,7 @@ fun PracticeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
             ) {
                 PracticeQuestionRepository.categories.forEach { cat ->
                     val isSelected = manager.selectedCategory.equals(cat, ignoreCase = true)
@@ -208,11 +238,11 @@ fun PracticeScreen(
 
                     Box(
                         modifier = Modifier
-                                                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+                            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                             .background(chipBg)
-                            .border(AlgoTokens.bezelInset, chipBorder, RoundedCornerShape(AlgoTokens.radiusXxs))
+                            .border(AlgoTokens.bezelInset, chipBorder, RoundedCornerShape(AlgoTokens.radiusXs))
                             .clickable { manager.selectCategory(cat) }
-                            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
+                            .padding(horizontal = AlgoTokens.space3, vertical = 5.dp)
                     ) {
                         Text(
                             text = cat,
@@ -230,7 +260,7 @@ fun PracticeScreen(
             val progressLabel = if (manager.isSessionCompleted) {
                 "Session Completed (${manager.correctCount}/${manager.totalQuestions} Correct)"
             } else {
-                "Question ${manager.currentIndex + 1} of ${manager.totalQuestions}"
+                "Track Progress (${manager.currentIndex + 1}/${manager.totalQuestions})"
             }
             val percentText = "${(manager.progressFraction * 100).toInt()}%"
 
@@ -243,7 +273,7 @@ fun PracticeScreen(
                     text = progressLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
-                    fontSize = AlgoType.microSize
+                    fontSize = 11.sp
                 )
                 Text(
                     text = percentText,
@@ -258,7 +288,7 @@ fun PracticeScreen(
                 progress = { manager.progressFraction },
                 accent = PrimaryCyan,
                 modifier = Modifier.fillMaxWidth(),
-                height = 6.dp
+                height = 5.dp
             )
         }
 
@@ -279,7 +309,7 @@ fun PracticeScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space5)
+                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                     ) {
                         Box(
                             modifier = Modifier
@@ -299,20 +329,20 @@ fun PracticeScreen(
 
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                         ) {
                             Text(
-                                text = "PRACTICE COMPLETE",
+                                text = "Quiz Complete",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = TextPrimary,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = AlgoType.trackHeader
+                                fontSize = 14.sp
                             )
                             Text(
                                 text = "Category: ${manager.selectedCategory}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary,
-                                fontSize = AlgoType.microSize
+                                fontSize = 11.sp
                             )
                         }
 
@@ -337,7 +367,8 @@ fun PracticeScreen(
                                     text = "${manager.score}",
                                     style = MaterialTheme.typography.titleSmall,
                                     color = PrimaryCyan,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
                                 )
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -354,7 +385,8 @@ fun PracticeScreen(
                                     text = "$accuracy%",
                                     style = MaterialTheme.typography.titleSmall,
                                     color = AccentGreen,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
                                 )
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -368,7 +400,8 @@ fun PracticeScreen(
                                     text = "${manager.bestStreak}x",
                                     style = MaterialTheme.typography.titleSmall,
                                     color = AccentOrange,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
                                 )
                             }
                         }
@@ -382,18 +415,19 @@ fun PracticeScreen(
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
+                                        .height(42.dp)
                                         .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                         .background(CardBackgroundElevated)
                                         .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                                        .clickable { onBack() }
-                                        .padding(vertical = AlgoTokens.space4),
+                                        .clickable { onBack() },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = "Back to Catalog",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = TextSecondary,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
                                     )
                                 }
                             }
@@ -401,17 +435,18 @@ fun PracticeScreen(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .height(42.dp)
                                     .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                     .background(PrimaryCyan)
-                                    .clickable { manager.restartSession() }
-                                    .padding(vertical = AlgoTokens.space4),
+                                    .clickable { manager.restartSession() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = "Practice Again",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = DarkBackground,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
                                 )
                             }
                         }
@@ -433,7 +468,7 @@ fun PracticeScreen(
                         .border(AlgoTokens.strokeThin, BorderSubtle.copy(alpha = 0.65f), RoundedCornerShape(AlgoTokens.radiusMd))
                         .padding(AlgoTokens.space5)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -457,7 +492,7 @@ fun PracticeScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                                     .background(diffBg)
-                                    .padding(horizontal = AlgoTokens.space3, vertical = 3.dp)
+                                    .padding(horizontal = AlgoTokens.space2, vertical = 2.dp)
                             ) {
                                 Text(
                                     text = q.difficulty.label,
@@ -474,77 +509,139 @@ fun PracticeScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = TextPrimary,
                             fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp,
-                            lineHeight = 24.sp
+                            fontSize = 13.5.sp,
+                            lineHeight = 19.sp
                         )
                     }
                 }
 
-                // ── Multiple-Choice Options ──
+                // ── Multiple-Choice Options with Branded Borders and Badges ──
                 Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
-                    q.options.forEach { opt ->
+                    q.options.forEachIndexed { optIdx, opt ->
                         val isSelected = manager.selectedOptionId == opt.id
                         val isSubmitted = manager.isSubmitted
 
-                        val (optBg, optBorder, optText) = when {
-                            isSubmitted && opt.isCorrect -> Triple(GreenSubtle, AccentGreen, AccentGreen)
-                            isSubmitted && isSelected && !opt.isCorrect -> Triple(RedSubtle, AccentRed, AccentRed)
-                            isSelected -> Triple(CyanSubtle.copy(alpha = 0.45f), PrimaryCyan, PrimaryCyan)
-                            else -> Triple(CardBackgroundElevated, BorderSubtle.copy(alpha = 0.5f), TextPrimary)
+                        val style = when {
+                            isSubmitted && opt.isCorrect -> OptionStyle(
+                                bg = GreenSubtle,
+                                border = AccentGreen,
+                                text = AccentGreen,
+                                badgeBg = GreenSubtle,
+                                badgeText = AccentGreen
+                            )
+                            isSubmitted && isSelected && !opt.isCorrect -> OptionStyle(
+                                bg = RedSubtle,
+                                border = AccentRed,
+                                text = AccentRed,
+                                badgeBg = RedSubtle,
+                                badgeText = AccentRed
+                            )
+                            isSelected -> OptionStyle(
+                                bg = CyanSubtle.copy(alpha = 0.45f),
+                                border = PrimaryCyan,
+                                text = PrimaryCyan,
+                                badgeBg = PrimaryCyan,
+                                badgeText = DarkBackground
+                            )
+                            else -> OptionStyle(
+                                bg = CardBackgroundElevated,
+                                border = BorderCyan.copy(alpha = 0.22f),
+                                text = TextPrimary,
+                                badgeBg = CyanSubtle.copy(alpha = 0.6f),
+                                badgeText = PrimaryCyan
+                            )
                         }
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 52.dp)
+                                .heightIn(min = 48.dp)
                                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                                .background(optBg)
+                                .background(style.bg)
                                 .border(
-                                    width = if (isSelected || (isSubmitted && opt.isCorrect)) 1.5.dp else 1.dp,
-                                    color = optBorder,
+                                    width = if (isSelected || (isSubmitted && (opt.isCorrect || isSelected))) 1.5.dp else 1.dp,
+                                    color = style.border,
                                     shape = RoundedCornerShape(AlgoTokens.radiusSm)
                                 )
                                 .pressPhysics(
                                     shape = RoundedCornerShape(AlgoTokens.radiusSm),
-                                    accent = if (isSelected) PrimaryCyan else BorderSubtle,
+                                    accent = if (isSelected) PrimaryCyan else BorderCyan,
                                     enabled = !isSubmitted
                                 )
                                 .clickable(enabled = !isSubmitted) {
                                     manager.selectOption(opt.id)
                                 }
-                                .padding(horizontal = 16.dp, vertical = 13.dp),
+                                .padding(horizontal = 14.dp, vertical = 11.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = opt.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = optText,
-                                fontSize = 14.sp,
-                                lineHeight = 20.sp,
-                                fontWeight = if (isSelected || (isSubmitted && opt.isCorrect)) FontWeight.SemiBold else FontWeight.Normal,
-                                modifier = Modifier.weight(1f)
-                            )
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // Option letter pill [A], [B], [C], [D]
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
+                                        .background(style.badgeBg)
+                                        .border(1.dp, style.border.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusXxs)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "${('A' + optIdx)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = style.badgeText,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    )
+                                }
 
+                                Text(
+                                    text = opt.label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = style.text,
+                                    fontSize = 12.sp,
+                                    lineHeight = 17.sp,
+                                    fontWeight = if (isSelected || (isSubmitted && opt.isCorrect)) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                            }
+
+                            // Radio ring or status icon
                             Box(
                                 modifier = Modifier
-                                    .padding(start = AlgoTokens.space3)
+                                    .padding(start = AlgoTokens.space2)
                                     .size(20.dp)
                                     .clip(CircleShape)
                                     .background(DarkBackground)
                                     .border(
-                                        width = if (isSelected || (isSubmitted && opt.isCorrect)) 2.dp else 1.dp,
-                                        color = optBorder,
+                                        width = if (isSelected || (isSubmitted && (opt.isCorrect || isSelected))) 1.5.dp else 1.dp,
+                                        color = style.border,
                                         shape = CircleShape
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (isSelected || (isSubmitted && opt.isCorrect)) {
+                                if (isSubmitted && opt.isCorrect) {
+                                    Icon(
+                                        imageVector = AlgoGlyphs.Check,
+                                        contentDescription = null,
+                                        tint = AccentGreen,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                } else if (isSubmitted && isSelected && !opt.isCorrect) {
+                                    Icon(
+                                        imageVector = AlgoGlyphs.Close,
+                                        contentDescription = null,
+                                        tint = AccentRed,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                } else if (isSelected) {
                                     Box(
                                         modifier = Modifier
-                                            .size(10.dp)
+                                            .size(9.dp)
                                             .clip(CircleShape)
-                                            .background(optBorder)
+                                            .background(PrimaryCyan)
                                     )
                                 }
                             }
@@ -558,20 +655,19 @@ fun PracticeScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 48.dp)
+                            .height(44.dp)
                             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(if (canSubmit) PrimaryCyan else CardBackgroundElevated)
                             .border(AlgoTokens.strokeThin, if (canSubmit) PrimaryCyan else BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
-                            .clickable(enabled = canSubmit) { manager.submitAnswer() }
-                            .padding(vertical = AlgoTokens.space3),
+                            .clickable(enabled = canSubmit) { manager.submitAnswer() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Submit Answer",
+                            text = "Submit Answer ▶",
                             style = MaterialTheme.typography.labelMedium,
                             color = if (canSubmit) DarkBackground else TextMuted,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
+                            fontSize = 12.sp
                         )
                     }
                 }
@@ -611,7 +707,7 @@ fun PracticeScreen(
                                         imageVector = if (correct) AlgoGlyphs.Check else AlgoGlyphs.Close,
                                         contentDescription = null,
                                         tint = DarkBackground,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(13.dp)
                                     )
                                 }
                                 Text(
@@ -619,7 +715,7 @@ fun PracticeScreen(
                                     style = MaterialTheme.typography.titleSmall,
                                     color = cardBorder,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
+                                    fontSize = 13.sp
                                 )
                             }
 
@@ -627,8 +723,8 @@ fun PracticeScreen(
                                 text = q.explanation,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary,
-                                fontSize = 13.sp,
-                                lineHeight = 21.sp
+                                fontSize = 12.sp,
+                                lineHeight = 17.sp
                             )
 
                             val isLast = manager.currentIndex + 1 >= manager.totalQuestions
@@ -637,10 +733,10 @@ fun PracticeScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .height(44.dp)
                                     .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                     .background(if (correct) AccentGreen else PrimaryCyan)
-                                    .clickable { manager.nextQuestion() }
-                                    .padding(vertical = AlgoTokens.space3),
+                                    .clickable { manager.nextQuestion() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -648,7 +744,7 @@ fun PracticeScreen(
                                     style = MaterialTheme.typography.labelMedium,
                                     color = DarkBackground,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
+                                    fontSize = 12.sp
                                 )
                             }
                         }
@@ -665,7 +761,8 @@ fun PracticeScreen(
                     Text(
                         text = "No questions found for this category.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextMuted
+                        color = TextMuted,
+                        fontSize = 12.sp
                     )
                 }
             }

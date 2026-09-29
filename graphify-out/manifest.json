@@ -54,15 +54,15 @@
     "semantic_hash": "d2b0eae898eca4785225fd60b5918a69"
   },
   "docs/ARCHITECTURE.md": {
-    "mtime": 1790340392.5859902,
-    "seen": 1790383501.355233,
-    "ast_hash": "a258940f107029ab4873015bb4a223db",
+    "mtime": 1790683461.2947295,
+    "seen": 1790686700.349282,
+    "ast_hash": "563c6eb062eed9163abdf47b4cf9c951",
     "semantic_hash": ""
   },
   "docs/DESIGN.md": {
-    "mtime": 1790339842.3418212,
-    "seen": 1790383501.3552346,
-    "ast_hash": "32edd05fb67e8b5b5fa23ede46644fd7",
+    "mtime": 1790680033.8894248,
+    "seen": 1790686700.3492846,
+    "ast_hash": "d840d61f57b9d94230032b70a54b84de",
     "semantic_hash": ""
   },
   "docs/IMPLEMENTATION.md": {
@@ -144,9 +144,9 @@
     "semantic_hash": ""
   },
   "docs/FUTURE_WORK.md": {
-    "mtime": 1790603692.2621877,
-    "seen": 1790605929.6516178,
-    "ast_hash": "4541c1863395fa2c892d05dc04cf46f9",
+    "mtime": 1790680048.7698247,
+    "seen": 1790686700.349286,
+    "ast_hash": "a35145e603bf1660237de028c7f3f339",
     "semantic_hash": ""
   },
   "docs/HANDOVER_GRAPH_EDITOR.md": {
