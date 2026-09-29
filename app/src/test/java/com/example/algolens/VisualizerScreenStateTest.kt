@@ -535,4 +535,41 @@ class VisualizerScreenStateTest {
         com.example.algolens.data.AppSettings.toggleBookmark("MERGE_SORT")
         assertFalse(com.example.algolens.data.AppSettings.isBookmarked("MERGE_SORT"))
     }
+
+    @Test
+    fun liveBufferOps_branchFromVisibleStep_andDisablePopAtBoot() {
+        val stackState = VisualizerScreenState(Algorithm(id = AlgorithmId.STACK))
+        stackState.steps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            Algorithm(id = AlgorithmId.STACK)
+        )
+        // At boot (step 0, INITIALIZING), buffer is empty
+        stackState.scrubTo(0)
+        assertEquals("0", stackState.currentStep.variables["opCount"])
+        assertEquals(0, stackState.currentBufferCount(isStack = true))
+        assertFalse("Cannot pop or peek on empty chamber at boot", stackState.canRemoveFromBuffer(isStack = true))
+        assertTrue("Can push into empty chamber at boot", stackState.canAppendToBuffer(isStack = true))
+
+        // Pushing from step 0 branches from empty state (does not append to default 6 ops)
+        stackState.appendLiveStackOp(com.example.algolens.model.BufferOp.Push(42))
+        assertEquals(1, stackState.bufferOps.size)
+        assertEquals(com.example.algolens.model.BufferOp.Push(42), stackState.bufferOps.first())
+
+        // Same for Circular Queue
+        val cqState = VisualizerScreenState(Algorithm(id = AlgorithmId.QUEUE))
+        cqState.selectQueueVariant(com.example.algolens.model.QueueVariant.CIRCULAR_RING)
+        cqState.steps = com.example.algolens.data.AlgorithmStepRepository.generateStepsForAlgorithm(
+            Algorithm(id = AlgorithmId.QUEUE),
+            queueVariant = com.example.algolens.model.QueueVariant.CIRCULAR_RING
+        )
+        cqState.scrubTo(0)
+        assertEquals("0", cqState.currentStep.variables["opCount"])
+        assertEquals(0, cqState.currentBufferCount(isStack = false))
+        assertFalse("Cannot dequeue or peek at boot", cqState.canRemoveFromBuffer(isStack = false))
+        assertTrue("Can enqueue into empty circular queue at boot", cqState.canAppendToBuffer(isStack = false))
+
+        // Enqueue from step 0 branches from empty state (does not append to default 12 ops)
+        cqState.appendLiveCircularQueueOp(com.example.algolens.model.QueueOp.Enqueue(99))
+        assertEquals(1, cqState.circularQueueOps.size)
+        assertEquals(com.example.algolens.model.QueueOp.Enqueue(99), cqState.circularQueueOps.first())
+    }
 }

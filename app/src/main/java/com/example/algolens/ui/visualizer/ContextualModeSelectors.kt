@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -57,9 +59,8 @@ fun BstModeSelector(
         modifier = modifier
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
             .background(AlgoTokens.surfaceSunken.copy(alpha = 0.85f))
-            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+            .padding(horizontal = 4.dp, vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         BstMode.values().forEach { mode ->
@@ -89,38 +90,33 @@ fun BstModeSelector(
 
             Box(
                 modifier = Modifier
+                    .weight(1f)
                     .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                     .background(animatedBg)
                     .border(AlgoTokens.strokeThin, animatedBorder, RoundedCornerShape(AlgoTokens.radiusXxs))
                     .clickable { onSelectMode(mode) }
                     .pressPhysics()
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                    .padding(vertical = 5.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = icon, fontSize = 11.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = mode.displayName,
                         style = MaterialTheme.typography.labelSmall,
                         color = animatedText,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 10.5.sp,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
         }
-
-        // Traversal formula chip on the right
-        Text(
-            text = "• ${currentMode.formula}",
-            style = MaterialTheme.typography.labelSmall,
-            color = AccentGreen.copy(alpha = 0.85f),
-            fontFamily = FontFamily.Monospace,
-            fontSize = AlgoType.microSize,
-            modifier = Modifier.padding(start = AlgoTokens.space2, end = AlgoTokens.space1)
-        )
     }
 }
 
@@ -139,9 +135,8 @@ fun QueueModeSelector(
         modifier = modifier
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
             .background(AlgoTokens.surfaceSunken.copy(alpha = 0.85f))
-            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
+            .padding(horizontal = 4.dp, vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         QueueVariant.values().forEach { variant ->
@@ -187,25 +182,13 @@ fun QueueModeSelector(
                         text = variant.displayName,
                         style = MaterialTheme.typography.labelSmall,
                         color = animatedText,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
         }
-
-        // Subtitle formula indicator
-        val subtitle = if (currentVariant == QueueVariant.CIRCULAR_RING) {
-            "• Modulo math: (index + 1) % 8"
-        } else {
-            "• Sequential: head ➔ tail"
-        }
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.labelSmall,
-            color = AccentYellow.copy(alpha = 0.85f),
-            fontFamily = FontFamily.Monospace,
-            fontSize = AlgoType.microSize,
-            modifier = Modifier.padding(start = AlgoTokens.space2, end = AlgoTokens.space1)
-        )
     }
 }

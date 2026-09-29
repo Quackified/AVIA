@@ -229,10 +229,14 @@ private fun MemoryCallStackReadout(
 
 @Composable
 private fun VarBadge(label: String, value: String) {
+    val isFormula = label.equals("formula", ignoreCase = true)
+    val containerBg = if (isFormula) AccentYellow.copy(alpha = 0.14f) else CyanSubtle
+    val borderColor = if (isFormula) AccentYellow.copy(alpha = 0.45f) else PrimaryCyan.copy(alpha = 0.35f)
+    val textColor = if (isFormula) AccentYellow else PrimaryCyan
     val base = MaterialTheme.typography.bodySmall
-    val badgeStyle = remember(base) {
+    val badgeStyle = remember(base, textColor) {
         base.copy(
-            color = PrimaryCyan,
+            color = textColor,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.SemiBold,
             fontSize = AlgoType.microSize
@@ -241,16 +245,16 @@ private fun VarBadge(label: String, value: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-            .background(CyanSubtle)
+            .background(containerBg)
             .border(
                 AlgoTokens.strokeThin,
-                PrimaryCyan.copy(alpha = 0.35f),
+                borderColor,
                 RoundedCornerShape(AlgoTokens.radiusXs)
             )
             .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
     ) {
         Text(
-            text = "$label = $value",
+            text = if (isFormula) "formula: $value" else "$label = $value",
             style = badgeStyle
         )
     }

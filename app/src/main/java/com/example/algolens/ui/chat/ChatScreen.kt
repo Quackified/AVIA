@@ -124,7 +124,9 @@ import com.example.algolens.ui.visualizer.SyntaxHighlighter
 fun ChatScreen(
     onAlgorithmClick: (Algorithm) -> Unit,
     modifier: Modifier = Modifier,
-    manager: ChatSessionManager = rememberChatSessionManager()
+    manager: ChatSessionManager = rememberChatSessionManager(),
+    visualizerReturnContext: com.example.algolens.model.VisualizerReturnContext? = null,
+    onReturnToVisualizer: () -> Unit = {}
 ) {
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
@@ -224,6 +226,60 @@ fun ChatScreen(
 
             AlgoHairline()
 
+            // ── Sticky Return to Canvas Banner ──
+            if (visualizerReturnContext != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(PurpleSubtle)
+                        .border(AlgoTokens.strokeThin, SecondaryPurple.copy(alpha = 0.4f))
+                        .clickable { onReturnToVisualizer() }
+                        .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                        ) {
+                            Icon(
+                                imageVector = AlgoGlyphs.Spark,
+                                contentDescription = null,
+                                tint = PurpleGlow,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Return to ${visualizerReturnContext.algorithm.name} (Step ${visualizerReturnContext.stepIndex + 1})",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = PurpleGlow,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Resume Canvas",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PrimaryCyan,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Icon(
+                                imageVector = AlgoGlyphs.ChevronRight,
+                                contentDescription = null,
+                                tint = PrimaryCyan,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             // ── Temporary Toast/Feedback Notice Banner ──
             AnimatedVisibility(visible = toastNotice != null) {
                 toastNotice?.let { msg ->
@@ -262,7 +318,7 @@ fun ChatScreen(
                     horizontal = AlgoTokens.space6,
                     vertical = AlgoTokens.space4
                 ),
-                verticalArrangement = Arrangement.spacedBy(22.dp)
+                verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
                 items(
                     items = manager.messages,
@@ -898,21 +954,22 @@ private fun UserMessageBubble(
 
         Box(
             modifier = Modifier
-                .widthIn(max = 320.dp)
-                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
-                .background(CardBackgroundElevated.copy(alpha = 0.6f))
+                .widthIn(max = 340.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(CardBackgroundElevated.copy(alpha = 0.65f))
+                .border(AlgoTokens.strokeHairline, BorderSubtle.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                 .combinedClickable(
                     onClick = {},
                     onLongClick = onHold
                 )
-                .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space3)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
                 text = parseMarkdownInline(message.content),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextPrimary,
                 fontSize = AlgoType.bodySize,
-                lineHeight = AlgoType.leadingBody
+                lineHeight = 22.sp
             )
         }
     }
@@ -931,9 +988,7 @@ private fun AssistantMessageBubble(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
     ) {
-        // Assistant identity: a single quiet spark glyph. The repeated
-        // "AVIA CORE" tracked-caps label was removed — every reply in the
-        // stream repeating the same wordmark read as chrome, not content.
+        // Assistant identity: a single quiet spark glyph.
         Icon(
             imageVector = AlgoGlyphs.Spark,
             contentDescription = null,
@@ -944,7 +999,7 @@ private fun AssistantMessageBubble(
         // Direct borderless content flow with generous breathing room
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Main Explanation Text (Rich Markdown Encoded)
             ChatMarkdownMessage(
@@ -961,23 +1016,33 @@ private fun AssistantMessageBubble(
                         if (algo != null) {
                             onAction(ChatAction.LaunchVisualizer(algo.id, algo.name))
                         }
-                    }
+                    },
+                    modifier = Modifier.padding(top = 10.dp, bottom = 10.dp)
                 )
             }
 
             // Complexity Matrix (if present)
             message.complexity?.let { matrix ->
-                ComplexityMatrixBlock(matrix = matrix)
+                ComplexityMatrixBlock(
+                    matrix = matrix,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 10.dp)
+                )
             }
 
             // Code Snippet (if present)
             message.codeSnippet?.let { snippet ->
-                CodeSnippetBlock(snippet = snippet)
+                CodeSnippetBlock(
+                    snippet = snippet,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 10.dp)
+                )
             }
 
             // Action Buttons (Launch Visualizer)
             if (message.actions.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
+                Column(
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                ) {
                     message.actions.forEach { action ->
                         when (action) {
                             is ChatAction.LaunchVisualizer -> {
@@ -1066,26 +1131,70 @@ private fun ComplexityMatrixBlock(
             .fillMaxWidth()
             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
             .background(CardBackgroundElevated)
+            .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
             .padding(AlgoTokens.space4),
         verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
     ) {
-        Text(
-            text = "COMPLEXITY TELEMETRY",
-            style = MaterialTheme.typography.labelSmall,
-            color = TextSecondary,
-            fontSize = AlgoType.microSize,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = AlgoType.trackSection
-        )
-
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            ComplexityPill(label = "BEST", value = matrix.bestCase, accent = AccentGreen)
-            ComplexityPill(label = "AVG", value = matrix.averageCase, accent = AccentYellow)
-            ComplexityPill(label = "WORST", value = matrix.worstCase, accent = AccentRed)
-            ComplexityPill(label = "SPACE", value = matrix.spaceComplexity, accent = SecondaryPurple)
+            Text(
+                text = "COMPLEXITY TELEMETRY",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary,
+                fontSize = AlgoType.microSize,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = AlgoType.trackSection
+            )
+            Text(
+                text = "BIG-O RUNTIME & SPACE",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted,
+                fontSize = AlgoType.microSize,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+            ) {
+                ComplexityPill(
+                    label = "BEST CASE",
+                    value = matrix.bestCase,
+                    accent = AccentGreen,
+                    modifier = Modifier.weight(1f)
+                )
+                ComplexityPill(
+                    label = "AVERAGE CASE",
+                    value = matrix.averageCase,
+                    accent = AccentYellow,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+            ) {
+                ComplexityPill(
+                    label = "WORST CASE",
+                    value = matrix.worstCase,
+                    accent = AccentRed,
+                    modifier = Modifier.weight(1f)
+                )
+                ComplexityPill(
+                    label = "SPACE COMPLEXITY",
+                    value = matrix.spaceComplexity,
+                    accent = SecondaryPurple,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -1094,29 +1203,35 @@ private fun ComplexityMatrixBlock(
 private fun ComplexityPill(
     label: String,
     value: String,
-    accent: Color
+    accent: Color,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-            .background(accent.copy(alpha = 0.10f))
-            .border(AlgoTokens.strokeThin, accent.copy(alpha = 0.28f), RoundedCornerShape(AlgoTokens.radiusXxs))
-            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2),
+        modifier = modifier
+            .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+            .background(accent.copy(alpha = 0.08f))
+            .border(AlgoTokens.strokeThin, accent.copy(alpha = 0.32f), RoundedCornerShape(AlgoTokens.radiusXs))
+            .padding(horizontal = AlgoTokens.space3, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = TextMuted,
-            fontSize = AlgoType.microSize
+            fontSize = AlgoType.microSize,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelMedium,
             color = accent,
             fontWeight = FontWeight.Bold,
-            fontSize = AlgoType.microSize
+            fontSize = AlgoType.labelSize,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

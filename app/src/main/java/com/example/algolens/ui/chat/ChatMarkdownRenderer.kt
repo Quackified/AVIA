@@ -21,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.example.algolens.data.TraceLanguage
 import com.example.algolens.ui.visualizer.SyntaxHighlighter
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -147,13 +149,19 @@ fun ChatMarkdownMessage(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         while (lineIdx < total) {
             val line = rawLines[lineIdx]
             val trimmed = line.trim()
 
-            // ── 1. Code Block Fence (```) ──
+            // ── 1. Blank Lines ──
+            if (trimmed.isEmpty()) {
+                lineIdx++
+                continue
+            }
+
+            // ── 2. Code Block Fence (```) ──
             if (trimmed.startsWith("```")) {
                 val fenceDirective = trimmed.removePrefix("```").trim().lowercase()
                 val codeLines = mutableListOf<String>()
@@ -169,14 +177,21 @@ fun ChatMarkdownMessage(
                 val parsedFlowchart = if (isFlowchartDirective) parseFlowchart(blockText) else null
 
                 if (parsedFlowchart != null) {
-                    ChatFlowchartBlock(flowchart = parsedFlowchart)
+                    ChatFlowchartBlock(
+                        flowchart = parsedFlowchart,
+                        modifier = Modifier.padding(top = 22.dp, bottom = 26.dp)
+                    )
                 } else {
-                    ChatEmbeddedCodeBlock(code = blockText, language = fenceDirective)
+                    ChatEmbeddedCodeBlock(
+                        code = blockText,
+                        language = fenceDirective,
+                        modifier = Modifier.padding(top = 20.dp, bottom = 24.dp)
+                    )
                 }
                 continue
             }
 
-            // ── 2. Markdown Table (| ... |) ──
+            // ── 3. Markdown Table (| ... |) ──
             if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
                 val tableLines = mutableListOf<String>()
                 while (lineIdx < total && rawLines[lineIdx].trim().startsWith("|") && rawLines[lineIdx].trim().endsWith("|")) {
@@ -186,7 +201,10 @@ fun ChatMarkdownMessage(
 
                 val table = parseMarkdownTable(tableLines)
                 if (table != null) {
-                    ChatTableBlock(table = table)
+                    ChatTableBlock(
+                        table = table,
+                        modifier = Modifier.padding(top = 20.dp, bottom = 24.dp)
+                    )
                 } else {
                     // Fallback to plain lines if malformed table
                     tableLines.forEach { tLine ->
@@ -195,14 +213,14 @@ fun ChatMarkdownMessage(
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary,
                             fontSize = AlgoType.bodySize,
-                            lineHeight = AlgoType.leadingBodyRelaxed
+                            lineHeight = 20.sp
                         )
                     }
                 }
                 continue
             }
 
-            // ── 3. Callout Alerts (> [!TIP], > [!WARNING], etc.) ──
+            // ── 4. Callout Alerts (> [!TIP], > [!WARNING], etc.) ──
             if (trimmed.startsWith("> [!") && trimmed.contains("]")) {
                 val tag = trimmed.substringAfter("> [!").substringBefore("]").uppercase()
                 val calloutType = when (tag) {
@@ -228,15 +246,9 @@ fun ChatMarkdownMessage(
 
                 ChatCalloutBlock(
                     type = calloutType,
-                    body = calloutLines.joinToString("\n")
+                    body = calloutLines.joinToString("\n"),
+                    modifier = Modifier.padding(top = 20.dp, bottom = 24.dp)
                 )
-                continue
-            }
-
-            // ── 4. Blank Lines ──
-            if (trimmed.isEmpty()) {
-                Spacer(modifier = Modifier.height(AlgoTokens.space1))
-                lineIdx++
                 continue
             }
 
@@ -248,9 +260,9 @@ fun ChatMarkdownMessage(
                     style = MaterialTheme.typography.titleSmall,
                     color = PrimaryCyan,
                     fontWeight = FontWeight.Bold,
-                    fontSize = AlgoType.labelSize,
+                    fontSize = 13.sp,
                     letterSpacing = AlgoType.trackSection,
-                    modifier = Modifier.padding(top = AlgoTokens.space2, bottom = AlgoTokens.space1)
+                    modifier = Modifier.padding(top = 16.dp, bottom = 6.dp)
                 )
                 lineIdx++
                 continue
@@ -263,9 +275,24 @@ fun ChatMarkdownMessage(
                     style = MaterialTheme.typography.titleMedium,
                     color = PrimaryCyan,
                     fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    letterSpacing = AlgoType.trackSection,
+                    modifier = Modifier.padding(top = 18.dp, bottom = 6.dp)
+                )
+                lineIdx++
+                continue
+            }
+
+            // ── 5.5. Bold Section Subheadings (e.g. **Algorithm Control Flow:**) ──
+            if (trimmed.startsWith("**") && (trimmed.endsWith(":**") || trimmed.endsWith(":") || (trimmed.endsWith("**") && trimmed.length < 50))) {
+                Text(
+                    text = parseMarkdownInline(trimmed),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = PrimaryCyan,
+                    fontWeight = FontWeight.Bold,
                     fontSize = AlgoType.bodySize,
                     letterSpacing = AlgoType.trackSection,
-                    modifier = Modifier.padding(top = AlgoTokens.space2, bottom = AlgoTokens.space1)
+                    modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)
                 )
                 lineIdx++
                 continue
@@ -275,7 +302,9 @@ fun ChatMarkdownMessage(
             if (trimmed.startsWith("• ") || trimmed.startsWith("- ")) {
                 val bulletContent = trimmed.substring(2)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2),
                     verticalAlignment = Alignment.Top
                 ) {
@@ -291,7 +320,7 @@ fun ChatMarkdownMessage(
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         fontSize = AlgoType.bodySize,
-                        lineHeight = AlgoType.leadingBodyRelaxed,
+                        lineHeight = 20.sp,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -299,15 +328,36 @@ fun ChatMarkdownMessage(
                 continue
             }
 
-            // ── 7. Normal Prose Paragraphs ──
-            Text(
-                text = parseMarkdownInline(line),
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-                fontSize = AlgoType.bodySize,
-                lineHeight = AlgoType.leadingBodyRelaxed
-            )
-            lineIdx++
+            // ── 7. Normal Prose Paragraphs (group consecutive lines) ──
+            val paragraphLines = mutableListOf<String>()
+            while (lineIdx < total) {
+                val curL = rawLines[lineIdx]
+                val curT = curL.trim()
+                if (curT.isEmpty() ||
+                    curT.startsWith("```") ||
+                    (curT.startsWith("|") && curT.endsWith("|")) ||
+                    (curT.startsWith("> [!") && curT.contains("]")) ||
+                    curT.startsWith("### ") ||
+                    curT.startsWith("## ") ||
+                    curT.startsWith("• ") ||
+                    curT.startsWith("- ") ||
+                    (curT.startsWith("**") && (curT.endsWith(":**") || curT.endsWith(":") || (curT.endsWith("**") && curT.length < 50)))) {
+                    break
+                }
+                paragraphLines.add(curL)
+                lineIdx++
+            }
+
+            if (paragraphLines.isNotEmpty()) {
+                val paragraphText = paragraphLines.joinToString("\n")
+                Text(
+                    text = parseMarkdownInline(paragraphText),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
+                    fontSize = AlgoType.bodySize,
+                    lineHeight = 20.sp
+                )
+            }
         }
     }
 }

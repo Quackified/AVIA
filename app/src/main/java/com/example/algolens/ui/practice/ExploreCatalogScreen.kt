@@ -1,5 +1,9 @@
 package com.example.algolens.ui.practice
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,7 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.algolens.data.practice.PracticeQuestionRepository
 import com.example.algolens.ui.components.AlgoGlyphs
-import com.example.algolens.ui.components.DoubleBezelShell
+import com.example.algolens.ui.components.SegmentedToggle
 import com.example.algolens.ui.components.pressPhysics
 import com.example.algolens.ui.theme.AccentGreen
 import com.example.algolens.ui.theme.AccentYellow
@@ -66,6 +70,14 @@ import com.example.algolens.ui.theme.TextSecondary
 import com.example.algolens.ui.theme.YellowSubtle
 
 /**
+ * Explore Mode sub-destinations.
+ */
+enum class ExploreMode {
+    PREDICT_STEP,
+    PRACTICE_QUIZ
+}
+
+/**
  * Data representation of a practice track catalog entry.
  */
 data class PracticeTrack(
@@ -80,17 +92,19 @@ data class PracticeTrack(
 )
 
 /**
- * Explore Catalog Screen: The study hub hosted on [NavTab.EXPLORE].
+ * Explore Hub Screen hosted on [com.example.algolens.ui.components.NavTab.EXPLORE].
  *
- * Provides categorized challenge tracks (All, Sorting, Searching,
- * Data Structures, Graph Traversal). Tapping "Start Practice" on any
- * track launches a full-screen, focused Practice session.
+ * Features:
+ *  - Top Mode Switcher: [ Predict Step | Practice Quiz ]
+ *    1. Predict Step: Dedicated interactive algorithmic foresight arena with live visualizer.
+ *    2. Practice Quiz: Clean, airy catalog of conceptual question tracks.
  */
 @Composable
 fun ExploreCatalogScreen(
     onStartPractice: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var exploreMode by remember { mutableStateOf(ExploreMode.PREDICT_STEP) }
     var selectedFilter by remember { mutableStateOf("All") }
 
     val allTracks = remember {
@@ -162,12 +176,12 @@ fun ExploreCatalogScreen(
             .background(CanvasBackground)
             .statusBarsPadding()
     ) {
-        // ── 1. Top Explore Header Bar ──
+        // ── 1. Top Explore Header Bar with Mode Switcher ──
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space4),
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
+            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -177,33 +191,37 @@ fun ExploreCatalogScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Explore & Practice",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = PrimaryCyan,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimary,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.5).sp,
+                        letterSpacing = (-0.3).sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "Curated challenge catalogs for algorithmic mastery",
+                        text = if (exploreMode == ExploreMode.PREDICT_STEP) {
+                            "Step-by-step interactive algorithmic prediction"
+                        } else {
+                            "Curated conceptual question tracks"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
+                        fontSize = AlgoType.microSize,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                // Global Total Pill
+                // Global Count Chip
                 Box(
                     modifier = Modifier
-                                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                        .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                         .background(CyanSubtle)
-                        .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
-                        .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
+                        .border(AlgoTokens.strokeThin, BorderCyan.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusSm))
+                        .padding(horizontal = AlgoTokens.space3, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "${PracticeQuestionRepository.totalCount} CHALLENGES",
+                        text = if (exploreMode == ExploreMode.PREDICT_STEP) "13 ALGORITHMS" else "${PracticeQuestionRepository.totalCount} QUIZZES",
                         style = MaterialTheme.typography.labelSmall,
                         color = PrimaryCyan,
                         fontWeight = FontWeight.Bold,
@@ -213,178 +231,219 @@ fun ExploreCatalogScreen(
                 }
             }
 
-            // Category Filter Pills
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
-            ) {
-                PracticeQuestionRepository.categories.forEach { cat ->
-                    val isSelected = selectedFilter.equals(cat, ignoreCase = true)
-                    val chipBg = if (isSelected) CyanSubtle else CardBackground
-                    val chipBorder = if (isSelected) PrimaryCyan else BorderSubtle
-                    val chipText = if (isSelected) PrimaryCyan else TextSecondary
-
-                    Box(
-                        modifier = Modifier
-                                                        .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
-                            .background(chipBg)
-                            .border(AlgoTokens.bezelInset, chipBorder, RoundedCornerShape(AlgoTokens.radiusXxs))
-                            .clickable { selectedFilter = cat }
-                            .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space2)
-                    ) {
-                        Text(
-                            text = cat,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = chipText,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = AlgoType.microSize,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
+            // Mode Switcher Segmented Toggle
+            SegmentedToggle(
+                options = listOf(
+                    "Predict Step" to ExploreMode.PREDICT_STEP,
+                    "Practice Quiz" to ExploreMode.PRACTICE_QUIZ
+                ),
+                selectedKey = exploreMode,
+                onSelect = { if (it is ExploreMode) exploreMode = it }
+            )
         }
 
-        // ── 2. Track Catalogs List ──
-        LazyColumn(
+        // ── 2. Content Body Switcher ──
+        AnimatedContent(
+            targetState = exploreMode,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = AlgoTokens.space6, vertical = AlgoTokens.space2),
-            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
-        ) {
-            items(displayedTracks, key = { it.category }) { track ->
-                TrackCatalogCard(
-                    track = track,
-                    onStartPractice = { onStartPractice(track.category) }
-                )
-            }
+            label = "ExploreModeContent"
+        ) { mode ->
+            when (mode) {
+                ExploreMode.PREDICT_STEP -> {
+                    PredictStepArena(modifier = Modifier.fillMaxSize())
+                }
+                ExploreMode.PRACTICE_QUIZ -> {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Category Filter Pills
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                        ) {
+                            PracticeQuestionRepository.categories.forEach { cat ->
+                                val isSelected = selectedFilter.equals(cat, ignoreCase = true)
+                                val chipBg = if (isSelected) CyanSubtle else CardBackgroundElevated
+                                val chipBorder = if (isSelected) PrimaryCyan else BorderSubtle
+                                val chipText = if (isSelected) PrimaryCyan else TextSecondary
 
-            item {
-                Spacer(modifier = Modifier.height(AlgoTokens.space6))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(AlgoTokens.radiusXs))
+                                        .background(chipBg)
+                                        .border(AlgoTokens.strokeThin, chipBorder, RoundedCornerShape(AlgoTokens.radiusXs))
+                                        .clickable { selectedFilter = cat }
+                                        .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = cat,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = chipText,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = AlgoType.microSize,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+
+                        // Track Catalogs List (Redesigned Breathable Cards)
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space3),
+                            verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
+                        ) {
+                            items(displayedTracks, key = { it.category }) { track ->
+                                TrackCatalogCard(
+                                    track = track,
+                                    onStartPractice = { onStartPractice(track.category) }
+                                )
+                            }
+
+                            item {
+                                Spacer(modifier = Modifier.height(AlgoTokens.space6))
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 /**
- * Catalog track card rendered with subtle double-bezel styling.
+ * Redesigned Track Catalog Card:
+ * Airy, user-friendly, and readable with comfortable whitespace, clean typography hierarchy,
+ * and an effortless tap surface.
  */
 @Composable
 private fun TrackCatalogCard(
     track: PracticeTrack,
     onStartPractice: () -> Unit
 ) {
-    DoubleBezelShell(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+            .background(CardBackgroundElevated)
+            .border(AlgoTokens.strokeThin, BorderSubtle.copy(alpha = 0.65f), RoundedCornerShape(AlgoTokens.radiusMd))
             .pressPhysics(shape = RoundedCornerShape(AlgoTokens.radiusMd), accent = track.accent)
-            .clickable { onStartPractice() },
-        contentPadding = PaddingValues(AlgoTokens.space5)
+            .clickable { onStartPractice() }
+            .padding(AlgoTokens.space5)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
-            // Header Row: Icon + Title & Category + Badge
+            // Overline: Category + Question Count
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(24.dp)
                             .clip(CircleShape)
-                            .background(track.accentSubtle)
-                            .border(AlgoTokens.strokeThin, track.accent.copy(alpha = 0.45f), CircleShape),
+                            .background(track.accentSubtle),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = track.icon,
                             contentDescription = null,
                             tint = track.accent,
-                            modifier = Modifier.size(AlgoTokens.inlineIconMd)
+                            modifier = Modifier.size(13.dp)
                         )
                     }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = track.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = track.topics,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextMuted,
-                            fontSize = AlgoType.microSize,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                // Question count badge
-                Box(
-                    modifier = Modifier
-                                                .clip(RoundedCornerShape(AlgoTokens.radiusXs))
-                        .background(track.accentSubtle)
-                        .padding(horizontal = AlgoTokens.space3, vertical = 4.dp)
-                ) {
                     Text(
-                        text = "${track.questionCount} Questions",
+                        text = track.category.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         color = track.accent,
                         fontSize = AlgoType.microSize,
                         fontWeight = FontWeight.Bold,
-                        maxLines = 1
+                        letterSpacing = AlgoType.trackSection
                     )
                 }
+
+                Text(
+                    text = "${track.questionCount} Questions",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    fontSize = AlgoType.microSize,
+                    fontWeight = FontWeight.Medium
+                )
             }
 
-            // Description
+            // Title & Topics Summary
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text = track.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 17.sp,
+                    lineHeight = 22.sp
+                )
+                Text(
+                    text = track.topics,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Description with relaxed line height for readability
             Text(
                 text = track.description,
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
-                lineHeight = AlgoType.leadingBodyDefault,
-                maxLines = 3,
+                fontSize = 13.sp,
+                lineHeight = 20.sp,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Start Practice CTA Button
-            Box(
+            // Sleek Footer Action Link
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
-                    .background(track.accent)
-                    .clickable { onStartPractice() }
-                    .padding(vertical = AlgoTokens.space3),
-                contentAlignment = Alignment.Center
+                    .padding(top = AlgoTokens.space1),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Text(
+                    text = "Multiple-choice track",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    fontSize = AlgoType.microSize
+                )
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Start Practice",
+                        text = "Start Track",
                         style = MaterialTheme.typography.labelMedium,
-                        color = DarkBackground,
-                        fontWeight = FontWeight.Bold
+                        color = track.accent,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
                     )
                     Icon(
                         imageVector = AlgoGlyphs.ChevronRight,
                         contentDescription = null,
-                        tint = DarkBackground,
-                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
+                        tint = track.accent,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }

@@ -189,6 +189,23 @@ class ChallengeModeManagerTest {
     }
 
     @Test
+    fun buildPredictionQuestion_bubbleSort_comparingStep_whenNotSwapping_returnsSwapDecisionWithNo() {
+        val current = VisualizerStep(
+            array = listOf(2, 7, 8, 9),
+            elementStates = mapOf(0 to ElementState.COMPARING, 1 to ElementState.COMPARING),
+        )
+        val next = VisualizerStep(
+            array = listOf(2, 7, 8, 9),
+            comparisonExpr = "COMPARE: 7 < 8",
+        )
+        val q = buildPredictionQuestion(AlgorithmId.BUBBLE_SORT, current, next)
+        assertNotNull(q)
+        assertEquals(PredictionKind.SWAP_DECISION, q!!.kind)
+        assertFalse(predictionAnswerFor(q, userSaidYes = true))
+        assertTrue(predictionAnswerFor(q, userSaidYes = false))
+    }
+
+    @Test
     fun buildPredictionQuestion_bubbleSort_compareStep_returnsComparePair() {
         val current = VisualizerStep(array = listOf(5, 3, 8, 1))
         val next = VisualizerStep(

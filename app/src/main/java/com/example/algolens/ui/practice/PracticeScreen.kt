@@ -425,12 +425,13 @@ fun PracticeScreen(
                 )
 
                 // ── Question Text Card ──
-                DoubleBezelShell(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(
-                        horizontal = AlgoTokens.space5,
-                        vertical = AlgoTokens.space4
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+                        .background(CardBackgroundElevated)
+                        .border(AlgoTokens.strokeThin, BorderSubtle.copy(alpha = 0.65f), RoundedCornerShape(AlgoTokens.radiusMd))
+                        .padding(AlgoTokens.space5)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                         Row(
@@ -456,7 +457,7 @@ fun PracticeScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                                     .background(diffBg)
-                                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space1)
+                                    .padding(horizontal = AlgoTokens.space3, vertical = 3.dp)
                             ) {
                                 Text(
                                     text = q.difficulty.label,
@@ -470,10 +471,11 @@ fun PracticeScreen(
 
                         Text(
                             text = q.promptText,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyLarge,
                             color = TextPrimary,
                             fontWeight = FontWeight.Medium,
-                            lineHeight = AlgoType.leadingBodyDefault
+                            fontSize = 16.sp,
+                            lineHeight = 24.sp
                         )
                     }
                 }
@@ -487,25 +489,30 @@ fun PracticeScreen(
                         val (optBg, optBorder, optText) = when {
                             isSubmitted && opt.isCorrect -> Triple(GreenSubtle, AccentGreen, AccentGreen)
                             isSubmitted && isSelected && !opt.isCorrect -> Triple(RedSubtle, AccentRed, AccentRed)
-                            isSelected -> Triple(CyanSubtle, PrimaryCyan, PrimaryCyan)
-                            else -> Triple(CardBackground, BorderSubtle, TextPrimary)
+                            isSelected -> Triple(CyanSubtle.copy(alpha = 0.45f), PrimaryCyan, PrimaryCyan)
+                            else -> Triple(CardBackgroundElevated, BorderSubtle.copy(alpha = 0.5f), TextPrimary)
                         }
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 48.dp)
-                                .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+                                .heightIn(min = 52.dp)
+                                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                 .background(optBg)
                                 .border(
-                                    width = if (isSelected || (isSubmitted && opt.isCorrect)) AlgoTokens.bezelInset * 1.5f else AlgoTokens.bezelInset,
+                                    width = if (isSelected || (isSubmitted && opt.isCorrect)) 1.5.dp else 1.dp,
                                     color = optBorder,
-                                    shape = RoundedCornerShape(AlgoTokens.radiusMd)
+                                    shape = RoundedCornerShape(AlgoTokens.radiusSm)
+                                )
+                                .pressPhysics(
+                                    shape = RoundedCornerShape(AlgoTokens.radiusSm),
+                                    accent = if (isSelected) PrimaryCyan else BorderSubtle,
+                                    enabled = !isSubmitted
                                 )
                                 .clickable(enabled = !isSubmitted) {
                                     manager.selectOption(opt.id)
                                 }
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                                .padding(horizontal = 16.dp, vertical = 13.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -513,6 +520,8 @@ fun PracticeScreen(
                                 text = opt.label,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = optText,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
                                 fontWeight = if (isSelected || (isSubmitted && opt.isCorrect)) FontWeight.SemiBold else FontWeight.Normal,
                                 modifier = Modifier.weight(1f)
                             )
@@ -550,17 +559,19 @@ fun PracticeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 48.dp)
-                            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
+                            .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(if (canSubmit) PrimaryCyan else CardBackgroundElevated)
+                            .border(AlgoTokens.strokeThin, if (canSubmit) PrimaryCyan else BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                             .clickable(enabled = canSubmit) { manager.submitAnswer() }
-                            .padding(vertical = AlgoTokens.space4),
+                            .padding(vertical = AlgoTokens.space3),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "Submit Answer",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.labelMedium,
                             color = if (canSubmit) DarkBackground else TextMuted,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
                         )
                     }
                 }
@@ -574,15 +585,15 @@ fun PracticeScreen(
                     val correct = manager.isCorrect == true
                     val cardBg = if (correct) GreenSubtle else RedSubtle
                     val cardBorder = if (correct) AccentGreen else AccentRed
-                    val cardTitle = if (correct) "Correct! +${q.difficulty.basePoints} PTS" else "Incorrect Choice"
+                    val cardTitle = if (correct) "Correct! +${q.difficulty.basePoints} PTS" else "Review Concept"
 
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                             .background(cardBg)
-                            .border(AlgoTokens.bezelInset, cardBorder, RoundedCornerShape(AlgoTokens.radiusMd))
-                            .padding(AlgoTokens.space4)
+                            .border(1.dp, cardBorder.copy(alpha = 0.6f), RoundedCornerShape(AlgoTokens.radiusMd))
+                            .padding(AlgoTokens.space5)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                             Row(
@@ -591,15 +602,24 @@ fun PracticeScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(AlgoTokens.space4)
+                                        .size(24.dp)
                                         .clip(CircleShape)
-                                        .background(cardBorder)
-                                )
+                                        .background(cardBorder),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (correct) AlgoGlyphs.Check else AlgoGlyphs.Close,
+                                        contentDescription = null,
+                                        tint = DarkBackground,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                                 Text(
                                     text = cardTitle,
                                     style = MaterialTheme.typography.titleSmall,
                                     color = cardBorder,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
                                 )
                             }
 
@@ -607,7 +627,8 @@ fun PracticeScreen(
                                 text = q.explanation,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary,
-                                lineHeight = AlgoType.leadingBodyTight
+                                fontSize = 13.sp,
+                                lineHeight = 21.sp
                             )
 
                             val isLast = manager.currentIndex + 1 >= manager.totalQuestions
@@ -626,7 +647,8 @@ fun PracticeScreen(
                                     text = nextLabel,
                                     style = MaterialTheme.typography.labelMedium,
                                     color = DarkBackground,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
                                 )
                             }
                         }

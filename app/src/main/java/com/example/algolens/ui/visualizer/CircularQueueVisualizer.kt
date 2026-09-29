@@ -163,10 +163,11 @@ fun CircularQueueVisualizer(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "• N=$capacity",
+                        text = "• (i + 1) % $capacity",
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextMuted,
-                        fontFamily = FontFamily.Monospace
+                        color = AccentYellow.copy(alpha = 0.9f),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = AlgoType.microSize
                     )
                 }
 
@@ -210,7 +211,7 @@ fun CircularQueueVisualizer(
                 val availableWidth = maxWidth.value
                 val availableHeight = maxHeight.value
                 val minDim = minOf(availableWidth, availableHeight)
-                val ringRadius = (minDim * 0.30f).coerceIn(72f, 100f).dp
+                val ringRadius = (minDim * 0.27f).coerceIn(68f, 82f).dp
 
                 // Background ring tracks & needle indicators
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -699,9 +700,9 @@ private fun CircularPointerBadge(
     val isPeekingFront = isFront && (peekPulse > 0.01f || isFound)
     val badgeColor = if (isPeekingFront) AccentGreen else badgeBaseColor
 
-    val badgeRadius = ringRadius.value + 35f
-    val badgeX = badgeRadius * cos(angle).toFloat()
-    val badgeY = badgeRadius * sin(angle).toFloat()
+    val badgeRadius = calculatePointerRadius(slotIdx, ringRadius)
+    val badgeX = badgeRadius.value * cos(angle).toFloat()
+    val badgeY = badgeRadius.value * sin(angle).toFloat()
 
     val badgeScale = if (isPeekingFront) 1f + 0.08f * peekPulse else 1f
 
@@ -736,6 +737,19 @@ private fun CircularPointerBadge(
 }
 
 /**
+ * Calculates radial clearance from the center to ensure the pointer badge
+ * never clips into the 42dp slot cell at any orientation (top/bottom, lateral, diagonal).
+ */
+private fun calculatePointerRadius(slotIdx: Int, ringRadius: Dp): Dp {
+    val radialOffset = when (slotIdx) {
+        0, 4 -> 36.dp
+        2, 6 -> 55.dp
+        else -> 63.dp
+    }
+    return ringRadius + radialOffset
+}
+
+/**
  * Returns the directional label and arrow for the pointer badge at slot [slotIdx].
  */
 private fun getPointerBadgeInfo(
@@ -745,7 +759,7 @@ private fun getPointerBadgeInfo(
 ): Pair<String, Color>? {
     if (!isFront && !isRear) return null
     val label = when {
-        isFront && isRear -> "FRONT • REAR"
+        isFront && isRear -> "F • R"
         isFront -> "FRONT"
         else -> "REAR"
     }

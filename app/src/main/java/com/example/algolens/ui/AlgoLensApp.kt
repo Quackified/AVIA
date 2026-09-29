@@ -151,6 +151,8 @@ private fun AppShell(
     val authRepository = remember { com.example.algolens.data.auth.UnavailableFirebaseAuthRepository() }
     var editingProfile by rememberSaveable { mutableStateOf(false) }
     val profileState = rememberSaveableStateHolder()
+    var visualizerReturnContext by remember { mutableStateOf<com.example.algolens.model.VisualizerReturnContext?>(null) }
+    var initialVisualizerStepIdx by remember { androidx.compose.runtime.mutableIntStateOf(0) }
 
     Box(modifier = modifier.fillMaxSize().background(CanvasBackground)) {
         if (editingProfile) {
@@ -161,7 +163,19 @@ private fun AppShell(
         } else if (selectedAlgorithm != null) {
             VisualizerScreen(
                 algorithm = selectedAlgorithm,
-                onBack = onAlgorithmCleared,
+                initialStepIdx = initialVisualizerStepIdx,
+                onBack = {
+                    initialVisualizerStepIdx = 0
+                    onAlgorithmCleared()
+                },
+                onOpenFullChat = { algo, stepIdx, prompt ->
+                    visualizerReturnContext = com.example.algolens.model.VisualizerReturnContext(algo, stepIdx)
+                    chatManager.createNewChat()
+                    chatManager.sendMessage(prompt)
+                    initialVisualizerStepIdx = 0
+                    onAlgorithmCleared()
+                    onTabSelected(NavTab.CHAT)
+                }
             )
         } else if (showingSettings) {
             SettingsScreen(
@@ -195,6 +209,13 @@ private fun AppShell(
                             ChatScreen(
                                 onAlgorithmClick = onAlgorithmSelected,
                                 manager = chatManager,
+                                visualizerReturnContext = visualizerReturnContext,
+                                onReturnToVisualizer = {
+                                    val target = visualizerReturnContext ?: return@ChatScreen
+                                    visualizerReturnContext = null
+                                    initialVisualizerStepIdx = target.stepIndex
+                                    onAlgorithmSelected(target.algorithm)
+                                }
                             )
                         }
                         NavTab.PROFILE -> {

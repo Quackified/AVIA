@@ -226,23 +226,11 @@ fun PlaybackRail(
                 )
             }
 
-            // Right Group: Challenge Mode + AI Tutor
+            // Right Group: AI Tutor Trigger
             Row(
                 modifier = Modifier.align(Alignment.CenterEnd),
-                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                RailIconButton(
-                    icon = emojiEventsIcon,
-                    contentDescription = "Challenge Mode",
-                    boxSize = AlgoTokens.iconButtonLg,
-                    iconSize = AlgoTokens.inlineIconMd,
-                    tint = if (state.challengeState.isActive) AccentPink else TextMuted,
-                    container = if (state.challengeState.isActive) PinkSubtle else CardBackground,
-                    borderColor = if (state.challengeState.isActive) AccentPink else BorderSubtle,
-                    onClick = { state.toggleChallenge() }
-                )
-
                 RailIconButton(
                     icon = autoAwesomeIcon,
                     contentDescription = "AI Tutor",

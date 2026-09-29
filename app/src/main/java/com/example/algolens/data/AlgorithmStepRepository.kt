@@ -1339,7 +1339,8 @@ object AlgorithmStepRepository {
             codeLine: Int,
             label: String = "PROCESSING",
             expr: String? = null,
-            callFrame: String = "Queue.main()"
+            callFrame: String = "Queue.main()",
+            opCount: Int = 0
         ) {
             val frontVal = items.firstOrNull()?.value ?: "∅"
             val rearVal = items.lastOrNull()?.value ?: "∅"
@@ -1356,16 +1357,18 @@ object AlgorithmStepRepository {
                     variables = mapOf(
                         "size" to items.size.toString(),
                         "front" to frontVal,
-                        "rear" to rearVal
+                        "rear" to rearVal,
+                        "opCount" to opCount.toString()
                     ),
                     callStack = listOf("Queue.main()", callFrame).distinct()
                 )
             )
         }
 
-        addStep("Created empty Queue (FIFO capacity ready)", 1, "INITIALIZING", "QUEUE READY (size=0)")
+        addStep("Created empty Queue (FIFO capacity ready)", 1, "INITIALIZING", "QUEUE READY (size=0)", opCount = 0)
 
-        ops.forEach { op ->
+        ops.forEachIndexed { opIdx, op ->
+            val countOp = opIdx + 1
             when (op) {
                 is QueueOp.Enqueue -> {
                     if (items.size < 8) {
@@ -1376,11 +1379,12 @@ object AlgorithmStepRepository {
                             codeLine = 2,
                             label = "ENQUEUE",
                             expr = "ENQUEUE(${op.value}) -> rear = ${op.value}",
-                            callFrame = "enqueue(${op.value})"
+                            callFrame = "enqueue(${op.value})",
+                            opCount = countOp
                         )
                         items[items.size - 1] = items[items.size - 1].copy(state = ElementState.IDLE)
                     } else {
-                        addStep("enqueue(${op.value}) -> Queue overflow (capacity 8 reached). No-op.", 2, "OVERFLOW", "ENQUEUE: overflow (size=8)", "enqueue(${op.value})")
+                        addStep("enqueue(${op.value}) -> Queue overflow (capacity 8 reached). No-op.", 2, "OVERFLOW", "ENQUEUE: overflow (size=8)", "enqueue(${op.value})", opCount = countOp)
                     }
                 }
                 QueueOp.Dequeue -> {
@@ -1392,7 +1396,8 @@ object AlgorithmStepRepository {
                             codeLine = 3,
                             label = "DEQUEUING",
                             expr = "DEQUEUE: targeting front = ${frontItem.value}",
-                            callFrame = "dequeue()"
+                            callFrame = "dequeue()",
+                            opCount = countOp
                         )
                         val removed = items.removeAt(0)
                         if (items.isNotEmpty()) {
@@ -1405,10 +1410,11 @@ object AlgorithmStepRepository {
                             codeLine = 4,
                             label = "DEQUEUE",
                             expr = "DEQUEUED: ${removed.value} -> new front = ${items.firstOrNull()?.value ?: "∅"}",
-                            callFrame = "dequeue() -> ${removed.value}"
+                            callFrame = "dequeue() -> ${removed.value}",
+                            opCount = countOp
                         )
                     } else {
-                        addStep("dequeue() -> Queue underflow (empty). No-op.", 4, "UNDERFLOW", "DEQUEUE: underflow (size=0)", "dequeue()")
+                        addStep("dequeue() -> Queue underflow (empty). No-op.", 4, "UNDERFLOW", "DEQUEUE: underflow (size=0)", "dequeue()", opCount = countOp)
                     }
                 }
                 QueueOp.Peek -> {
@@ -1420,17 +1426,18 @@ object AlgorithmStepRepository {
                             codeLine = 5,
                             label = "PEEK",
                             expr = "PEEK() == ${frontItem.value}",
-                            callFrame = "peek() -> ${frontItem.value}"
+                            callFrame = "peek() -> ${frontItem.value}",
+                            opCount = countOp
                         )
                         items[0] = frontItem.copy(state = ElementState.IDLE)
                     } else {
-                        addStep("peek() -> Queue underflow (empty). No-op.", 5, "UNDERFLOW", "PEEK: underflow (size=0)", "peek()")
+                        addStep("peek() -> Queue underflow (empty). No-op.", 5, "UNDERFLOW", "PEEK: underflow (size=0)", "peek()", opCount = countOp)
                     }
                 }
             }
         }
 
-        addStep("Queue sequence complete (${ops.size} operations).", 1, "DONE", "COMPLETE (${items.size} items)")
+        addStep("Queue sequence complete (${ops.size} operations).", 1, "DONE", "COMPLETE (${items.size} items)", opCount = ops.size)
         return steps
     }
 
@@ -1470,7 +1477,8 @@ object AlgorithmStepRepository {
             expr: String,
             activeIdx: Int? = null,
             activeState: ElementState = ElementState.ACTIVE,
-            callFrame: String = "CircularQueue.main()"
+            callFrame: String = "CircularQueue.main()",
+            opCount: Int = 0
         ) {
             val formula = if (rear >= 0) "(rear + 1) % $capacity = ${(rear + 1) % capacity}" else "front=0, rear=0"
             steps.add(
@@ -1493,7 +1501,8 @@ object AlgorithmStepRepository {
                         "rear" to if (rear >= 0) "[$rear]" else "NONE",
                         "size" to "$count / $capacity",
                         "formula" to formula,
-                        "queueVariant" to QueueVariant.CIRCULAR_RING.name
+                        "queueVariant" to QueueVariant.CIRCULAR_RING.name,
+                        "opCount" to opCount.toString()
                     ),
                     callStack = listOf("CircularQueue", callFrame).distinct()
                 )
@@ -1504,10 +1513,12 @@ object AlgorithmStepRepository {
             desc = "Initialized 8-slot Circular Ring Buffer (empty, front=-1, rear=-1).",
             codeLine = 1,
             label = "INITIALIZING",
-            expr = "INIT: N=$capacity"
+            expr = "INIT: N=$capacity",
+            opCount = 0
         )
 
-        ops.forEach { op ->
+        ops.forEachIndexed { opIdx, op ->
+            val countOp = opIdx + 1
             when (op) {
                 is QueueOp.Enqueue -> {
                     if (count < capacity) {
@@ -1527,7 +1538,8 @@ object AlgorithmStepRepository {
                             expr = "ENQUEUE(${op.value}) ➔ slot[$rear]",
                             activeIdx = rear,
                             activeState = ElementState.ACTIVE,
-                            callFrame = "enqueue(${op.value})"
+                            callFrame = "enqueue(${op.value})",
+                            opCount = countOp
                         )
                     } else {
                         addStep(
@@ -1535,7 +1547,8 @@ object AlgorithmStepRepository {
                             codeLine = 2,
                             label = "OVERFLOW",
                             expr = "OVERFLOW (size=$count/$capacity)",
-                            callFrame = "enqueue(${op.value})"
+                            callFrame = "enqueue(${op.value})",
+                            opCount = countOp
                         )
                     }
                 }
@@ -1550,7 +1563,8 @@ object AlgorithmStepRepository {
                             expr = "DEQUEUE: slot[$prevFront] = $removedVal",
                             activeIdx = prevFront,
                             activeState = ElementState.SWAPPING,
-                            callFrame = "dequeue()"
+                            callFrame = "dequeue()",
+                            opCount = countOp
                         )
                         buffer[prevFront] = "—"
                         count--
@@ -1565,7 +1579,8 @@ object AlgorithmStepRepository {
                             codeLine = 4,
                             label = "DEQUEUE",
                             expr = "DEQUEUED: $removedVal ➔ new front=[$front]",
-                            callFrame = "dequeue() -> $removedVal"
+                            callFrame = "dequeue() -> $removedVal",
+                            opCount = countOp
                         )
                     } else {
                         addStep(
@@ -1573,7 +1588,8 @@ object AlgorithmStepRepository {
                             codeLine = 4,
                             label = "UNDERFLOW",
                             expr = "UNDERFLOW (size=0)",
-                            callFrame = "dequeue()"
+                            callFrame = "dequeue()",
+                            opCount = countOp
                         )
                     }
                 }
@@ -1587,7 +1603,8 @@ object AlgorithmStepRepository {
                             expr = "PEEK() == $peekVal at [$front]",
                             activeIdx = front,
                             activeState = ElementState.FOUND,
-                            callFrame = "peek() -> $peekVal"
+                            callFrame = "peek() -> $peekVal",
+                            opCount = countOp
                         )
                     } else {
                         addStep(
@@ -1595,7 +1612,8 @@ object AlgorithmStepRepository {
                             codeLine = 5,
                             label = "UNDERFLOW",
                             expr = "PEEK: underflow (size=0)",
-                            callFrame = "peek()"
+                            callFrame = "peek()",
+                            opCount = countOp
                         )
                     }
                 }
@@ -1606,7 +1624,8 @@ object AlgorithmStepRepository {
             desc = "Circular Queue sequence complete (${ops.size} operations processed).",
             codeLine = 1,
             label = "DONE",
-            expr = "COMPLETE ($count / $capacity occupied)"
+            expr = "COMPLETE ($count / $capacity occupied)",
+            opCount = ops.size
         )
         return steps
     }

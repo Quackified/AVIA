@@ -66,9 +66,11 @@ import com.example.algolens.ui.tutor.AiTutorSheet
 fun VisualizerScreen(
     algorithm: Algorithm,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialStepIdx: Int = 0,
+    onOpenFullChat: (Algorithm, Int, String) -> Unit = { _, _, _ -> }
 ) {
-    val state = rememberVisualizerScreenState(algorithm)
+    val state = rememberVisualizerScreenState(algorithm, initialStepIdx)
     val spec = remember(algorithm.id) { AlgorithmRegistry.specFor(algorithm.id) }
 
     // ── Sync-pulse heartbeat ──
@@ -150,24 +152,28 @@ fun VisualizerScreen(
                             onSelectMode = { state.selectBstMode(it) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
+                                .padding(horizontal = AlgoTokens.space4, vertical = 2.dp)
                         )
                     }
                     AlgorithmId.QUEUE -> {
-                        QueueModeSelector(
-                            currentVariant = state.queueVariant,
-                            onSelectVariant = { state.selectQueueVariant(it) },
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
-                        )
+                                .padding(horizontal = AlgoTokens.space4, vertical = 2.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            QueueModeSelector(
+                                currentVariant = state.queueVariant,
+                                onSelectVariant = { state.selectQueueVariant(it) }
+                            )
+                        }
                     }
                     else -> {
                         if (spec?.id?.family == VisualizerFamily.LINEAR_1D) {
                             StageLegend(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space1)
+                                    .padding(horizontal = AlgoTokens.space4, vertical = 2.dp)
                             )
                         }
                     }
@@ -211,26 +217,7 @@ fun VisualizerScreen(
                         onToggleFocusMode = { state.canvasFocusMode = !state.canvasFocusMode }
                     )
 
-                    // 3. Challenge Prompt (when challenge in flight and not in focus mode)
-                    AnimatedVisibility(
-                        visible = state.challengeInFlight && !state.canvasFocusMode,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space2),
-                        enter = fadeIn(tween(220)) + expandVertically(),
-                        exit = fadeOut(tween(180)) + shrinkVertically()
-                    ) {
-                        CanvasChallengePrompt(
-                            algorithm = algorithm.id,
-                            step = state.currentStep,
-                            nextStep = state.steps.getOrNull(state.currentStepIdx + 1),
-                            state = state.challengeState,
-                            onStateChange = { state.updateChallenge { it } },
-                            onContinueNext = { state.stepForward() }
-                        )
-                    }
-
-                    // 4. Deck Instruments (Slides off-screen when Focus Mode is active)
+                    // 3. Deck Instruments (Slides off-screen when Focus Mode is active)
                     AnimatedVisibility(
                         visible = !state.canvasFocusMode,
                         enter = expandVertically(
@@ -331,10 +318,16 @@ fun VisualizerScreen(
 
         if (state.showTutorSheet) {
             AiTutorSheet(
+                algorithm = algorithm,
+                currentStep = state.currentStep,
                 stepNumber = state.currentStepIdx + 1,
-                explanation = state.currentStep.description,
-                timeComplexity = algorithm.timeComplexity,
-                spaceComplexity = algorithm.spaceComplexity,
+                totalSteps = state.totalSteps,
+                onStepBack = { state.stepBackward() },
+                onStepForward = { state.stepForward() },
+                onOpenFullChat = { prompt ->
+                    state.showTutorSheet = false
+                    onOpenFullChat(algorithm, state.currentStepIdx, prompt)
+                },
                 onDismiss = { state.showTutorSheet = false }
             )
         }

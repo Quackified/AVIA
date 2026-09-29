@@ -77,6 +77,7 @@ data class GraphEditorSnapshot(
 @Stable
 class VisualizerScreenState(
     initialAlgorithm: Algorithm,
+    val initialStepIdx: Int = 0,
 ) {
     // ── Step stream ──
     var arrayData: List<Int> by mutableStateOf(
@@ -93,7 +94,8 @@ class VisualizerScreenState(
         internal set
 
     // ── Playback ──
-    var currentStepIdx: Int by mutableIntStateOf(0)
+    var currentStepIdx: Int by mutableIntStateOf(initialStepIdx)
+    var hasAppliedInitialStep: Boolean by mutableStateOf(false)
 
     var isPlaying: Boolean by mutableStateOf(false)
 
@@ -531,14 +533,25 @@ class VisualizerScreenState(
             return queue
         }
 
-    fun tailBufferSize(isStack: Boolean): Int =
-        if (isStack) tailStackValues.size else tailQueueValues.size
+    fun currentBufferCount(isStack: Boolean): Int {
+        if (steps.isEmpty()) {
+            return if (isStack) tailStackValues.size else tailQueueValues.size
+        }
+        val step = currentStep
+        return if (!isStack && queueVariant == QueueVariant.CIRCULAR_RING) {
+            step.buffer.count { it.value != "—" && it.value.isNotBlank() }
+        } else {
+            step.buffer.size
+        }
+    }
+
+    fun tailBufferSize(isStack: Boolean): Int = currentBufferCount(isStack)
 
     fun canAppendToBuffer(isStack: Boolean, capacity: Int = 8): Boolean =
-        tailBufferSize(isStack) < capacity
+        currentBufferCount(isStack) < capacity
 
     fun canRemoveFromBuffer(isStack: Boolean): Boolean =
-        tailBufferSize(isStack) > 0
+        currentBufferCount(isStack) > 0
 
     /**
      * Available node IDs for BFS/DFS traversal start selection, derived from
@@ -653,18 +666,19 @@ class VisualizerScreenState(
             ?: AlgorithmStepRepository.defaultBstSearchKey
 
     /**
-     * Appends a live Stack operation directly from the stage controls after validating
-     * against the sequence tail (`tailStackValues`), then jumps the playhead to the new step.
+     * Appends a live Stack operation directly from the stage controls branching from
+     * the visible state (`currentStep.variables["opCount"]`), then jumps the playhead to the new step.
      */
     fun appendLiveStackOp(op: BufferOp) {
         when (op) {
             is BufferOp.Push -> if (!canAppendToBuffer(isStack = true)) return
             BufferOp.Pop, BufferOp.Peek -> if (!canRemoveFromBuffer(isStack = true)) return
         }
-        val baseOps = if (bufferOps.isNotEmpty()) {
-            bufferOps
+        val executedOps = currentStep.variables["opCount"]?.toIntOrNull()
+        val baseOps = if (executedOps != null && steps.isNotEmpty()) {
+            bufferOps.take(executedOps)
         } else {
-            AlgorithmStepRepository.defaultStackOps()
+            bufferOps
         }
         val updated = baseOps + op
         pendingStepAfterRegen = if (op is BufferOp.Pop) -2 else -1
@@ -672,19 +686,19 @@ class VisualizerScreenState(
     }
 
     /**
-     * Appends a live Queue operation directly from the stage controls after validating
-     * against the sequence tail (`tailQueueValues`), then jumps the playhead to the new step.
+     * Appends a live Queue operation directly from the stage controls branching from
+     * the visible state (`currentStep.variables["opCount"]`), then jumps the playhead to the new step.
      */
     fun appendLiveQueueOp(op: QueueOp) {
         when (op) {
             is QueueOp.Enqueue -> if (!canAppendToBuffer(isStack = false)) return
-            QueueOp.Dequeue -> if (!canRemoveFromBuffer(isStack = false)) return
-            QueueOp.Peek -> if (!canRemoveFromBuffer(isStack = false)) return
+            QueueOp.Dequeue, QueueOp.Peek -> if (!canRemoveFromBuffer(isStack = false)) return
         }
-        val baseOps = if (queueOps.isNotEmpty()) {
-            queueOps
+        val executedOps = currentStep.variables["opCount"]?.toIntOrNull()
+        val baseOps = if (executedOps != null && steps.isNotEmpty()) {
+            queueOps.take(executedOps)
         } else {
-            AlgorithmStepRepository.defaultQueueOps()
+            queueOps
         }
         val updated = baseOps + op
         pendingStepAfterRegen = if (op is QueueOp.Dequeue) -2 else -1
@@ -706,10 +720,15 @@ class VisualizerScreenState(
     }
 
     fun appendLiveCircularQueueOp(op: QueueOp) {
-        val baseOps = if (circularQueueOps.isNotEmpty()) {
-            circularQueueOps
+        when (op) {
+            is QueueOp.Enqueue -> if (!canAppendToBuffer(isStack = false)) return
+            QueueOp.Dequeue, QueueOp.Peek -> if (!canRemoveFromBuffer(isStack = false)) return
+        }
+        val executedOps = currentStep.variables["opCount"]?.toIntOrNull()
+        val baseOps = if (executedOps != null && steps.isNotEmpty()) {
+            circularQueueOps.take(executedOps)
         } else {
-            AlgorithmStepRepository.defaultCircularQueueOps()
+            circularQueueOps
         }
         val updated = baseOps + op
         pendingStepAfterRegen = if (op is QueueOp.Dequeue) -2 else -1
@@ -725,8 +744,11 @@ class VisualizerScreenState(
  * how many regions compose the state.
  */
 @Composable
-fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
-    val state = remember(algorithm) { VisualizerScreenState(algorithm) }
+fun rememberVisualizerScreenState(
+    algorithm: Algorithm,
+    initialStepIdx: Int = 0
+): VisualizerScreenState {
+    val state = remember(algorithm) { VisualizerScreenState(algorithm, initialStepIdx) }
 
     // Regenerate steps when the algorithm or any user-customized
     // input changes (array values, sort order, buffer op list,
@@ -793,6 +815,9 @@ fun rememberVisualizerScreenState(algorithm: Algorithm): VisualizerScreenState {
                 else -> targetIdx.coerceIn(0, (state.steps.lastIndex - 1).coerceAtLeast(0))
             }
             state.scrubTo(resolved)
+        } else if (!state.hasAppliedInitialStep && state.initialStepIdx > 0 && state.steps.isNotEmpty()) {
+            state.hasAppliedInitialStep = true
+            state.scrubTo(state.initialStepIdx.coerceIn(0, state.steps.lastIndex))
         } else {
             state.reset()
             // The previous question/selection was scored against the *old*

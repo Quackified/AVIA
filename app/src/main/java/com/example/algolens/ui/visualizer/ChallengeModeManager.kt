@@ -233,21 +233,41 @@ internal fun highlightedCellPair(step: VisualizerStep): Pair<Int, Int>? {
 private fun swapOrComparePairQuestion(
     currentStep: VisualizerStep,
     nextStep: VisualizerStep,
-): PredictionQuestion? = when (parseStepToken(nextStep.comparisonExpr)) {
-    StepToken.SWAP -> swapQuestion(currentStep, nextStep)
-    StepToken.COMPARE -> comparePairQuestion(currentStep, nextStep)
-    else -> null
+): PredictionQuestion? {
+    val currentPair = highlightedCellPair(currentStep)
+    if (currentPair != null) {
+        val willSwap = parseStepToken(nextStep.comparisonExpr) == StepToken.SWAP
+        val valA = currentStep.array.getOrNull(currentPair.first)?.toString() ?: "?"
+        val valB = currentStep.array.getOrNull(currentPair.second)?.toString() ?: "?"
+        return PredictionQuestion(
+            kind = PredictionKind.SWAP_DECISION,
+            promptText = "Will elements $valA (at [${currentPair.first}]) and $valB (at [${currentPair.second}]) swap next?",
+            contextLine = "Comparing: $valA vs $valB (${if (currentStep.phaseLabel.isNotBlank()) currentStep.phaseLabel else "comparison"})",
+            eligibleIndices = setOf(currentPair.first, currentPair.second),
+            eligibleNodeIds = emptySet(),
+            yesLabel = "YES (SWAP)",
+            noLabel = "NO (KEEP)",
+            answer = PredictionAnswer.YesNo(isYes = willSwap),
+        )
+    }
+    return when (parseStepToken(nextStep.comparisonExpr)) {
+        StepToken.SWAP -> swapQuestion(currentStep, nextStep)
+        StepToken.COMPARE -> comparePairQuestion(currentStep, nextStep)
+        else -> null
+    }
 }
 
 private fun swapQuestion(
     currentStep: VisualizerStep,
     nextStep: VisualizerStep,
 ): PredictionQuestion? {
-    val pair = highlightedCellPair(currentStep) ?: return null
+    val pair = highlightedCellPair(currentStep) ?: highlightedCellPair(nextStep) ?: return null
+    val valA = currentStep.array.getOrNull(pair.first)?.toString() ?: "?"
+    val valB = currentStep.array.getOrNull(pair.second)?.toString() ?: "?"
     return PredictionQuestion(
         kind = PredictionKind.SWAP_DECISION,
-        promptText = "Will these two cells swap next?",
-        contextLine = "Highlighted: arr[${pair.first}] & arr[${pair.second}]",
+        promptText = "Will elements $valA (at [${pair.first}]) and $valB (at [${pair.second}]) swap next?",
+        contextLine = "Highlighted: arr[${pair.first}] ($valA) & arr[${pair.second}] ($valB)",
         eligibleIndices = setOf(pair.first, pair.second),
         eligibleNodeIds = emptySet(),
         yesLabel = "YES (SWAP)",
