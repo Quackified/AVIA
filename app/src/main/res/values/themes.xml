@@ -5,7 +5,7 @@
         Compose hierarchy is rendering). Inherits from android:Theme.Material
         so the app-side window styling matches the rest of the dark IDE look.
     -->
-    <style name="Theme.AlgoLens" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.AVIA" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@color/bg_dark</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <item name="android:windowBackground">@color/bg_dark</item>
@@ -16,14 +16,14 @@
     <!--
         Launcher activity theme: shown ONLY during the cold-start window. The
         core-splashscreen library draws the geometric boot mark + dark
-        background, then swaps in Theme.AlgoLens as soon as setContent runs.
+        background, then swaps in Theme.AVIA as soon as setContent runs.
 
         Parent is Theme.SplashScreen (androidx.core:core-splashscreen) which
         polyfills the API 31+ SplashScreen contract down to minSdk 24.
     -->
-    <style name="Theme.AlgoLens.Splash" parent="Theme.SplashScreen">
+    <style name="Theme.AVIA.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/bg_dark</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_transparent</item>
-        <item name="postSplashScreenTheme">@style/Theme.AlgoLens</item>
+        <item name="postSplashScreenTheme">@style/Theme.AVIA</item>
     </style>
 </resources>

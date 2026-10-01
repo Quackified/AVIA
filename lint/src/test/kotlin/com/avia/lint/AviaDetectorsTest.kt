@@ -6,9 +6,9 @@ import com.android.tools.lint.detector.api.Issue
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class AviaDetectorsTest : LintDetectorTest() {
 typealias AlgoLensDetectorsTest = AviaDetectorsTest
 
+class AviaDetectorsTest : LintDetectorTest() {
     // Minimal Compose stubs so Kotlin type resolution succeeds.
     private val stubs = arrayOf(
         kotlin(

@@ -227,7 +227,7 @@ fun ExploreCatalogScreen(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(7.dp)
+                                            .size(AlgoTokens.space3)
                                             .clip(CircleShape)
                                             .background(PrimaryCyan)
                                     )
@@ -246,7 +246,7 @@ fun ExploreCatalogScreen(
                                     color = TextPrimary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 17.sp,
-                                    modifier = Modifier.padding(top = 2.dp)
+                                    modifier = Modifier.padding(top = AlgoTokens.space1)
                                 )
                             }
 
@@ -255,7 +255,7 @@ fun ExploreCatalogScreen(
                                     .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                     .background(CyanSubtle)
                                     .border(AlgoTokens.strokeThin, BorderCyan.copy(alpha = 0.4f), RoundedCornerShape(AlgoTokens.radiusSm))
-                                    .padding(horizontal = AlgoTokens.space3, vertical = 4.dp)
+                                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
                             ) {
                                 Text(
                                     text = "2 MODES",
@@ -304,17 +304,17 @@ fun ExploreCatalogScreen(
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(46.dp)
+                                                .size(AlgoTokens.minTouchTarget)
                                                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                                 .background(CyanSubtle)
-                                                .border(1.dp, BorderCyan.copy(alpha = 0.6f), RoundedCornerShape(AlgoTokens.radiusSm)),
+                                                .border(AlgoTokens.strokeThin, BorderCyan.copy(alpha = 0.6f), RoundedCornerShape(AlgoTokens.radiusSm)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = AlgoGlyphs.Bolt,
                                                 contentDescription = null,
                                                 tint = PrimaryCyan,
-                                                modifier = Modifier.size(22.dp)
+                                                modifier = Modifier.size(AlgoTokens.space7)
                                             )
                                         }
 
@@ -322,7 +322,7 @@ fun ExploreCatalogScreen(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                                                 .background(CyanSubtle)
-                                                .padding(horizontal = AlgoTokens.space3, vertical = 4.dp)
+                                                .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
                                         ) {
                                             Text(
                                                 text = "INTERACTIVE",
@@ -365,7 +365,7 @@ fun ExploreCatalogScreen(
                                         )
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                                         ) {
                                             Text(
                                                 text = "Start Simulation",
@@ -378,7 +378,7 @@ fun ExploreCatalogScreen(
                                                 imageVector = AlgoGlyphs.ChevronRight,
                                                 contentDescription = null,
                                                 tint = PrimaryCyan,
-                                                modifier = Modifier.size(16.dp)
+                                                modifier = Modifier.size(AlgoTokens.space6)
                                             )
                                         }
                                     }
@@ -415,17 +415,17 @@ fun ExploreCatalogScreen(
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(46.dp)
+                                                .size(AlgoTokens.minTouchTarget)
                                                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                                 .background(GreenSubtle)
-                                                .border(1.dp, AccentGreen.copy(alpha = 0.6f), RoundedCornerShape(AlgoTokens.radiusSm)),
+                                                .border(AlgoTokens.strokeThin, AccentGreen.copy(alpha = 0.6f), RoundedCornerShape(AlgoTokens.radiusSm)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = AlgoGlyphs.Target,
                                                 contentDescription = null,
                                                 tint = AccentGreen,
-                                                modifier = Modifier.size(22.dp)
+                                                modifier = Modifier.size(AlgoTokens.space7)
                                             )
                                         }
 
@@ -433,7 +433,7 @@ fun ExploreCatalogScreen(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                                                 .background(GreenSubtle)
-                                                .padding(horizontal = AlgoTokens.space3, vertical = 4.dp)
+                                                .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
                                         ) {
                                             Text(
                                                 text = "QUIZZES",
@@ -476,7 +476,7 @@ fun ExploreCatalogScreen(
                                         )
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                                         ) {
                                             Text(
                                                 text = "Browse Tracks",
@@ -489,7 +489,7 @@ fun ExploreCatalogScreen(
                                                 imageVector = AlgoGlyphs.ChevronRight,
                                                 contentDescription = null,
                                                 tint = AccentGreen,
-                                                modifier = Modifier.size(16.dp)
+                                                modifier = Modifier.size(AlgoTokens.space6)
                                             )
                                         }
                                     }
@@ -517,17 +517,17 @@ fun ExploreCatalogScreen(
                                     .background(CardBackgroundElevated)
                                     .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                                     .clickable { currentView = ExploreView.HUB }
-                                    .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
+                                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space3)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                                 ) {
                                     Icon(
                                         imageVector = AlgoGlyphs.Back,
                                         contentDescription = "Back",
                                         tint = TextSecondary,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
                                     )
                                     Text(
                                         text = "Back",
@@ -541,11 +541,11 @@ fun ExploreCatalogScreen(
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(6.dp)
+                                        .size(AlgoTokens.space3)
                                         .clip(CircleShape)
                                         .background(PrimaryCyan)
                                 )
@@ -582,17 +582,17 @@ fun ExploreCatalogScreen(
                                     .background(CardBackgroundElevated)
                                     .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                                     .clickable { currentView = ExploreView.HUB }
-                                    .padding(horizontal = AlgoTokens.space3, vertical = 6.dp)
+                                    .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space3)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                                 ) {
                                     Icon(
                                         imageVector = AlgoGlyphs.Back,
                                         contentDescription = "Back",
                                         tint = TextSecondary,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(AlgoTokens.inlineIconMd)
                                     )
                                     Text(
                                         text = "Back",
@@ -606,11 +606,11 @@ fun ExploreCatalogScreen(
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(6.dp)
+                                        .size(AlgoTokens.space3)
                                         .clip(CircleShape)
                                         .background(AccentGreen)
                                 )
@@ -645,7 +645,7 @@ fun ExploreCatalogScreen(
                                         .background(chipBg)
                                         .border(AlgoTokens.strokeThin, chipBorder, RoundedCornerShape(AlgoTokens.radiusXs))
                                         .clickable { selectedFilter = cat }
-                                        .padding(horizontal = AlgoTokens.space3, vertical = 5.dp)
+                                        .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
                                 ) {
                                     Text(
                                         text = cat,
@@ -720,7 +720,7 @@ private fun TrackCatalogCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(24.dp)
+                            .size(AlgoTokens.space7)
                             .clip(CircleShape)
                             .background(track.accentSubtle),
                         contentAlignment = Alignment.Center
@@ -729,7 +729,7 @@ private fun TrackCatalogCard(
                             imageVector = track.icon,
                             contentDescription = null,
                             tint = track.accent,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(AlgoTokens.inlineIconSm)
                         )
                     }
 
@@ -753,7 +753,7 @@ private fun TrackCatalogCard(
             }
 
             // Title & Topics
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)) {
                 Text(
                     text = track.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -790,7 +790,7 @@ private fun TrackCatalogCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space2)
                 ) {
                     Text(
                         text = "Start →",

@@ -1,4 +1,4 @@
-﻿package com.avia.ui.visualizer
+package com.avia.ui.visualizer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,8 +44,10 @@ import com.avia.model.AlgorithmId
 import com.avia.model.GraphCustomization
 import com.avia.model.InputValidationResult
 import com.avia.ui.theme.AccentGreen
+import com.avia.ui.theme.AccentPink
 import com.avia.ui.theme.AccentRed
 import com.avia.ui.theme.AlgoLensTheme
+import com.avia.ui.theme.AlgoTokens
 import com.avia.ui.theme.BorderCyan
 import com.avia.ui.theme.BorderSubtle
 import com.avia.ui.theme.CanvasBackground
@@ -79,6 +81,7 @@ fun CustomizeGraphSheet(
     initialValues: List<Int> = emptyList(),
     initialSearchKey: Int? = null,
     initialStartNodeId: String? = null,
+    initialTargetNodeId: String? = null,
     availableNodeIds: List<String> = com.avia.data.AlgorithmStepRepository.canonicalWeightedGraph().first.map { it.id },
     onApply: (GraphCustomization) -> Unit,
     onDismiss: () -> Unit,
@@ -91,13 +94,15 @@ fun CustomizeGraphSheet(
     val title = when (algorithmId) {
         AlgorithmId.HEAP -> "Customize Heap"
         AlgorithmId.BINARY_SEARCH_TREE -> "Customize BST"
-        AlgorithmId.BFS, AlgorithmId.DFS, AlgorithmId.DIJKSTRA -> "Customize Traversal"
+        AlgorithmId.DIJKSTRA -> "Customize Dijkstra"
+        AlgorithmId.BFS, AlgorithmId.DFS -> "Customize Traversal"
         else -> "Customize Graph"
     }
     val hint = when (algorithmId) {
         AlgorithmId.HEAP -> "Set the leaf values that build the heap"
         AlgorithmId.BINARY_SEARCH_TREE -> "Choose values to insert and a key to search for"
-        AlgorithmId.BFS, AlgorithmId.DFS, AlgorithmId.DIJKSTRA -> "Choose a starting node in the existing graph"
+        AlgorithmId.DIJKSTRA -> "Choose start node and target destination endpoint"
+        AlgorithmId.BFS, AlgorithmId.DFS -> "Choose a starting node in the existing graph"
         else -> "Customize graph input"
     }
 
@@ -124,6 +129,16 @@ fun CustomizeGraphSheet(
             initialStartNodeId
         } else {
             safeNodes.first()
+        }
+        mutableStateOf(resolved)
+    }
+    var targetNodeId by remember(safeNodes, initialTargetNodeId, algorithmId) {
+        val resolved = if (initialTargetNodeId != null && initialTargetNodeId in safeNodes) {
+            initialTargetNodeId
+        } else if (algorithmId == AlgorithmId.DIJKSTRA) {
+            if ("F" in safeNodes) "F" else safeNodes.lastOrNull { it != startNodeId }
+        } else {
+            null
         }
         mutableStateOf(resolved)
     }
@@ -250,11 +265,23 @@ fun CustomizeGraphSheet(
                         onChange = { searchKeyStr = it }
                     )
                 }
-                AlgorithmId.BFS, AlgorithmId.DFS, AlgorithmId.DIJKSTRA -> {
+                AlgorithmId.BFS, AlgorithmId.DFS -> {
                     StartNodeDropdown(
                         current = startNodeId,
                         nodes = safeNodes,
                         onSelect = { startNodeId = it }
+                    )
+                }
+                AlgorithmId.DIJKSTRA -> {
+                    StartNodeDropdown(
+                        current = startNodeId,
+                        nodes = safeNodes,
+                        onSelect = { startNodeId = it }
+                    )
+                    TargetNodeDropdown(
+                        current = targetNodeId,
+                        nodes = safeNodes.filter { it != startNodeId },
+                        onSelect = { targetNodeId = it }
                     )
                 }
                 else -> {
@@ -270,7 +297,7 @@ fun CustomizeGraphSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                     .background(if (isValid) PrimaryCyan else PrimaryCyan.copy(alpha = 0.35f))
                     .clickable(enabled = isValid) {
                         val config: GraphCustomization = when (algorithmId) {
@@ -283,15 +310,18 @@ fun CustomizeGraphSheet(
                                 val parsedKey = (searchKeyValidation as InputValidationResult.Valid).parsed.first()
                                 GraphCustomization.ForBst(parsedVals, parsedKey)
                             }
-                            AlgorithmId.BFS, AlgorithmId.DFS, AlgorithmId.DIJKSTRA -> {
+                            AlgorithmId.BFS, AlgorithmId.DFS -> {
                                 GraphCustomization.ForTraversal(startNodeId)
+                            }
+                            AlgorithmId.DIJKSTRA -> {
+                                GraphCustomization.ForTraversal(startNodeId, targetNodeId)
                             }
                             else -> GraphCustomization.ForHeap(emptyList())
                         }
                         onApply(config)
                         onDismiss()
                     }
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = AlgoTokens.space5),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -302,7 +332,7 @@ fun CustomizeGraphSheet(
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(AlgoTokens.space3))
         }
     }
 }
@@ -462,7 +492,7 @@ private fun StartNodeDropdown(
     onSelect: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
         Text(
             text = "START NODE:",
             style = MaterialTheme.typography.labelSmall,
@@ -474,11 +504,11 @@ private fun StartNodeDropdown(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                 .background(CanvasBackground)
-                .border(1.dp, BorderCyan, RoundedCornerShape(8.dp))
+                .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
                 .clickable { expanded = true }
-                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space4)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -495,13 +525,85 @@ private fun StartNodeDropdown(
                     imageVector = AlgoGlyphs.ChevronDown,
                     contentDescription = null,
                     tint = PrimaryCyan,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(AlgoTokens.space6)
                 )
             }
             DropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
+                nodes.forEach { id ->
+                    DropdownMenuItem(
+                        text = { Text("Node $id", color = TextPrimary, fontSize = AlgoType.bodySize) },
+                        onClick = {
+                            onSelect(id)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Dropdown picker for the Dijkstra destination target node.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TargetNodeDropdown(
+    current: String?,
+    nodes: List<String>,
+    onSelect: (String?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
+        Text(
+            text = "TARGET NODE (OPTIONAL):",
+            style = MaterialTheme.typography.labelSmall,
+            color = TextMuted,
+            fontSize = AlgoType.microSize,
+            letterSpacing = AlgoType.trackSection,
+            fontWeight = FontWeight.Bold
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(AlgoTokens.radiusSm))
+                .background(CanvasBackground)
+                .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusSm))
+                .clickable { expanded = true }
+                .padding(horizontal = AlgoTokens.space5, vertical = AlgoTokens.space4)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (current != null) "Node $current (Destination)" else "None (Explore All Reachable)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (current != null) AccentPink else PrimaryCyan,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Icon(
+                    imageVector = AlgoGlyphs.ChevronDown,
+                    contentDescription = null,
+                    tint = PrimaryCyan,
+                    modifier = Modifier.size(AlgoTokens.space6)
+                )
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("None (Explore All Reachable)", color = TextPrimary, fontSize = AlgoType.bodySize) },
+                    onClick = {
+                        onSelect(null)
+                        expanded = false
+                    }
+                )
                 nodes.forEach { id ->
                     DropdownMenuItem(
                         text = { Text("Node $id", color = TextPrimary, fontSize = AlgoType.bodySize) },

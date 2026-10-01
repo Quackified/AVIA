@@ -151,7 +151,7 @@ fun PracticeScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(6.dp)
+                                    .size(AlgoTokens.space3)
                                     .clip(CircleShape)
                                     .background(PrimaryCyan)
                             )
@@ -196,7 +196,7 @@ fun PracticeScreen(
                                 .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                                 .background(OrangeSubtle)
                                 .border(AlgoTokens.strokeThin, AccentOrange.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusSm))
-                                .padding(horizontal = AlgoTokens.space3, vertical = 5.dp)
+                                .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
                         ) {
                             Text(
                                 text = "${manager.streak}x STREAK",
@@ -214,7 +214,7 @@ fun PracticeScreen(
                             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(CyanSubtle)
                             .border(AlgoTokens.strokeThin, BorderCyan.copy(alpha = 0.4f), RoundedCornerShape(AlgoTokens.radiusSm))
-                            .padding(horizontal = AlgoTokens.space3, vertical = 5.dp)
+                            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2)
                     ) {
                         Text(
                             text = "${manager.score} PTS",
@@ -464,7 +464,7 @@ fun PracticeScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(AlgoTokens.radiusXs))
                                     .background(diffBg)
-                                    .padding(horizontal = AlgoTokens.space2, vertical = 2.dp)
+                                    .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.space1)
                             ) {
                                 Text(
                                     text = q.difficulty.label,
@@ -544,22 +544,22 @@ fun PracticeScreen(
                                     AudioHaptics.performSelect(view, haptic)
                                     manager.selectOption(opt.id)
                                 }
-                                .padding(horizontal = 14.dp, vertical = 11.dp),
+                                .padding(horizontal = AlgoTokens.inlineIconMd, vertical = AlgoTokens.space5),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(
                                 modifier = Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                             ) {
                                 // Option letter pill [A], [B], [C], [D]
                                 Box(
                                     modifier = Modifier
-                                        .size(22.dp)
+                                        .size(AlgoTokens.space7)
                                         .clip(RoundedCornerShape(AlgoTokens.radiusXxs))
                                         .background(style.badgeBg)
-                                        .border(1.dp, style.border.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusXxs)),
+                                        .border(AlgoTokens.strokeThin, style.border.copy(alpha = 0.5f), RoundedCornerShape(AlgoTokens.radiusXxs)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -585,11 +585,11 @@ fun PracticeScreen(
                             Box(
                                 modifier = Modifier
                                     .padding(start = AlgoTokens.space2)
-                                    .size(20.dp)
+                                    .size(AlgoTokens.space6)
                                     .clip(CircleShape)
                                     .background(DarkBackground)
                                     .border(
-                                        width = if (isSelected || (isSubmitted && (opt.isCorrect || isSelected))) 1.5.dp else 1.dp,
+                                        width = if (isSelected || (isSubmitted && (opt.isCorrect || isSelected))) AlgoTokens.strokeMedium else AlgoTokens.strokeThin,
                                         color = style.border,
                                         shape = CircleShape
                                     ),
@@ -600,19 +600,19 @@ fun PracticeScreen(
                                         imageVector = AlgoGlyphs.Check,
                                         contentDescription = null,
                                         tint = AccentGreen,
-                                        modifier = Modifier.size(12.dp)
+                                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
                                     )
                                 } else if (isSubmitted && isSelected && !opt.isCorrect) {
                                     Icon(
                                         imageVector = AlgoGlyphs.Close,
                                         contentDescription = null,
                                         tint = AccentRed,
-                                        modifier = Modifier.size(12.dp)
+                                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
                                     )
                                 } else if (isSelected) {
                                     Box(
                                         modifier = Modifier
-                                            .size(9.dp)
+                                            .size(AlgoTokens.space4)
                                             .clip(CircleShape)
                                             .background(PrimaryCyan)
                                     )
@@ -675,7 +675,7 @@ fun PracticeScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(24.dp)
+                                        .size(AlgoTokens.space7)
                                         .clip(CircleShape)
                                         .background(cardBorder),
                                     contentAlignment = Alignment.Center
@@ -684,7 +684,7 @@ fun PracticeScreen(
                                         imageVector = if (correct) AlgoGlyphs.Check else AlgoGlyphs.Close,
                                         contentDescription = null,
                                         tint = DarkBackground,
-                                        modifier = Modifier.size(13.dp)
+                                        modifier = Modifier.size(AlgoTokens.inlineIconSm)
                                     )
                                 }
                                 Text(

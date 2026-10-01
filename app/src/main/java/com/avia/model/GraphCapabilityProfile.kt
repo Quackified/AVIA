@@ -1,4 +1,4 @@
-﻿package com.avia.model
+package com.avia.model
 
 /**
  * 6-Tool modes for interactive graph/tree authoring, inspection, and goal-directed endpoints.

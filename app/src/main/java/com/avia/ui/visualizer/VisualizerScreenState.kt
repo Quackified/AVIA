@@ -1,4 +1,4 @@
-﻿package com.avia.ui.visualizer
+package com.avia.ui.visualizer
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,7 +76,7 @@ data class GraphEditorSnapshot(
  */
 @Stable
 class VisualizerScreenState(
-    initialAlgorithm: Algorithm,
+    val initialAlgorithm: Algorithm,
     val initialStepIdx: Int = 0,
 ) {
     // ── Step stream ──
@@ -578,6 +578,17 @@ class VisualizerScreenState(
             return if (configured != null && configured in ids) configured else (ids.firstOrNull() ?: "")
         }
 
+    val effectiveTraversalTargetNodeId: String?
+        get() {
+            val ids = effectiveTraversalNodeIds
+            val explicit = graphTargetNodeId ?: (graphConfig as? GraphCustomization.ForTraversal)?.targetNodeId
+            if (explicit != null && explicit in ids) return explicit
+            if (initialAlgorithm.id == AlgorithmId.DIJKSTRA) {
+                return if ("F" in ids) "F" else ids.lastOrNull().takeIf { it != effectiveTraversalStartNodeId }
+            }
+            return null
+        }
+
     fun updateUserCustomCoordinate(nodeId: String, coords: Offset) {
         userCustomCoordinates = userCustomCoordinates + (nodeId to coords)
     }
@@ -779,7 +790,7 @@ fun rememberVisualizerScreenState(
         val bstSearchKey = (state.graphConfig as? GraphCustomization.ForBst)?.searchKey
             ?: AlgorithmStepRepository.defaultBstSearchKey
         val traversalStart = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId.takeIf { it.isNotEmpty() }
-        val traversalTarget = state.graphTargetNodeId
+        val traversalTarget = state.graphTargetNodeId ?: state.effectiveTraversalTargetNodeId
 
         state.steps = AlgorithmStepRepository.generateStepsForAlgorithm(
             algorithm,

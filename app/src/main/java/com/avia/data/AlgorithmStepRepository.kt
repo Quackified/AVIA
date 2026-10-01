@@ -970,10 +970,10 @@ object AlgorithmStepRepository {
                     stepIndex = sIdx++,
                     description = "Checking index $i: arr[$i]=${input[i]} == $target?",
                     comparisonExpr = "COMPARE: ${input[i]} == $target?",
-                    phaseLabel = if (isFound) "TARGET FOUND" else "COMPARING",
+                    phaseLabel = "COMPARING",
                     renderMode = VisualizerRenderMode.CELLS,
                     array = input,
-                    elementStates = mapOf(i to if (isFound) ElementState.FOUND else ElementState.COMPARING),
+                    elementStates = mapOf(i to ElementState.COMPARING),
                     bottomPointers = mapOf("i" to i),
                     variables = mapOf("i" to "$i", "target" to "$target", "arr[i]" to "${input[i]}", "match" to "$isFound"),
                     activeCodeLines = listOf(3)

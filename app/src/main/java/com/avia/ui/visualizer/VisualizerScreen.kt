@@ -38,6 +38,7 @@ import com.avia.data.AlgorithmRegistry
 import com.avia.data.SampleData
 import com.avia.model.Algorithm
 import com.avia.model.AlgorithmId
+import com.avia.model.GraphCustomization
 import com.avia.model.VisualizerFamily
 import com.avia.ui.components.AlgoWorkspaceBackground
 import com.avia.ui.theme.AlgoLensTheme
@@ -308,10 +309,15 @@ fun VisualizerScreen(
                     algorithmId = spec.id,
                     initialValues = state.initialGraphSheetValues(spec),
                     initialSearchKey = state.initialGraphSearchKey,
-                    initialStartNodeId = state.effectiveTraversalStartNodeId,
+                    initialStartNodeId = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId,
+                    initialTargetNodeId = state.graphTargetNodeId ?: state.effectiveTraversalTargetNodeId,
                     availableNodeIds = state.effectiveTraversalNodeIds,
                     onApply = { config ->
                         state.graphConfig = config
+                        if (config is GraphCustomization.ForTraversal) {
+                            state.graphStartNodeId = config.startNodeId
+                            state.graphTargetNodeId = config.targetNodeId
+                        }
                         state.currentStepIdx = 0
                         state.isPlaying = false
                         state.showInputSheet = false

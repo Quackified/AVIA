@@ -475,7 +475,7 @@ private fun GraphSnapshotView(
                                 if (edge.isHighlighted) PrimaryCyan else BorderSubtle,
                                 RoundedCornerShape(AlgoTokens.radiusXs)
                             )
-                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                            .padding(horizontal = AlgoTokens.space2, vertical = AlgoTokens.strokeThin),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

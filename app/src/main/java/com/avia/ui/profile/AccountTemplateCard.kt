@@ -191,7 +191,7 @@ fun AccountStatusCard(
                     horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                 ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(AlgoTokens.inlineIconLg),
                         color = PrimaryCyan,
                         strokeWidth = 2.dp
                     )
@@ -218,11 +218,11 @@ fun AccountStatusCard(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(7.dp)
+                                        .size(AlgoTokens.space3)
                                         .clip(CircleShape)
                                         .background(AccentGreen)
                                 )
@@ -267,13 +267,13 @@ fun AccountStatusCard(
                             .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
                             .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space2),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                     ) {
                         Icon(
                             imageVector = AlgoGlyphs.Cloud,
                             contentDescription = null,
                             tint = PrimaryCyan,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(AlgoTokens.inlineIconMd)
                         )
                         Text(
                             text = "Cloud Sync Active · Firestore Auto-Sync Enabled",
@@ -358,7 +358,7 @@ fun AccountStatusCard(
                         ) {
                             if (isSigningIn) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(AlgoTokens.space6),
                                     color = PrimaryCyan,
                                     strokeWidth = 2.dp
                                 )
@@ -373,7 +373,7 @@ fun AccountStatusCard(
                                     imageVector = AlgoGlyphs.Globe,
                                     contentDescription = null,
                                     tint = PrimaryCyan,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(AlgoTokens.space6)
                                 )
                                 Text(
                                     text = "Sign in with Google",

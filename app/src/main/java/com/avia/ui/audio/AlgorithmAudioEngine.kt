@@ -79,40 +79,28 @@ object AlgorithmAudioEngine {
             ).coerceAtLeast(4096)
             val bufferSize = (minBuf * 2).coerceAtLeast(8192)
 
-            val newTrack = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                AudioTrack.Builder()
-                    .setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .build()
-                    )
-                    .setAudioFormat(
-                        AudioFormat.Builder()
-                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                            .setSampleRate(SAMPLE_RATE)
-                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                            .build()
-                    )
-                    .setBufferSizeInBytes(bufferSize)
-                    .setTransferMode(AudioTrack.MODE_STREAM)
-                    .apply {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
-                        }
-                    }
-                    .build()
-            } else {
-                @Suppress("DEPRECATION")
-                AudioTrack(
-                    AudioManager.STREAM_MUSIC,
-                    SAMPLE_RATE,
-                    AudioFormat.CHANNEL_OUT_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    bufferSize,
-                    AudioTrack.MODE_STREAM
+            val newTrack = AudioTrack.Builder()
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
                 )
-            }
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(SAMPLE_RATE)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build()
+                )
+                .setBufferSizeInBytes(bufferSize)
+                .setTransferMode(AudioTrack.MODE_STREAM)
+                .apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
+                    }
+                }
+                .build()
             newTrack.setVolume(1.0f)
             track = newTrack
             newTrack
@@ -159,14 +147,29 @@ object AlgorithmAudioEngine {
         val isCompletion = step.phaseLabel.contains("SORTED", ignoreCase = true) ||
             step.phaseLabel.contains("COMPLETE", ignoreCase = true) ||
             step.phaseLabel.contains("FINISHED", ignoreCase = true)
-        if (isCompletion && (prevStep == null || !prevStep.phaseLabel.contains("SORTED", ignoreCase = true))) {
-            playCompletionArpeggio()
+        val prevWasCompletion = prevStep != null && (
+            prevStep.phaseLabel.contains("SORTED", ignoreCase = true) ||
+            prevStep.phaseLabel.contains("COMPLETE", ignoreCase = true) ||
+            prevStep.phaseLabel.contains("FINISHED", ignoreCase = true)
+        )
+        if (isCompletion && !prevWasCompletion) {
+            playCompletionArpeggio(
+                elementCount = step.array.size.takeIf { it > 0 } ?: step.nodes.size.takeIf { it > 0 } ?: 8,
+                values = step.array.takeIf { it.isNotEmpty() }
+            )
             return
         }
 
-        // 2. Target found
-        val hasFound = step.elementStates.any { it.value == ElementState.FOUND }
-        if (hasFound) {
+        // 2. Target found (deduplicated across steps)
+        val hasFound = step.elementStates.any { it.value == ElementState.FOUND } ||
+            step.phaseLabel.contains("FOUND", ignoreCase = true) ||
+            step.nodes.any { it.state == ElementState.FOUND }
+        val prevHadFound = prevStep != null && (
+            prevStep.elementStates.any { it.value == ElementState.FOUND } ||
+            prevStep.phaseLabel.contains("FOUND", ignoreCase = true) ||
+            prevStep.nodes.any { it.state == ElementState.FOUND }
+        )
+        if (hasFound && !prevHadFound) {
             playTargetFound()
             return
         }
@@ -304,29 +307,59 @@ object AlgorithmAudioEngine {
     }
 
     /**
-     * Rapid ascending flourish celebrating completed algorithm execution.
+     * Elongated ascending flourish celebrating completed algorithm execution.
+     * Synchronized to the sequential pulse wave across the array (staggered at 65ms per element)
+     * and crowned with a sustained resonant chord bloom that decays across the full 600ms celebration pulse.
      */
-    fun playCompletionArpeggio() {
+    fun playCompletionArpeggio(elementCount: Int = 8, values: List<Int>? = null) {
         if (!AppSettings.soundEnabled || AppSettings.soundVolume <= 0.001f) return
-        val notes = doubleArrayOf(523.25, 659.25, 783.99, 1046.50)
-        val totalDurationMs = 300
+        val count = elementCount.coerceIn(4, 16)
+        val staggerMs = 65
+        val waveDurationMs = count * staggerMs
+        val pulseDurationMs = 650
+        val totalDurationMs = waveDurationMs + pulseDurationMs
         val totalSamples = (SAMPLE_RATE * (totalDurationMs / 1000.0)).toInt()
         val pcm = ShortArray(totalSamples)
-        val staggerMs = 60
-        val noteDurationMs = 120
 
-        notes.forEachIndexed { idx, freq ->
-            val offsetSamples = ((idx * staggerMs * SAMPLE_RATE) / 1000).coerceAtMost(totalSamples - 1)
-            val noteBuf = synthesizeBellChime(freq, durationMs = noteDurationMs, volume = 0.88f)
-            for (i in noteBuf.indices) {
-                val targetIdx = offsetSamples + i
+        // 1. Synthesize sequential ascending wave matching each element slot
+        val scaleBase = doubleArrayOf(
+            523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50,
+            1174.66, 1318.51, 1396.91, 1567.98, 1760.00, 1975.53, 2093.00, 2349.32
+        )
+        val maxVal = values?.maxOrNull()?.coerceAtLeast(1) ?: 100
+
+        for (i in 0 until count) {
+            val freq = if (values != null && i < values.size) {
+                val norm = (values[i].toFloat() / maxVal.toFloat()).coerceIn(0.05f, 1f)
+                440.0 * Math.pow(2.0, (norm * 1.5).toDouble())
+            } else {
+                scaleBase[i % scaleBase.size]
+            }
+            val offsetSamples = ((i * staggerMs * SAMPLE_RATE) / 1000).coerceAtMost(totalSamples - 1)
+            val noteBuf = synthesizeBellChime(freq, durationMs = 140, volume = 0.82f)
+            for (j in noteBuf.indices) {
+                val targetIdx = offsetSamples + j
                 if (targetIdx < pcm.size) {
-                    pcm[targetIdx] = (pcm[targetIdx] + noteBuf[i])
+                    pcm[targetIdx] = (pcm[targetIdx] + noteBuf[j])
                         .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
                         .toShort()
                 }
             }
         }
+
+        // 2. Crown with resonant chord bloom starting at waveDurationMs, decaying with the 600ms pulse
+        val chordOffsetSamples = ((waveDurationMs * SAMPLE_RATE) / 1000).coerceAtMost(totalSamples - 1)
+        val chordFreqs = doubleArrayOf(523.25, 659.25, 783.99, 1046.50, 1318.51) // C5 - E5 - G5 - C6 - E6
+        val chordBuf = synthesizeChord(chordFreqs, durationMs = pulseDurationMs, volume = 0.95f)
+        for (j in chordBuf.indices) {
+            val targetIdx = chordOffsetSamples + j
+            if (targetIdx < pcm.size) {
+                pcm[targetIdx] = (pcm[targetIdx] + chordBuf[j])
+                    .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                    .toShort()
+            }
+        }
+
         audioChannel.trySend(pcm)
     }
 

@@ -375,40 +375,40 @@ class FirestoreSyncEngine(
             // 3. Fetch practice and challenge stats
             runCatching {
                 val pDoc = firestore.collection("users")
-                        .document(userId)
-                        .collection("meta")
-                        .document("practice_stats")
-                        .get()
-                        .await()
-                    if (pDoc.exists()) {
-                        @Suppress("UNCHECKED_CAST")
-                        val pRecord = PracticeProgressRecord(
-                            completedQuizzes = (pDoc.getLong("completedQuizzes") ?: 0L).toInt(),
-                            highestStreak = (pDoc.getLong("highestStreak") ?: 0L).toInt(),
-                            totalScore = (pDoc.getLong("totalScore") ?: 0L).toInt(),
-                            solvedQuestionIds = (pDoc.get("solvedQuestionIds") as? List<String>) ?: emptyList(),
-                            lastUpdatedEpochMs = pDoc.getLong("lastUpdatedEpochMs") ?: System.currentTimeMillis()
-                        )
-                        _practiceProgress.value = pRecord
-                    }
-
-                    val cDoc = firestore.collection("users")
-                        .document(userId)
-                        .collection("meta")
-                        .document("challenge_stats")
-                        .get()
-                        .await()
-                    if (cDoc.exists()) {
-                        val cRecord = ChallengeStatsRecord(
-                            highestStreak = (cDoc.getLong("highestStreak") ?: 0L).toInt(),
-                            totalPredictions = (cDoc.getLong("totalPredictions") ?: 0L).toInt(),
-                            correctPredictions = (cDoc.getLong("correctPredictions") ?: 0L).toInt(),
-                            totalPoints = (cDoc.getLong("totalPoints") ?: 0L).toInt(),
-                            lastUpdatedEpochMs = cDoc.getLong("lastUpdatedEpochMs") ?: System.currentTimeMillis()
-                        )
-                        _challengeStats.value = cRecord
-                    }
+                    .document(userId)
+                    .collection("meta")
+                    .document("practice_stats")
+                    .get()
+                    .await()
+                if (pDoc.exists()) {
+                    @Suppress("UNCHECKED_CAST")
+                    val pRecord = PracticeProgressRecord(
+                        completedQuizzes = (pDoc.getLong("completedQuizzes") ?: 0L).toInt(),
+                        highestStreak = (pDoc.getLong("highestStreak") ?: 0L).toInt(),
+                        totalScore = (pDoc.getLong("totalScore") ?: 0L).toInt(),
+                        solvedQuestionIds = (pDoc.get("solvedQuestionIds") as? List<String>) ?: emptyList(),
+                        lastUpdatedEpochMs = pDoc.getLong("lastUpdatedEpochMs") ?: System.currentTimeMillis()
+                    )
+                    _practiceProgress.value = pRecord
                 }
+
+                val cDoc = firestore.collection("users")
+                    .document(userId)
+                    .collection("meta")
+                    .document("challenge_stats")
+                    .get()
+                    .await()
+                if (cDoc.exists()) {
+                    val cRecord = ChallengeStatsRecord(
+                        highestStreak = (cDoc.getLong("highestStreak") ?: 0L).toInt(),
+                        totalPredictions = (cDoc.getLong("totalPredictions") ?: 0L).toInt(),
+                        correctPredictions = (cDoc.getLong("correctPredictions") ?: 0L).toInt(),
+                        totalPoints = (cDoc.getLong("totalPoints") ?: 0L).toInt(),
+                        lastUpdatedEpochMs = cDoc.getLong("lastUpdatedEpochMs") ?: System.currentTimeMillis()
+                    )
+                    _challengeStats.value = cRecord
+                }
+            }
 
             _syncStatus.value = SyncStatus.SYNCED
         } catch (e: Exception) {

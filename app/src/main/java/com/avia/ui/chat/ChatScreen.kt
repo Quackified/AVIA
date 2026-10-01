@@ -166,7 +166,7 @@ fun ChatScreen(
 
     val onShareConversation = {
         val transcript = buildString {
-            append("AlgoLens AVIA Conversation: ${manager.activeConversation.title}\n\n")
+            append("AVIA Conversation: ${manager.activeConversation.title}\n\n")
             manager.messages.forEach { msg ->
                 val role = if (msg.sender == ChatSender.USER) "USER" else "AVIA"
                 append("[$role]\n${msg.content}\n\n")

@@ -7,6 +7,7 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.avia.R
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -105,6 +106,9 @@ object GoogleSignInHelper {
         } catch (e: GetCredentialCancellationException) {
             Log.i(TAG, "Google sign-in cancelled by user")
             GoogleSignInResult.Cancelled
+        } catch (e: NoCredentialException) {
+            Log.w(TAG, "No Google accounts or credentials found on device", e)
+            GoogleSignInResult.Failure("No Google accounts found on this device.", e)
         } catch (e: GetCredentialException) {
             Log.e(TAG, "Credential Manager request failed: ${e.message}", e)
             GoogleSignInResult.Failure(e.localizedMessage ?: "Google sign-in failed", e)

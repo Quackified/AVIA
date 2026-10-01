@@ -1,4 +1,4 @@
-﻿package com.avia.model
+package com.avia.model
 
 /**
  * Family-aware customize-input payload for GRAPH_2D algorithms.
@@ -18,8 +18,8 @@ sealed class GraphCustomization {
     /** BST: values to insert (in order) and the search key. */
     data class ForBst(val values: List<Int>, val searchKey: Int) : GraphCustomization()
 
-    /** BFS / DFS: start node id from the existing graph topology. */
-    data class ForTraversal(val startNodeId: String) : GraphCustomization()
+    /** BFS / DFS / Dijkstra: start node id and optional target node id from graph topology. */
+    data class ForTraversal(val startNodeId: String, val targetNodeId: String? = null) : GraphCustomization()
 }
 
 /**

@@ -128,7 +128,7 @@ fun ProfileScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(34.dp)
+                            .size(AlgoTokens.iconButtonLg)
                             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
                             .background(CardBackgroundElevated)
                             .border(AlgoTokens.strokeThin, BorderSubtle, RoundedCornerShape(AlgoTokens.radiusSm))
@@ -139,7 +139,7 @@ fun ProfileScreen(
                             imageVector = AlgoGlyphs.Back,
                             contentDescription = "Back",
                             tint = TextPrimary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(AlgoTokens.space6)
                         )
                     }
 
@@ -149,7 +149,7 @@ fun ProfileScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(6.dp)
+                                .size(AlgoTokens.space3)
                                 .clip(CircleShape)
                                 .background(PrimaryCyan)
                         )
@@ -180,7 +180,7 @@ fun ProfileScreen(
                             Icon(
                                 imageVector = AlgoGlyphs.Bookmark,
                                 contentDescription = null,
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(AlgoTokens.space7),
                                 tint = PrimaryCyan
                             )
                             Text(
@@ -228,13 +228,13 @@ fun ProfileScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                         ) {
                             Icon(
                                 imageVector = AlgoGlyphs.Bookmark,
                                 contentDescription = null,
                                 tint = PrimaryCyan,
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(AlgoTokens.inlineIconSm)
                             )
                             Text(
                                 text = "BOOKMARKED",
@@ -269,7 +269,7 @@ fun ProfileScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(AlgoTokens.space3)
                             .clip(CircleShape)
                             .background(PrimaryCyan)
                     )
@@ -285,7 +285,7 @@ fun ProfileScreen(
                     // Accessible anchor for test suites
                     Text(
                         text = "My Profile",
-                        modifier = Modifier.size(1.dp).clipToBounds(),
+                        modifier = Modifier.size(AlgoTokens.strokeThin).clipToBounds(),
                         color = Color.Transparent,
                         fontSize = 1.sp
                     )
@@ -314,7 +314,7 @@ fun ProfileScreen(
                                 contentDescription = "Dismiss",
                                 tint = PrimaryCyan,
                                 modifier = Modifier
-                                    .size(14.dp)
+                                    .size(AlgoTokens.inlineIconMd)
                                     .clickable { noticeMessage = null }
                             )
                         }
@@ -325,18 +325,18 @@ fun ProfileScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                        .padding(vertical = AlgoTokens.space2),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.inlineIconMd)
                 ) {
-                    // Squircle Avatar (RoundedCornerShape 18dp, exactly as in commit 91bf777)
-                    Box(modifier = Modifier.size(56.dp)) {
+                    // Squircle Avatar (RoundedCornerShape 16dp radiusLg)
+                    Box(modifier = Modifier.size(AlgoTokens.avatarHeroSize)) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(AlgoTokens.radiusLg))
                                 .background(CardBackgroundElevated)
-                                .border(1.5.dp, BorderCyan, RoundedCornerShape(18.dp))
+                                .border(AlgoTokens.strokeMedium, BorderCyan, RoundedCornerShape(AlgoTokens.radiusLg))
                                 .clickable(onClick = onEditProfileClick),
                             contentAlignment = Alignment.Center
                         ) {
@@ -363,17 +363,17 @@ fun ProfileScreen(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .size(12.dp)
+                                .size(AlgoTokens.inlineIconSm)
                                 .clip(CircleShape)
                                 .background(AccentGreen)
-                                .border(2.dp, CanvasBackground, CircleShape)
+                                .border(AlgoTokens.strokeActive, CanvasBackground, CircleShape)
                         )
                     }
 
                     // Identity Info (Uses AVIA's authentic JetBrains Mono typography)
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                        verticalArrangement = Arrangement.spacedBy(AlgoTokens.space1)
                     ) {
                         Text(
                             text = profile.displayName,
@@ -391,16 +391,16 @@ fun ProfileScreen(
                         )
 
                         Row(
-                            modifier = Modifier.padding(top = 3.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = AlgoTokens.space1),
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
                                     .clip(CircleShape)
                                     .background(CyanSubtle)
-                                    .border(1.dp, PrimaryCyan.copy(alpha = 0.3f), CircleShape)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    .border(AlgoTokens.strokeThin, PrimaryCyan.copy(alpha = 0.3f), CircleShape)
+                                    .padding(horizontal = AlgoTokens.space4, vertical = AlgoTokens.space1)
                             ) {
                                 Text(
                                     text = if (authRepository.state is AuthAccountState.SignedIn) "ONLINE SYNCED" else "LOCAL",
@@ -417,10 +417,10 @@ fun ProfileScreen(
                     // Pencil Edit Button (As shown in reference image media_1790385811865.jpg)
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .size(AlgoTokens.iconButtonLg)
+                            .clip(RoundedCornerShape(AlgoTokens.radiusMd))
                             .background(CardBackgroundElevated)
-                            .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(12.dp))
+                            .border(AlgoTokens.strokeThin, BorderCyan, RoundedCornerShape(AlgoTokens.radiusMd))
                             .clickable(onClick = onEditProfileClick),
                         contentAlignment = Alignment.Center
                     ) {
@@ -428,7 +428,7 @@ fun ProfileScreen(
                             imageVector = AlgoGlyphs.EditPencil,
                             contentDescription = "Edit profile",
                             tint = PrimaryCyan,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(AlgoTokens.space6)
                         )
                     }
                 }
@@ -535,9 +535,9 @@ fun ProfileScreen(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
-                    Icon(AlgoGlyphs.Tune, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Icon(AlgoGlyphs.Tune, null, tint = PrimaryCyan, modifier = Modifier.size(AlgoTokens.inlineIconLg))
                     Text("Study Preferences", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
@@ -547,7 +547,7 @@ fun ProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
                     // 1. Trace Language
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                         Text(
                             text = "DEFAULT TRACE LANGUAGE",
                             style = MaterialTheme.typography.labelSmall,
@@ -557,11 +557,11 @@ fun ProfileScreen(
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                         ) {
                             TraceLanguage.entries.forEach { lang ->
                                 val isSel = AppSettings.preferredLanguage == lang
-                                val chipShape = RoundedCornerShape(8.dp)
+                                val chipShape = RoundedCornerShape(AlgoTokens.radiusSm)
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -569,9 +569,9 @@ fun ProfileScreen(
                                         .pressPhysics(shape = chipShape, accent = PrimaryCyan)
                                         .clip(chipShape)
                                         .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
-                                        .border(1.dp, if (isSel) PrimaryCyan else BorderMedium, chipShape)
+                                        .border(AlgoTokens.strokeThin, if (isSel) PrimaryCyan else BorderMedium, chipShape)
                                         .clickable { AppSettings.preferredLanguage = lang }
-                                        .padding(vertical = 8.dp),
+                                        .padding(vertical = AlgoTokens.space4),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -587,7 +587,7 @@ fun ProfileScreen(
                     }
 
                     // 2. Playback Speed
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -630,7 +630,7 @@ fun ProfileScreen(
                     }
 
                     // 3. Cell Scaling
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                         Text(
                             text = "VISUALIZER CELL SCALING",
                             style = MaterialTheme.typography.labelSmall,
@@ -640,7 +640,7 @@ fun ProfileScreen(
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                         ) {
                             listOf(
                                 "S (0.7x)" to 0.7f,
@@ -648,7 +648,7 @@ fun ProfileScreen(
                                 "L (1.25x)" to 1.25f
                             ).forEach { (label, scale) ->
                                 val isSel = AppSettings.defaultCellScale == scale
-                                val chipShape = RoundedCornerShape(8.dp)
+                                val chipShape = RoundedCornerShape(AlgoTokens.radiusSm)
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -656,9 +656,9 @@ fun ProfileScreen(
                                         .pressPhysics(shape = chipShape, accent = PrimaryCyan)
                                         .clip(chipShape)
                                         .background(if (isSel) PrimaryCyan else CardBackgroundElevated)
-                                        .border(1.dp, if (isSel) PrimaryCyan else BorderMedium, chipShape)
+                                        .border(AlgoTokens.strokeThin, if (isSel) PrimaryCyan else BorderMedium, chipShape)
                                         .clickable { AppSettings.defaultCellScale = scale }
-                                        .padding(vertical = 8.dp),
+                                        .padding(vertical = AlgoTokens.space4),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -743,9 +743,9 @@ fun ProfileScreen(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
-                    Icon(AlgoGlyphs.Sliders, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Icon(AlgoGlyphs.Sliders, null, tint = PrimaryCyan, modifier = Modifier.size(AlgoTokens.inlineIconLg))
                     Text("Accessibility", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
@@ -822,9 +822,9 @@ fun ProfileScreen(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
-                    Icon(AlgoGlyphs.Globe, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Icon(AlgoGlyphs.Globe, null, tint = PrimaryCyan, modifier = Modifier.size(AlgoTokens.inlineIconLg))
                     Text("Language", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
@@ -890,15 +890,15 @@ fun ProfileScreen(
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                     ) {
-                        Icon(AlgoGlyphs.Offline, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                        Icon(AlgoGlyphs.Offline, null, tint = PrimaryCyan, modifier = Modifier.size(AlgoTokens.inlineIconLg))
                         Text("Account & Cloud Sync", color = TextPrimary, fontWeight = FontWeight.Bold)
                     }
                 },
                 text = {
                     Text(
-                        text = "AlgoLens is running in local offline mode. Cloud account synchronization is coming soon. All algorithms, bookmarks, and chat history remain saved locally on this hardware.",
+                        text = "AVIA is running in local offline mode. Cloud account synchronization is coming soon. All algorithms, bookmarks, and chat history remain saved locally on this hardware.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary
                     )
@@ -921,9 +921,9 @@ fun ProfileScreen(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
-                    Icon(AlgoGlyphs.Storage, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Icon(AlgoGlyphs.Storage, null, tint = PrimaryCyan, modifier = Modifier.size(AlgoTokens.inlineIconLg))
                     Text("Data & Storage", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
@@ -939,7 +939,7 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(AlgoTokens.space3)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space2)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -1018,9 +1018,9 @@ fun ProfileScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space3)
                         ) {
-                            Icon(AlgoGlyphs.Trash, null, tint = AccentRed, modifier = Modifier.size(14.dp))
+                            Icon(AlgoGlyphs.Trash, null, tint = AccentRed, modifier = Modifier.size(AlgoTokens.inlineIconMd))
                             Text("Reset All Saved Data to Defaults", style = MaterialTheme.typography.labelSmall, color = AccentRed, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -1043,9 +1043,9 @@ fun ProfileScreen(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
-                    Icon(AlgoGlyphs.TrendingUp, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Icon(AlgoGlyphs.TrendingUp, null, tint = PrimaryCyan, modifier = Modifier.size(AlgoTokens.inlineIconLg))
                     Text("Activity & Stats", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
@@ -1060,7 +1060,7 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(AlgoTokens.space3)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(AlgoTokens.space3)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -1110,9 +1110,9 @@ fun ProfileScreen(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
-                    Icon(AlgoGlyphs.Avia, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Icon(AlgoGlyphs.Avia, null, tint = PrimaryCyan, modifier = Modifier.size(AlgoTokens.inlineIconLg))
                     Text("About AVIA", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
@@ -1148,9 +1148,9 @@ fun ProfileScreen(
             title = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(AlgoTokens.space4)
                 ) {
-                    Icon(AlgoGlyphs.Info, null, tint = PrimaryCyan, modifier = Modifier.size(18.dp))
+                    Icon(AlgoGlyphs.Info, null, tint = PrimaryCyan, modifier = Modifier.size(AlgoTokens.inlineIconLg))
                     Text("Account & Sync Notice", color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
             },
@@ -1185,17 +1185,17 @@ private fun ProfileOptionItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 48.dp)
+            .heightIn(min = AlgoTokens.minTouchTarget)
             .clip(RoundedCornerShape(AlgoTokens.radiusSm))
             .clickable(onClick = onClick)
-            .padding(horizontal = AlgoTokens.space3, vertical = 12.dp),
+            .padding(horizontal = AlgoTokens.space3, vertical = AlgoTokens.space5),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(AlgoTokens.inlineIconMd)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(AlgoTokens.inlineIconLg),
             tint = if (isDestructive) AccentRed else TextSecondary
         )
         Text(
@@ -1216,7 +1216,7 @@ private fun ProfileOptionItem(
         Icon(
             imageVector = AlgoGlyphs.ChevronRight,
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(AlgoTokens.inlineIconMd),
             tint = if (isDestructive) AccentRed.copy(alpha = 0.6f) else TextSecondary
         )
     }

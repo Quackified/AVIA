@@ -22,7 +22,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AlgoLens"
+rootProject.name = "AVIA"
 include(":app")
 include(":lint")
 include(":benchmark")

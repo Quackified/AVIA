@@ -265,7 +265,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Version", style = MaterialTheme.typography.bodySmall, color = TextMuted, fontSize = AlgoType.microSize)
-                    Text("AlgoLens v2.4.1", style = MaterialTheme.typography.labelSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = AlgoType.microSize)
+                    Text("AVIA v2.4.1", style = MaterialTheme.typography.labelSmall, color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = AlgoType.microSize)
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -299,7 +299,7 @@ fun SettingsScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "AlgoLens · Visual Algorithm Engineering",
+                text = "AVIA · Visual Algorithm Engineering",
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
                 fontSize = AlgoType.microSize

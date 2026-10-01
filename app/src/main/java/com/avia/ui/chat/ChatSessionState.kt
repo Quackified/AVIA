@@ -416,7 +416,7 @@ class ChatSessionManager(
         fun createInitialGreeting(): ChatMessage {
             return ChatMessage(
                 sender = ChatSender.ASSISTANT,
-                content = "Greetings, Operator. I am AVIA's Offline Catalog Assistant. I operate 100% locally against AlgoLens's verified 14-algorithm engine with zero network latency.\n\n" +
+                content = "Greetings, Operator. I am AVIA's Offline Catalog Assistant. I operate 100% locally against AVIA's verified 14-algorithm engine with zero network latency.\n\n" +
                     "I can analyze Big-O complexity matrices, compare sorting and graph algorithms, recommend algorithms for your software project, generate multi-language traces (Kotlin, Python, Java, C++), and deep-link directly into interactive visualizers.\n\n" +
                     "Select a prompt starter below, open Project Planner, or query me directly.",
                 suggestedFollowUps = listOf(

@@ -1,4 +1,4 @@
-﻿package com.avia.ui.visualizer
+package com.avia.ui.visualizer
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -227,7 +227,7 @@ private fun GraphTreeCanvas(
             },
             challengeTargetNodeIds = challengeNodeIds,
             startNodeId = state.graphStartNodeId ?: state.effectiveTraversalStartNodeId.takeIf { it.isNotEmpty() },
-            targetNodeId = state.graphTargetNodeId,
+            targetNodeId = state.graphTargetNodeId ?: state.effectiveTraversalTargetNodeId,
             onEndpointsChanged = { newStart, newTarget ->
                 state.recordGraphSnapshot()
                 state.graphStartNodeId = newStart

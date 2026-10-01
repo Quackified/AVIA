@@ -2,6 +2,7 @@ package com.avia.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -217,7 +218,7 @@ object AppSettings {
         get() = _guestRoleTitle
         set(value) {
             _guestRoleTitle = value
-            prefs?.edit()?.putString(KEY_GUEST_ROLE, value)?.apply()
+            prefs?.edit { putString(KEY_GUEST_ROLE, value) }
         }
 
     private var _guestAvatarUri by mutableStateOf<String?>(null)
@@ -225,7 +226,7 @@ object AppSettings {
         get() = _guestAvatarUri
         set(value) {
             _guestAvatarUri = value
-            prefs?.edit()?.putString(KEY_GUEST_AVATAR_URI, value)?.apply()
+            prefs?.edit { putString(KEY_GUEST_AVATAR_URI, value) }
         }
 
     fun init(context: Context) {
@@ -256,7 +257,7 @@ object AppSettings {
     }
 
     fun clearAllSavedData() {
-        prefs?.edit()?.clear()?.apply()
+        prefs?.edit { clear() }
         inMemoryOwnerBookmarks.clear()
         currentOwnerId = "guest"
         _preferredLanguage = TraceLanguage.KOTLIN
